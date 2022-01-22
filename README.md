@@ -22,7 +22,7 @@ qartvm (pronounced '*kar-toom*', like the capital of Sudan) is a quantum computi
 
 # Examples
 
-Some examples are provided in the `/example` folder.
+Some examples are provided in the [`/example`](https://github.com/d-markey/qartvm/tree/main/example) folder.
 
 ## Bell State
 
