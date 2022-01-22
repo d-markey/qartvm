@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "quartum",
+            "request": "launch",
+            "type": "dart",
+            "program": "./example/shor_algorithm.dart"
+        },
+        {
+            "name": "Dart Tests",
+            "program": "test",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

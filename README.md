@@ -27,7 +27,7 @@ Some examples are provided in the `/example` folder.
 ## Bell State
 
 ```dart
-final circuit = QCircuit(size: 2);
+  final circuit = QCircuit(size: 2);
   circuit.hadamard(0);
   circuit.controlledNot(0, 1);
 
