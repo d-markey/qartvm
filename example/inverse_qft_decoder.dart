@@ -4,16 +4,29 @@ import 'package:qartvm/qartvm.dart';
 
 import 'utils.dart';
 
-void main() {
-  final start = 0;
-  final end = 255;
-  final measures = 5;
+String? getArg(List<String> args, int idx) =>
+    (0 <= idx && idx < args.length) ? args[idx] : null;
 
-  for (var number = start; number <= end; number++) {
+void main(List<String> args) {
+  final start = int.tryParse(getArg(args, 0) ?? '4');
+  final end = int.tryParse(getArg(args, 1) ?? '64');
+  final measures = int.tryParse(getArg(args, 2) ?? '100');
+
+  if (start == null) {
+    throw Exception('Invalid start argument (${getArg(args, 0)})');
+  }
+  if (end == null) {
+    throw Exception('Invalid end argument (${getArg(args, 1)})');
+  }
+  if (measures == null) {
+    throw Exception('Invalid measures argument (${getArg(args, 3)})');
+  }
+
+  for (var nb = start; nb <= end; nb++) {
     print('');
     // build encoder for current number
-    print('Build encoder for $number...');
-    final encoder = buildEncoder(number);
+    print('Build encoder for $nb...');
+    final encoder = buildEncoder(nb);
     describe(encoder);
     draw(encoder);
 
@@ -35,9 +48,9 @@ void main() {
 
     // print outcome results
     print('Outcomes:');
-    for (var entry in outcomes.entries) {
-      print(
-          '   [$number] ${entry.key} (${bitString(entry.key, number)}): ${entry.value}');
+    for (var n in outcomes.keys) {
+      print('   [$nb] $n (binary ${bitString(n, nb)}): ${outcomes[n]}');
+      if (nb != n) throw Exception('Unexpected outcome $n for $nb');
     }
   }
   print('');
@@ -55,15 +68,14 @@ QCircuit buildEncoder(int number) {
 
   // build encoder
   final encoder = QCircuit(size: nbQubits);
+  encoder.hadamard(Iterable<int>.generate(encoder.size));
   final twoPi = 2 * pi;
   var div = 1;
   for (var i = nbQubits - 1; i >= 0; i--) {
-    // hadamard
-    encoder.hadamard(i, label: 'HADAMARD');
-    // rotation
+    // phase
     final angle = number * pi / div;
-    if (angle % twoPi != 0) {
-      encoder.phase(i, angle, label: 'ROTATION $number pi / $div = $angle');
+    if ((angle % twoPi).abs() > 1e-9 && (twoPi - angle % twoPi).abs() > 1e-9) {
+      encoder.phase(angle, i);
     }
     div <<= 1;
   }
@@ -74,9 +86,8 @@ QCircuit buildEncoder(int number) {
 QCircuit buildDecoder(int size) {
   final decoder = QCircuit(size: size);
   // decoder.addListener((step, gate, qreg) => print(gate?.label ?? 'initializing'));
-  final qbitIdx = List.generate(size, (i) => i);
   // inverse QFT
-  decoder.invQft(qbitIdx, label: "INV_QFT");
+  decoder.invQft(Iterable<int>.generate(size).toList(), label: "INV_QFT");
   // measure
   decoder.measure();
   return decoder;

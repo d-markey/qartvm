@@ -25,16 +25,16 @@ void main() {
 
     test('Plus |+>', () {
       final plus = Qbit.plus;
-      expect(plus.ket0, complexEquals(Complex.one / sqrt2, precision: 1e-9));
-      expect(plus.ket1, complexEquals(Complex.one / sqrt2, precision: 1e-9));
+      expect(plus.ket0, complexEquals(Complex.one * sqrt1_2, precision: 1e-9));
+      expect(plus.ket1, complexEquals(Complex.one * sqrt1_2, precision: 1e-9));
       expect(plus.ket0.det + plus.ket1.det, closeTo(1, 1e-9));
     });
 
     test('Minus |->', () {
       final minus = Qbit.minus;
-      expect(minus.ket0, complexEquals(Complex.one / sqrt2, precision: 1e-9));
-      expect(
-          minus.ket1, complexEquals(Complex.minusOne / sqrt2, precision: 1e-9));
+      expect(minus.ket0, complexEquals(Complex.one * sqrt1_2, precision: 1e-9));
+      expect(minus.ket1,
+          complexEquals(Complex.minusOne * sqrt1_2, precision: 1e-9));
       expect(minus.ket0.det + minus.ket1.det, closeTo(1, 1e-9));
     });
 

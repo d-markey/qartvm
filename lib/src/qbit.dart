@@ -4,13 +4,17 @@ import 'math/complex.dart';
 import 'exceptions.dart';
 import 'extensions.dart';
 
+/// Class representing a qubit
 class Qbit {
+  /// Builds a qubit in state [ket0] |0> + [ket1] |1>
+  /// |[ket0]|² + |[ket1]|² must be equal to 1
   Qbit({required this.ket0, required this.ket1}) {
     if (!(ket0.det + ket1.det).equals(1, precision: 1e-9)) {
-      throw InvalidQubitException();
+      throw InvalidQubitError();
     }
   }
 
+  /// Builds a random qubit
   static Qbit random() {
     var k0 = Complex.random();
     var k1 = Complex.random();
@@ -20,18 +24,13 @@ class Qbit {
     return Qbit(ket0: k0, ket1: k1);
   }
 
+  /// Builds a new qubit with amplitudes within [errorLevel] from this instance's amplitudes
   Qbit withError({double errorLevel = 0.01}) {
-    Complex k0;
-    do {
-      var error = Complex.random(radius: errorLevel);
-      k0 = ket0 + error;
-    } while (k0.det > 1);
+    var error = Complex.random(radius: errorLevel);
+    var k0 = ket0 + error;
 
-    Complex k1;
-    do {
-      var error = Complex.random(radius: errorLevel);
-      k1 = ket1 + error;
-    } while (k1.det > 1);
+    error = Complex.random(radius: errorLevel);
+    var k1 = ket1 + error;
 
     final adjust = math.sqrt(k0.det + k1.det);
     k0 /= adjust;
@@ -40,15 +39,44 @@ class Qbit {
     return Qbit(ket0: k0, ket1: k1);
   }
 
+  /// amplitude for |0>
   final Complex ket0;
+
+  /// amplitude for |1>
   final Complex ket1;
 
-  static Qbit get zero => Qbit(ket0: Complex.one, ket1: Complex.zero);
-  static Qbit get one => Qbit(ket0: Complex.zero, ket1: Complex.one);
-  static Qbit get plus =>
+  /// constant for state |0>
+  static final Qbit zero = Qbit(ket0: Complex.one, ket1: Complex.zero);
+
+  /// constant for state |1>
+  static final Qbit one = Qbit(ket0: Complex.zero, ket1: Complex.one);
+
+  /// constant for state |+> = (|0> + |1>) / sqrt(2)
+  static final Qbit plus =
       Qbit(ket0: Complex(re: math.sqrt1_2), ket1: Complex(re: math.sqrt1_2));
-  static Qbit get minus =>
+
+  /// constant for state |-> = (|0> - |1>) / sqrt(2)
+  static final Qbit minus =
       Qbit(ket0: Complex(re: math.sqrt1_2), ket1: Complex(re: -math.sqrt1_2));
+
+  /// generates a sequence of [count] qubits derived from bits in [n]
+  /// if [count] is not provided or <= 0, the sequence will contain just enough qubits to represent [n]
+  static Iterable<Qbit> fromInt(int n, {int? count}) {
+    var nb = count ?? 0;
+    if (nb <= 0) {
+      nb = 0;
+      var m = n;
+      while (m != 0) {
+        nb++;
+        m >>= 1;
+      }
+      if (nb == 0) {
+        nb = 1;
+      }
+    }
+    return Iterable.generate(
+        nb, (i) => (n & (1 << i)) == 0 ? Qbit.zero : Qbit.one);
+  }
 
   String _component(Complex c) {
     if (c.im == 0 || c.re == 0) {

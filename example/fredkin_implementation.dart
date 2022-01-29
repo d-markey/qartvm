@@ -3,13 +3,22 @@ import 'package:qartvm/qartvm.dart';
 import 'utils.dart';
 
 void main() {
+  // Controlled swap using 2 CNOT and 1 TOFFOLI
+  //
+  //  0 ---------------- X -----------------
+  //         -----                -----
+  //  1 ----| NOT |----- X ------| NOT |----
+  //         -----                -----
+  //                  --------
+  //  2 ------ X ----| CC-NOT |---- X ------
+  //                  --------
   print('');
   print('USING STANDARD GATES');
 
   final fredkinCircuitWithStandardGates = QCircuit(size: 3);
-  fredkinCircuitWithStandardGates.controlledNot(2, 1);
-  fredkinCircuitWithStandardGates.toffoli(0, 1, 2);
-  fredkinCircuitWithStandardGates.controlledNot(2, 1);
+  fredkinCircuitWithStandardGates.not(1, controls: 2);
+  fredkinCircuitWithStandardGates.toffoli(2, controls: {0, 1});
+  fredkinCircuitWithStandardGates.not(1, controls: 2);
 
   describe(fredkinCircuitWithStandardGates);
   draw(fredkinCircuitWithStandardGates);
@@ -18,8 +27,8 @@ void main() {
   print('');
   print('USING CUSTOM GATE');
 
-  final cnot21 = QGates.controlled(3).not(2, 1);
-  final toffoli012 = QGates.highLevel(3).toffoli(0, 1, 2);
+  final cnot21 = QGateBuilder.controlled(3).not({1}, controls: {2});
+  final toffoli012 = QGateBuilder.highLevel(3).toffoli(2, controls: {0, 1});
   // Here, the custom Fredkin gate matrix is computed by multiplying
   // the matrices of the standard gates that make it up.
   // The Fredkin matrix (hard-coded) could have been provided as well.
@@ -29,7 +38,7 @@ void main() {
   fredkinCircuitWithCustomGate.custom({1, 2}, myFredkinGate,
       controls: {0}, type: fredkinType);
 
-  print(myFredkinGate.toStringIndent(1));
+  print(myFredkinGate.toStringIndent(1, hideZeroes: true));
   describe(fredkinCircuitWithCustomGate);
   draw(fredkinCircuitWithCustomGate);
   verifyFredkin(fredkinCircuitWithCustomGate);
@@ -38,7 +47,7 @@ void main() {
   print('USING BUILT-IN GATE');
 
   final fredkinCircuitWithBuiltInGate = QCircuit(size: 3);
-  fredkinCircuitWithBuiltInGate.fredkin(0, 1, 2);
+  fredkinCircuitWithBuiltInGate.fredkin({1, 2}, control: 0);
 
   describe(fredkinCircuitWithBuiltInGate);
   draw(fredkinCircuitWithBuiltInGate);
@@ -48,7 +57,7 @@ void main() {
 void verifyFredkin(QCircuit circuit) {
   // truth table from 000 (0) to 111 (7)
   for (var i = 0; i <= 7; i++) {
-    final qreg = QRegister(qbits(i, 3));
+    final qreg = QRegister(Qbit.fromInt(i, count: 3).toList());
 
     final initial = qreg.probabilities;
     final init = initial.entries.singleWhere((e) => e.value > 0).key;
@@ -68,7 +77,10 @@ void verifyFredkin(QCircuit circuit) {
     }
 
     print(
-        'Initial: ${stateInfo(initial)} => Outcome: ${stateInfo(outcomes)}: ${ok ? 'OK' : 'KO'}');
-    if (!ok) throw InvalidQubitException();
+        'Initial: ${probInfo(initial)} => Final: ${probInfo(outcomes)}: ${ok ? 'OK' : 'KO'}');
+    if (!ok) {
+      throw Exception(
+          'C-SWAP gate failure for $init: unexpected result $outcome');
+    }
   }
 }

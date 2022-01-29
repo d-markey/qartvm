@@ -1,8 +1,7 @@
 import 'package:qartvm/qartvm.dart';
 
 void main() {
-  final m = ComplexMatrix.generate(
-      64, 64, (r, c) => Complex.random(radius: 5, im: true));
+  final m = ComplexMatrix.generate(64, 64, (r, c) => Complex.random(radius: 2));
 
   final d = m.det;
   print('m.det = ${m.det}');

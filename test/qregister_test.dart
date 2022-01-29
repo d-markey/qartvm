@@ -1,5 +1,5 @@
 import 'package:qartvm/src/math/complex_matrix.dart';
-import 'package:qartvm/src/qgates.dart';
+import 'package:qartvm/src/qgate_builder.dart';
 import 'package:test/test.dart';
 
 import 'package:qartvm/src/qregister.dart';
@@ -121,14 +121,19 @@ void main() {
     group('Gates', () {
       test('QFT inverse', () {
         final nqubits = 7;
-        final qft =
-            QGates.highLevel(nqubits).qft(List.generate(nqubits, (i) => i));
-        // final inv = qft.inverse();
-        // final prod = qft * inv;
-        // expect(prod, complexMatrixEquals(ComplexMatrix.identity(1 << nqubits), precision: 1e-9));
+        final qft = QGateBuilder.highLevel(nqubits)
+            .qft(Iterable<int>.generate(nqubits).toList());
 
         final tc = qft.transpose().conjugate();
-        final p = qft * tc;
+        var p = qft * tc;
+        expect(
+            p,
+            complexMatrixEquals(ComplexMatrix.identity(1 << nqubits),
+                precision: 1e-9));
+
+        final inv = QGateBuilder.highLevel(nqubits)
+            .invqft(Iterable<int>.generate(nqubits).toList());
+        p = qft * inv;
         expect(
             p,
             complexMatrixEquals(ComplexMatrix.identity(1 << nqubits),

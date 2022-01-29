@@ -5,72 +5,60 @@ import 'math/complex.dart';
 import 'math/complex_array.dart';
 import 'math/complex_matrix.dart';
 import 'math/complex_vector.dart';
-import 'qstate.dart';
 import 'qbit.dart';
 
+/// Class representing a Quantum resgiter
 class QRegister {
   //
   // register attributes
   //
 
-  /// builds a register with the input qubits as initial state
+  /// Builds a Quantum register with the input [qubits] as initial state
   QRegister(List<Qbit> qubits)
       : size = qubits.length,
         _states = List.generate(1 << qubits.length, (i) => '', growable: false),
         _amplitudes = ComplexArray.zero(1 << qubits.length) {
     _loadQubits(qubits, _states, _amplitudes);
     for (var id = 0; id < size; id++) {
-      _qubits.add(QState(id, this));
+      _qstates.add(QState._(this, id));
     }
   }
 
-  /// builds a register and initialize qubits based on bits in the input byte
-  QRegister.load(int byte) : this(_initQubits(byte));
+  /// Builds a register and initialize qubits based on bits in the input [byte]
+  QRegister.load(int byte) : this(Qbit.fromInt(byte, count: 8).toList());
 
-  /// builds a register of specified size, all qubits set to |0>
+  /// Builds a register of specified [size], all qubits set to |0>
   QRegister.zero(int size) : this(List.generate(size, (i) => Qbit.zero));
 
-  /// builds a register of specified size, all qubits set to |1>
+  /// Builds a register of specified [size], all qubits set to |1>
   QRegister.one(int size) : this(List.generate(size, (i) => Qbit.one));
 
-  /// builds a register of specified size, all qubits set to |0>
+  /// Builds a register of specified [size], all qubits set to |+>
   QRegister.plus(int size) : this(List.generate(size, (i) => Qbit.plus));
 
-  /// builds a register of specified size, all qubits set to |1>
+  /// Builds a register of specified [size], all qubits set to |->
   QRegister.minus(int size) : this(List.generate(size, (i) => Qbit.minus));
 
-  /// builds a register of specified size with random qubits
+  /// Builds a register of specified [size] with random qubits
   QRegister.random(int size) : this(List.generate(size, (i) => Qbit.random()));
 
-  /// builds a register of specified size with generated qubits
+  /// Builds a register of specified [size] and initializes qubits using the [generator] function
   QRegister.generate(int size, Qbit Function(int i) generator)
       : this(List.generate(size, generator));
 
-  /// register size (number of qubits)
+  /// The register's size (number of qubits)
   final int size;
 
-  final List<QState> _qubits = <QState>[];
+  final List<QState> _qstates = <QState>[];
   final List<String> _states;
   final ComplexArray _amplitudes;
 
-  /// reset the register with the specified byte
+  /// Resets the register with the specified [byte]
   void load(int byte) {
-    if (size != 8) throw InvalidOperationException();
-    _loadQubits(_initQubits(byte), _states, _amplitudes);
-    for (var id = 0; id < size; id++) {
-      _qubits[id].unmeasure();
+    _loadQubits(Qbit.fromInt(byte, count: size).toList(), _states, _amplitudes);
+    for (var qstate in _qstates) {
+      qstate._unmeasure();
     }
-  }
-
-  static List<Qbit> _initQubits(int byte) {
-    var i = 0;
-    final qubits = <Qbit>[];
-    while (i < 8) {
-      final b = (byte & (1 << i)) >> i;
-      qubits.add(b == 0 ? Qbit.zero : Qbit.one);
-      i++;
-    }
-    return qubits;
   }
 
   static void _loadQubits(
@@ -104,22 +92,16 @@ class QRegister {
   // states and amplitudes
   //
 
-  /// gets the qubit for [id]
-  QState operator [](int id) => _qubits[id];
+  /// Returns the state for qubit [id]
+  QState operator [](int id) => _qstates[id];
 
-  /// gets the list of states with associated amplitudes
-  Map<String, Complex> get amplitudes {
-    _collapse();
-    return Map.fromIterables(
-        _states, Iterable.generate(_amplitudes.length, (i) => _amplitudes[i]));
-  }
+  /// Returns the list of states with associated amplitudes
+  Map<String, Complex> get amplitudes => Map.fromIterables(
+      _states, Iterable.generate(_amplitudes.length, (i) => _amplitudes[i]));
 
-  /// gets the list of states with associated probabilities
-  Map<String, double> get probabilities {
-    _collapse();
-    return Map.fromIterables(_states,
-        Iterable.generate(_amplitudes.length, (i) => _amplitudes.modulus2(i)));
-  }
+  /// Returns the list of states with associated probabilities
+  Map<String, double> get probabilities => Map.fromIterables(_states,
+      Iterable.generate(_amplitudes.length, (i) => _amplitudes.modulus2(i)));
 
   static bool _match(String mask, String state) {
     if (mask.length != state.length) return false;
@@ -129,16 +111,12 @@ class QRegister {
     return true;
   }
 
-  /// gets probability for the specified mask
+  /// Computes probability for the specified [mask] (such as '01100', '.0...' or '..1.0..', etc)
   double getPropability(String mask) {
-    _collapse();
     double p = 0;
     for (var i = 0; i < _states.length; i++) {
       if (_match(mask, _states[i])) {
-        // print('      ${_states[i]} matches $mask with p = ${_amplitudes.modulus2(i)}');
         p += _amplitudes.modulus2(i);
-      } else {
-        // print('      ${_states[i]} does not match $mask');
       }
     }
     return p <= 1 ? p : 1;
@@ -148,93 +126,136 @@ class QRegister {
   // quantum transformation
   //
 
-  /// applies a [gate] defined by its matrix to the register
-  void applyGate(ComplexMatrix gate) {
-    final v = ComplexVector(
-        Iterable.generate(_amplitudes.length, (i) => _amplitudes[i]).toList());
-    v.transform(gate);
-    v.copyTo(_amplitudes);
-    for (var qubit in _qubits) {
-      qubit.unmeasure();
+  /// Applies a [gate] represented by a [ComplexMatrix] onto this register
+  void applyGate(ComplexMatrix gate, Set<int> qubits) {
+    final work = ComplexVector.zero(_amplitudes.length);
+    work.copyFrom(_amplitudes);
+    work.transform(gate);
+    work.copyTo(_amplitudes);
+    for (var qstate in _qstates.where((s) => qubits.contains(s.id))) {
+      qstate._unmeasure();
     }
   }
 
   //
-  // measurement
+  // Measurement
   //
 
-  /// measures a set of qubits
+  /// Measures a set of [qubits].
+  /// If some of the [qubits] have already been measured, no action is taken. For [qubits] that have not been measured yet,
+  /// the qubit's state is forced to |0> or |1> depending on the current probabilities. If a measurement has been made,
+  /// the states are collapsed accordingly and amplitudes are scaled so that total probablities amount to 100%.
   void measure({Set<int>? qubits}) {
+    void _collapse() {
+      // collapse amplitudes of qubits with non-null state
+      var changed = false;
+      for (var qubit in _qstates.where((q) => q.state != null)) {
+        final qid = qubit.id;
+        final qstate = qubit.state!;
+        // check states
+        for (var i = 0; i < _states.length; i++) {
+          final state = _states[i];
+          if (state[qid] != qstate && !_amplitudes.isZero(i)) {
+            // collapse
+            _amplitudes.set(i, Complex.zero);
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        // normalize amplitudes
+        // multiple iterations (max 5) to try and obtain a sum of 1
+        var sum = 0.0;
+        for (var i = 0; i < _amplitudes.length; i++) {
+          sum += _amplitudes.modulus2(i);
+        }
+        var prevsum = 0.0;
+        var maxIterations = 5;
+        while (sum != 1 && sum != prevsum && maxIterations > 0) {
+          _amplitudes.unscale(math.sqrt(sum));
+          maxIterations--;
+          prevsum = sum;
+          sum = 0.0;
+          for (var i = 0; i < _amplitudes.length; i++) {
+            sum += _amplitudes.modulus2(i);
+          }
+        }
+      }
+    }
+
     // measure all qubits by default
     qubits ??= <int>{};
-    if (qubits.isEmpty) qubits.addAll(Iterable.generate(size, (i) => i));
+    if (qubits.isEmpty) qubits.addAll(Iterable<int>.generate(size));
     for (var id in qubits) {
-      if (_qubits[id].state == null) {
+      if (_qstates[id].state == null) {
         // measure this qubit
-        _qubits[id].measure();
+        _qstates[id]._measure();
         // collapse states
         _collapse();
       }
     }
   }
 
+  /// Reads a list of [qubits] (making measurements if appropriate) and returns the result as an [int].
   int read({List<int>? qubits}) {
-    qubits ??= <int>[];
-    if (qubits.isEmpty) qubits.addAll(Iterable.generate(size, (i) => i));
+    qubits = (qubits == null || qubits.isEmpty)
+        ? Iterable<int>.generate(size).toList()
+        : qubits;
     measure(qubits: qubits.toSet());
-    int res = 0;
+    var res = 0;
     for (var id in qubits) {
       res <<= 1;
-      switch (_qubits[id].state) {
+      switch (_qstates[id].state) {
         case '0':
           break;
         case '1':
           res |= 1;
           break;
         default:
-          throw InvalidOperationException();
+          throw InvalidQubitError();
       }
     }
     return res;
   }
+}
 
-  void _collapse() {
-    for (var qubit in _qubits.where((q) => q.state != null)) {
-      final qid = qubit.id;
-      final qstate = qubit.state!;
-      // check states
-      for (var i = 0; i < _states.length; i++) {
-        final state = _states[i];
-        if (state[qid] != qstate) {
-          // collapse
-          if (!_amplitudes.isZero(i)) {
-            _amplitudes.set(i, Complex.zero);
-          }
-        }
+/// Class representing the Quantum state of a qubit
+class QState {
+  static final _rnd = math.Random.secure();
+
+  /// Builds a Quantum state for qubit [id] in [_register]
+  QState._(this._register, this.id)
+      : _mask = Iterable.generate(_register.size, (i) => i == id ? '0' : '.')
+            .join();
+
+  /// The qubit's [id]
+  final int id;
+
+  final String _mask;
+  final QRegister _register;
+
+  /// Returns the probability for the qubit to be |0> according to the current state of the [_register]
+  double get zero => _register.getPropability(_mask);
+
+  String? _state;
+  String? get state => _state;
+
+  // Measure the qubit unless a measurement was already made
+  String _measure() {
+    if (_state == null) {
+      final zero = this.zero;
+      final one = 1 - zero;
+      if (zero >= one) {
+        _state = (_rnd.nextDouble() <= zero) ? '0' : '1';
+      } else {
+        _state = (_rnd.nextDouble() <= one) ? '1' : '0';
       }
     }
-    var sum = 0.0;
-    for (var i = 0; i < _amplitudes.length; i++) {
-      if (!_amplitudes.isZero(i)) {
-        sum += _amplitudes.modulus2(i);
-      }
-    }
-    if (sum != 1) {
-      // normalize probabilities; multiple iterations (max 5) to try and obtain a sum of 1
-      var prevsum = 0.0;
-      var maxIterations = 5;
-      while (sum != prevsum && maxIterations > 0) {
-        final norm = math.sqrt(sum);
-        maxIterations--;
-        prevsum = sum;
-        sum = 0;
-        _amplitudes.unscale(norm);
-        for (var i = 0; i < _amplitudes.length; i++) {
-          if (!_amplitudes.isZero(i)) {
-            sum += _amplitudes.modulus2(i);
-          }
-        }
-      }
-    }
+    return state!;
+  }
+
+  // Resets the qubit state after a Quantum gate has been applied to the register.
+  void _unmeasure() {
+    _state = null;
   }
 }

@@ -36,7 +36,7 @@ void main() {
         expect(probs['11'], closeTo(0.25, 1e-9));
 
         // hadamard on first+second qubit (revert previous operations)
-        final h01 = QCircuit(size: 2).parallelHadamard({0, 1});
+        final h01 = QCircuit(size: 2).hadamard({0, 1});
 
         // test
         h01.execute(qreg);
@@ -104,7 +104,7 @@ void main() {
           expect(probs['10'], closeTo(1, 1e-9));
           expect(probs['11'], closeTo(0, 1e-9));
           // undo
-          final not01 = QCircuit(size: 2).parallelNot({0, 1});
+          final not01 = QCircuit(size: 2).not({0, 1});
           not01.execute(qreg);
           probs = qreg.probabilities;
           sum = probs.values.fold<double>(0, (s, p) => s + p);
@@ -146,7 +146,7 @@ void main() {
           expect(probs['10'], closeTo(1, 1e-9));
           expect(probs['11'], closeTo(0, 1e-9));
           // undo
-          final y01 = QCircuit(size: 2).parallelPauliY({0, 1});
+          final y01 = QCircuit(size: 2).not({0, 1});
           y01.execute(qreg);
           probs = qreg.probabilities;
           sum = probs.values.fold<double>(0, (s, p) => s + p);
@@ -188,7 +188,7 @@ void main() {
           expect(probs['10'], closeTo(0, 1e-9));
           expect(probs['11'], closeTo(0, 1e-9));
           // undo
-          final z01 = QCircuit(size: 2).parallelPauliZ({0, 1});
+          final z01 = QCircuit(size: 2).pauliZ({0, 1});
           z01.execute(qreg);
           probs = qreg.probabilities;
           sum = probs.values.fold<double>(0, (s, p) => s + p);
@@ -230,7 +230,7 @@ void main() {
           expect(probs['10'], closeTo(0.25, 1e-9));
           expect(probs['11'], closeTo(0.25, 1e-9));
           // again (= X)
-          final sqrtX01 = QCircuit(size: 2).parallelSquareRootOfX({0, 1});
+          final sqrtX01 = QCircuit(size: 2).squareRootOfX({0, 1});
           sqrtX01.execute(qreg);
           probs = qreg.probabilities;
           sum = probs.values.fold<double>(0, (s, p) => s + p);
@@ -242,7 +242,7 @@ void main() {
         });
 
         test('Controlled NOT (2-qubit register)', () {
-          final ctrlX01 = QCircuit(size: 2).controlledNot(0, 1);
+          final ctrlX01 = QCircuit(size: 2).not(1, controls: 0);
           // |00> => |00>
           var qreg = QRegister([Qbit.zero, Qbit.zero]);
           ctrlX01.execute(qreg);
@@ -289,7 +289,7 @@ void main() {
           final control = Qbit.random();
           var qreg = QRegister([control, Qbit.zero]);
           // cnot on 1 with control 0
-          final ctrlX01 = QCircuit(size: 2).controlledNot(0, 1);
+          final ctrlX01 = QCircuit(size: 2).not(1, controls: 0);
           ctrlX01.execute(qreg);
           var probs = qreg.probabilities;
           var sum = probs.values.fold<double>(0, (s, p) => s + p);
@@ -309,34 +309,10 @@ void main() {
           expect(probs['01'], closeTo(0, 1e-9));
           expect(probs['10'], closeTo(0, 1e-9));
           expect(probs['11'], closeTo((qstate == '1') ? 1 : 0, 1e-9));
-          // hadamard on 0
-          final h0 = QCircuit(size: 2).hadamard(0);
-          h0.execute(qreg);
-          expect(qubit.state, isNull);
-          probs = qreg.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
-          expect(probs['00'], closeTo((qstate == '0') ? 0.5 : 0, 1e-9));
-          expect(probs['01'], closeTo((qstate == '1') ? 0.5 : 0, 1e-9));
-          expect(probs['10'], closeTo((qstate == '0') ? 0.5 : 0, 1e-9));
-          expect(probs['11'], closeTo((qstate == '1') ? 0.5 : 0, 1e-9));
-          // measure control qubit (direct)
-          qubit.measure();
-          expect(qubit.state, isNotNull);
-          probs = qreg.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
-          expect(sum, closeTo(1, 1e-9));
-          expect(probs['00'],
-              closeTo((qubit.state == '0' && qstate == '0') ? 1 : 0, 1e-9));
-          expect(probs['01'],
-              closeTo((qubit.state == '0' && qstate == '1') ? 1 : 0, 1e-9));
-          expect(probs['10'],
-              closeTo((qubit.state == '1' && qstate == '0') ? 1 : 0, 1e-9));
-          expect(probs['11'],
-              closeTo((qubit.state == '1' && qstate == '1') ? 1 : 0, 1e-9));
         });
 
         test('Controlled NOT (3-qubit register)', () {
-          final crtlX02 = QCircuit(size: 3).controlledNot(0, 2);
+          final crtlX02 = QCircuit(size: 3).not(2, controls: 0);
           // |0?0> => |0?0>
           var qreg = QRegister([Qbit.zero, Qbit.random(), Qbit.zero]);
           crtlX02.execute(qreg);

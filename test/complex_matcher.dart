@@ -60,21 +60,13 @@ class _ComplexMatrixEqualsMatcher extends Matcher {
         });
         return false;
       }
-      for (var r = 0; r < _value.rows; r++) {
-        for (var c = 0; c < _value.columns; c++) {
-          if (!_value.get(r, c).equals(item.get(r, c), precision: precision)) {
-            addStateInfo(matchState, {
-              'mismatch':
-                  'mismatch at [$r,$c]: expected ${_value.get(r, c)}, found ${item.get(r, c)}'
-            });
-            return false;
-          }
-        }
+      if (!_value.equals(item, precision: precision)) {
+        return false;
       }
       return true;
     } else {
-      addStateInfo(matchState, {'mismatch': 'not a Complex matrix'});
-      throw Exception('not a Complex matrix');
+      addStateInfo(matchState, {'mismatch': 'not a ComplexMatrix'});
+      return false;
     }
   }
 }

@@ -26,17 +26,17 @@ void main() {
 
         expect(
             a,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 1, im: 1)]
             ])));
         expect(
             b,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 2, im: -0.5)]
             ])));
         expect(
             c,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 3, im: 0.5)]
             ])));
       });
@@ -52,17 +52,17 @@ void main() {
 
         expect(
             a,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 1, im: 1)]
             ])));
         expect(
             b,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 2, im: -0.5)]
             ])));
         expect(
             c,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: -1, im: 1.5)]
             ])));
       });
@@ -80,17 +80,17 @@ void main() {
 
         expect(
             a,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 3, im: 0.5)]
             ])));
         expect(
             b,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 2, im: -0.5)]
             ])));
         expect(
             c,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 3, im: 0.5)]
             ])));
         expect(identical(a, c), isTrue);
@@ -107,17 +107,17 @@ void main() {
 
         expect(
             a,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: -1, im: 1.5)]
             ])));
         expect(
             b,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: 2, im: -0.5)]
             ])));
         expect(
             c,
-            equals(ComplexMatrix([
+            complexMatrixEquals(ComplexMatrix([
               [Complex(re: -1, im: 1.5)]
             ])));
         expect(identical(a, c), isTrue);
@@ -136,7 +136,7 @@ void main() {
         final a = ComplexMatrix([
           [Complex(re: 0.5, im: -1)]
         ]);
-        expect(a.det, equals(Complex.one));
+        expect(a.det, complexEquals(Complex.one));
       });
     });
   });
@@ -150,7 +150,7 @@ void main() {
           [1, 0, 2, 3],
           [1, 0, 4, 5],
         ]);
-        expect(a.det, equals(Complex(re: 2)));
+        expect(a.det, complexEquals(Complex(re: 2)));
       });
 
       test('Non-invertible', () {
@@ -175,17 +175,21 @@ void main() {
         ]);
         final b = a.inverse();
 
-        expect(a * b, equals(ComplexMatrix.identity(4)));
-        expect(b * a, equals(ComplexMatrix.identity(4)));
+        expect(a * b,
+            complexMatrixEquals(ComplexMatrix.identity(4), precision: 1e-9));
+        expect(b * a,
+            complexMatrixEquals(ComplexMatrix.identity(4), precision: 1e-9));
 
         expect(
             b,
-            equals(_complexMatrix([
-              [0, 1, 0, 0],
-              [1, -1, 0.5, -0.5],
-              [0, 1, -2.5, 1.5],
-              [0, -1, 2, -1],
-            ])));
+            complexMatrixEquals(
+                _complexMatrix([
+                  [0, 1, 0, 0],
+                  [1, -1, 0.5, -0.5],
+                  [0, 1, -2.5, 1.5],
+                  [0, -1, 2, -1],
+                ]),
+                precision: 1e-9));
       });
 
       test('Non-invertible', () {
@@ -199,28 +203,28 @@ void main() {
         expect(() => a.inverse(), throwsA(isA<InvalidOperationException>()));
       });
     });
+  });
 
-    group('Random', () {
-      test('Inverse', () {
-        final rnd = Random.secure();
-        for (var i = 0; i < 100; i++) {
-          final size = 2 + rnd.nextInt(30 + 1); // 2-32
-          final matrix =
-              ComplexMatrix.generate(size, size, (r, c) => Complex.random());
-          final d = matrix.det.modulus;
-          if (d == 0) {
-            expect(() => matrix.inverse(),
-                throwsA(isA<InvalidOperationException>()));
-          } else {
-            final inv = matrix.inverse();
-            final prod = matrix * inv;
-            expect(
-                prod,
-                complexMatrixEquals(ComplexMatrix.identity(size),
-                    precision: 1e-9));
-          }
+  group('Random', () {
+    test('Inverse', () {
+      final rnd = Random.secure();
+      for (var i = 0; i < 100; i++) {
+        final size = 2 + rnd.nextInt(30 + 1); // 2-32
+        final matrix =
+            ComplexMatrix.generate(size, size, (r, c) => Complex.random());
+        final d = matrix.det.modulus;
+        if (d == 0) {
+          expect(() => matrix.inverse(),
+              throwsA(isA<InvalidOperationException>()));
+        } else {
+          final inv = matrix.inverse();
+          final prod = matrix * inv;
+          expect(
+              prod,
+              complexMatrixEquals(ComplexMatrix.identity(size),
+                  precision: 1e-9));
         }
-      });
+      }
     });
   });
 }
