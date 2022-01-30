@@ -4,17 +4,18 @@ qartvm (pronounced '*kar-toom*', like the capital of Sudan) is a quantum computi
 
 * Quantum circuit definition
 
-* Buit-in quantum gates:
+* Built-in quantum gates:
   * Hadamard
   * Pauli X (NOT), Y, Z
   * Phase S, T & custom
-  * Parallel single-qubit gates
-  * Controlled gates (single-qubit with single qubit control)
+  * Rotations
   * Higher-level gates:
     * swap
     * Toffoli (CC-NOT)
     * Fredkin (C-SWAP)
     * Quantum Fourrier Transform (QFT) and inverse QFT
+* Gates acting on a single qubit can be parallelized
+* Gates can be controlled by one or several qubits
 
 * Custom quantum gates
 
