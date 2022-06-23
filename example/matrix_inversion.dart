@@ -11,7 +11,10 @@ void main() {
     print('non invertible');
   } else {
     final p = m * m.inverse();
-    print(p.toStringIndent(0, fractionDigits: 0));
+    print(p.toStringIndent(fractionDigits: 0));
+    if (!p.equals(ComplexMatrix.identity(64), precision: 1e-9)) {
+      throw Exception('Expected the identity matrix');
+    }
   }
 
   print('');

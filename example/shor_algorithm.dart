@@ -55,7 +55,9 @@ int gcd(int a, int b) {
 }
 
 int quantumPart(int N, int a, int widthOfN) {
-  final circuit = QCircuit(size: 2 * widthOfN + 3);
+  final gateBuilder = QGateBuilder.get(2 * widthOfN + 3);
+
+  final circuit = QCircuit(gateBuilder);
   circuit.hadamard(Iterable<int>.generate(widthOfN).toSet());
 
   // TODO !!!

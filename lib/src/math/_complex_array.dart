@@ -8,9 +8,9 @@ import 'complex.dart';
 /// Class holding a list of [Complex] values
 class ComplexArray {
   /// Builds a list from [values]
-  ComplexArray(List<Complex> values)
-      : _re = Float64List.fromList(values.map((c) => c.re.toDouble()).toList()),
-        _im = Float64List.fromList(values.map((c) => c.im.toDouble()).toList());
+  ComplexArray._clone(Float64List re, Float64List im)
+      : _re = Float64List.fromList(re),
+        _im = Float64List.fromList(im);
 
   /// Builds a list of [length] elements initialized to [Complex.zero]
   ComplexArray.zero(int length)
@@ -54,12 +54,13 @@ class ComplexArray {
     return this;
   }
 
+  /// Creates a clone of this instance
+  ComplexArray clone() => ComplexArray._clone(_re, _im);
+
   /// Resets all values to [Complex.zero]
   void _zero() {
-    for (var i = 0; i < length; i++) {
-      _re[i] = 0;
-      _im[i] = 0;
-    }
+    _re.fillRange(0, length, 0);
+    _im.fillRange(0, length, 0);
   }
 
   void _swap(Float64List values, int i1, int i2) {
@@ -120,6 +121,7 @@ class ComplexArray {
   void div(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
     final are = a._re[ai];
     final aim = a._im[ai];
+    if (are == 0 && aim == 0) return;
     final bre = b._re[bi];
     final bim = b._im[bi];
     final d = bre * bre + bim * bim;
@@ -131,8 +133,10 @@ class ComplexArray {
   void addmul(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
     final are = a._re[ai];
     final aim = a._im[ai];
+    if (are == 0 && aim == 0) return;
     final bre = b._re[bi];
     final bim = b._im[bi];
+    if (bre == 0 && bim == 0) return;
     _re[idx] += are * bre - aim * bim;
     _im[idx] += are * bim + aim * bre;
   }
@@ -145,8 +149,8 @@ class ComplexArray {
 
   /// Sets value at index [idx] with [value]
   void set(int idx, Complex value) {
-    _re[idx] = value.re.toDouble();
-    _im[idx] = value.im.toDouble();
+    _re[idx] = value.re;
+    _im[idx] = value.im;
   }
 
   /// Sets value at index [idx] with the value from [a] at index [ai]
@@ -254,4 +258,12 @@ class ComplexArray {
               length, (i) => '${_re[i].normalize()} + ${_im[i].normalize()} i')
           .join(', ') +
       ']';
+
+  List serialize() => [
+        _re,
+        _im,
+      ];
+
+  static ComplexArray deserialize(List json) => ComplexArray._clone(
+      Float64List.fromList(json[0]), Float64List.fromList(json[1]));
 }

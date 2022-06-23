@@ -94,11 +94,13 @@ class _Operators {
       ]);
 }
 
-class _Cache {
-  _Cache({bool enabled = true})
+class _DisengageableCache {
+  _DisengageableCache({bool enabled = true})
       : _cache = enabled ? <String, ComplexMatrix>{} : null;
 
   final Map<String, ComplexMatrix>? _cache;
+
+  bool get enabled => _cache != null;
 
   ComplexMatrix? operator [](String key) => _cache?[key];
 
@@ -109,12 +111,12 @@ class _Cache {
 /// Class used to build [QCircuitGate] matrices for [QCircuit] of size [size]
 class ParallelGateBuilder {
   ParallelGateBuilder._(this.size, {bool withCache = false})
-      : _cache = _Cache(enabled: withCache);
+      : _cache = _DisengageableCache(enabled: withCache);
 
   /// Size of the [QCircuit] for which this builder can build matrices
   final int size;
 
-  final _Cache _cache;
+  final _DisengageableCache _cache;
 
   /// Builds a matrix for a [gate] operating on [qubits].
   /// [gate] may be a 2x2 matrix in which case the full transformation matrix will be computed as the tensor
@@ -141,72 +143,67 @@ class ParallelGateBuilder {
 
   /// Builds a Hadamard matrix operating on supplied [qubits].
   ComplexMatrix hadamard(Set<int> qubits) => _cache.putIfAbsent(
-      'H-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.H));
+      'H-${_key(qubits)}', () => build(qubits, _Operators.H));
 
   /// Builds a Pauli X (NOT) matrix operating on supplied [qubits].
   ComplexMatrix pauliX(Set<int> qubits) => _cache.putIfAbsent(
-      'X-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.X));
+      'X-${_key(qubits)}', () => build(qubits, _Operators.X));
 
   /// Builds a Pauli X (NOT) matrix operating on supplied [qubits].
   ComplexMatrix not(Set<int> qubits) => pauliX(qubits);
 
   /// Builds a Pauli Y matrix operating on supplied [qubits].
   ComplexMatrix pauliY(Set<int> qubits) => _cache.putIfAbsent(
-      'Y-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.Y));
+      'Y-${_key(qubits)}', () => build(qubits, _Operators.Y));
 
   /// Builds a Pauli Z matrix operating on supplied [qubits].
   ComplexMatrix pauliZ(Set<int> qubits) => _cache.putIfAbsent(
-      'Z-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.Z));
+      'Z-${_key(qubits)}', () => build(qubits, _Operators.Z));
 
   /// Builds a 'square root of NOT' matrix operating on supplied [qubits].
   ComplexMatrix squareRootOfX(Set<int> qubits) => _cache.putIfAbsent(
-      'SQRTX-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.SqrtX));
+      'SQRTX-${_key(qubits)}', () => build(qubits, _Operators.SqrtX));
 
   /// Builds a phase matrix operating on supplied [qubits] with angle [radians].
   ComplexMatrix phase(double radians, Set<int> qubits) => _cache.putIfAbsent(
-      'PHASE-${(qubits.toList()..sort()).join('-')}',
+      'PHASE-$radians-${_key(qubits)}',
       () => build(qubits, _Operators.phase(radians)));
 
   /// Builds a phase S matrix operating on supplied [qubits].
   ComplexMatrix phaseS(Set<int> qubits) => _cache.putIfAbsent(
-      'S-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.S));
+      'S-${_key(qubits)}', () => build(qubits, _Operators.S));
 
   /// Builds a phase T matrix operating on supplied [qubits].
   ComplexMatrix phaseT(Set<int> qubits) => _cache.putIfAbsent(
-      'T-${(qubits.toList()..sort()).join('-')}',
-      () => build(qubits, _Operators.T));
+      'T-${_key(qubits)}', () => build(qubits, _Operators.T));
 
   /// Builds a X-rotation matrix operating on supplied [qubits] with angle [radians].
-  ComplexMatrix rotationX(Set<int> qubits, double radians) =>
-      _cache.putIfAbsent('ROTx-${(qubits.toList()..sort()).join('-')}-$radians',
+  ComplexMatrix rotationX(double radians, Set<int> qubits) =>
+      _cache.putIfAbsent('ROTx-$radians-${_key(qubits)}',
           () => build(qubits, _Operators.rotationX(radians)));
 
   /// Builds a Y-rotation matrix operating on supplied [qubits] with angle [radians].
-  ComplexMatrix rotationY(Set<int> qubits, double radians) =>
-      _cache.putIfAbsent('ROTy-${(qubits.toList()..sort()).join('-')}-$radians',
+  ComplexMatrix rotationY(double radians, Set<int> qubits) =>
+      _cache.putIfAbsent('ROTy-$radians-${_key(qubits)}',
           () => build(qubits, _Operators.rotationY(radians)));
 
   /// Builds a Z-rotation matrix operating on supplied [qubits] with angle [radians].
-  ComplexMatrix rotationZ(Set<int> qubits, double radians) =>
-      _cache.putIfAbsent('ROTz-${(qubits.toList()..sort()).join('-')}-$radians',
+  ComplexMatrix rotationZ(double radians, Set<int> qubits) =>
+      _cache.putIfAbsent('ROTz-$radians-${_key(qubits)}',
           () => build(qubits, _Operators.rotationZ(radians)));
 }
 
 /// Class used to build controlled [QCircuitGate] matrices for [QCircuit] of size [size]
 class ControlledGateBuilder {
   ControlledGateBuilder._(this.size, {bool withCache = false})
-      : _cache = _Cache(enabled: withCache);
+      : _cache = _DisengageableCache(enabled: withCache),
+        _p1cache = _DisengageableCache(enabled: withCache);
 
   /// Size of the [QCircuit] for which this builder can build matrices
   final int size;
 
-  final _Cache _cache;
+  final _DisengageableCache _cache;
+  final _DisengageableCache _p1cache;
 
   /// Builds a matrix for a [gate] operating on [qubits] and controlled by [controls].
   /// [gate] may be a 2x2 matrix in which case the full uncontrolled transformation matrix will be computed as
@@ -228,11 +225,14 @@ class ControlledGateBuilder {
     }
 
     // compute projector when all control qubits are set
-    var p1 = controls.contains(0) ? _Operators.p1 : _Operators.I;
-    for (var i = 1; i < size; i++) {
-      p1 = ComplexMatrix.tensor(
-          p1, controls.contains(i) ? _Operators.p1 : _Operators.I);
-    }
+    var p1 = _p1cache.putIfAbsent(_key(controls), () {
+      var p = controls.contains(0) ? _Operators.p1 : _Operators.I;
+      for (var i = 1; i < size; i++) {
+        p = ComplexMatrix.tensor(
+            p, controls.contains(i) ? _Operators.p1 : _Operators.I);
+      }
+      return p;
+    });
     // projector for other cases
     final p0 = ComplexMatrix.identity(p1.rows).sub(p1);
 
@@ -243,7 +243,9 @@ class ControlledGateBuilder {
         throw InvalidOperationException(
             'A unitary gate can only be applied on a single qubit');
       }
-      m1 = QGateBuilder.parallel(size).build(qubits, gate);
+      m1 = QGateBuilder.get(size, withCache: _cache.enabled)
+          .parallel
+          .build(qubits, gate);
     } else {
       if (gate.rows != p1.rows || gate.columns != p1.columns) {
         throw InvalidOperationException(
@@ -253,7 +255,7 @@ class ControlledGateBuilder {
     }
 
     // compose transformation with projectors
-    return p1.mul(m1).add(p0);
+    return p1.clone().mul(m1).add(p0);
   }
 
   /// Builds a Hadamard matrix operating on supplied [qubits] and controlled by [controls].
@@ -329,17 +331,12 @@ class ControlledGateBuilder {
 /// Class used to build high-level gate matrices for [QCircuit] of size [size]
 class HighLevelGateBuilder {
   HighLevelGateBuilder._(this.size, {bool withCache = false})
-      : _cache = _Cache(enabled: withCache),
-        _parallel = QGateBuilder.parallel(size),
-        _controlled = QGateBuilder.controlled(size);
+      : _cache = _DisengageableCache(enabled: withCache);
 
   /// Size of the [QCircuit] for which this builder can build matrices
   final int size;
 
-  final _Cache _cache;
-
-  final ParallelGateBuilder _parallel;
-  final ControlledGateBuilder _controlled;
+  final _DisengageableCache _cache;
 
   /// Builds a Toffoli (CC-NOT) matrix operating on supplied [qubit] and controlled by [controls].
   /// [controls] must be a set of 2 qubits.
@@ -349,18 +346,15 @@ class HighLevelGateBuilder {
           throw InvalidOperationException(
               'Toffoli gate requires 2 control qubits');
         }
-        return _controlled
-            .build({qubit}, _parallel.not({qubit}), controls: controls);
+        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
+        return builder.controlled
+            .build({qubit}, builder.parallel.not({qubit}), controls: controls);
       });
 
   /// Builds a SWAP matrix operating on supplied [qubits].
   /// [qubits] must be a set of 2 qubits.
   ComplexMatrix swap(Set<int> qubits) =>
       _cache.putIfAbsent('SWAP-${_key(qubits)}', () {
-        if (qubits.length != 2) {
-          throw InvalidOperationException(
-              'Toffoli gate requires 2 control qubits');
-        }
         //
         // triple CNOT
         //
@@ -369,12 +363,13 @@ class HighLevelGateBuilder {
         // 1 --NOT---*---NOT--
         //
         if (qubits.length != 2) {
-          throw InvalidOperationException('Swap gates operate on 2 qubits');
+          throw InvalidOperationException('Swap gates operate on 2 qubits, got $qubits');
         }
         final qb1 = {qubits.first};
         final qb2 = {qubits.last};
-        final not12 = _controlled.pauliX(qb2, controls: qb1);
-        final not21 = _controlled.pauliX(qb1, controls: qb2);
+        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
+        final not12 = builder.controlled.pauliX(qb2, controls: qb1);
+        final not21 = builder.controlled.pauliX(qb1, controls: qb2);
         return not12.clone().mul(not21).mul(not12);
       });
 
@@ -385,7 +380,9 @@ class HighLevelGateBuilder {
         if (qubits.length != 2) {
           throw InvalidOperationException('Fredkin gates operate on 2 qubits');
         }
-        return _controlled.build(qubits, swap(qubits), controls: {control});
+        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
+        return builder.controlled
+            .build(qubits, swap(qubits), controls: {control});
       });
 
   /// Builds a Fredkin (C-SWAP) matrix operating on supplied [qubits] and controlled by [control].
@@ -401,22 +398,23 @@ class HighLevelGateBuilder {
         final n = qubits.length;
         final phaseShifts = List.generate(
             n + 1, (i) => _Operators.phase(2 * math.pi / (1 << i)));
+        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
         final res = ComplexMatrix.identity(1 << size);
         for (var i = n; i >= 1; i--) {
           final qb = {qubits[i - 1]};
-          final m = _parallel.hadamard(qb);
+          final m = builder.parallel.hadamard(qb);
           var r = 2;
           for (var j = i - 1; j >= 1; j--) {
-            m.mul(_controlled
+            m.mul(builder.controlled
                 .build(qb, phaseShifts[r], controls: {qubits[j - 1]}));
             r++;
           }
           res.mul(m);
         }
         if (reverse) {
-          final m = (n / 2).ceil();
-          for (var i = 0; i < m; i++) {
-            res.mul(swap({qubits[i], qubits[n - 1 - i]}));
+          final m = n / 2;
+          for (var i = 1; i <= m; i++) {
+            res.mul(swap({qubits[i - 1], qubits[n - i]}));
           }
         }
         return res;
@@ -426,30 +424,34 @@ class HighLevelGateBuilder {
   /// [qubits] is a list as the order of qubits is important.
   /// The matrix is built by calling [qft] and taking the conjugate transpose of the resulting matrix.
   /// If [reverse] is `true`, the order of the qubits after QFT will be reversed.
-  ComplexMatrix invqft(List<int> qubits, {bool swap = false}) =>
-      _cache.putIfAbsent('INVQFT-$swap-${qubits.join('-')}',
-          () => qft(qubits, reverse: swap).transpose().conjugate());
+  ComplexMatrix invqft(List<int> qubits, {bool reverse = false}) =>
+      _cache.putIfAbsent('INVQFT-$reverse-${qubits.join('-')}',
+          () => qft(qubits, reverse: reverse).dagger());
 }
 
-/// Singleton class used to build [QCircuitGate] matrices
+/// Builder class used to compute [QCircuitGate] matrices
 class QGateBuilder {
-  QGateBuilder._();
+  QGateBuilder._(this.size, this.withCache);
 
-  static final Map<int, ParallelGateBuilder> _parallel =
-      <int, ParallelGateBuilder>{};
+  final int size;
+  final bool withCache;
 
-  static ParallelGateBuilder parallel(int size) =>
-      _parallel.putIfAbsent(size, () => ParallelGateBuilder._(size));
+  static final List<QGateBuilder> _builders = <QGateBuilder>[];
 
-  static final Map<int, ControlledGateBuilder> _controlled =
-      <int, ControlledGateBuilder>{};
+  static QGateBuilder get(int size, {bool withCache = false}) {
+    var instance = _builders.cast<QGateBuilder?>().firstWhere(
+        (b) => b!.withCache == withCache && b.size == size,
+        orElse: () => null);
+    if (instance == null) {
+      instance = QGateBuilder._(size, withCache);
+      _builders.add(instance);
+    }
+    return instance;
+  }
 
-  static ControlledGateBuilder controlled(int size) =>
-      _controlled.putIfAbsent(size, () => ControlledGateBuilder._(size));
+  late final parallel = ParallelGateBuilder._(size, withCache: withCache);
 
-  static final Map<int, HighLevelGateBuilder> _highLevel =
-      <int, HighLevelGateBuilder>{};
+  late final controlled = ControlledGateBuilder._(size, withCache: withCache);
 
-  static HighLevelGateBuilder highLevel(int size) =>
-      _highLevel.putIfAbsent(size, () => HighLevelGateBuilder._(size));
+  late final highLevel = HighLevelGateBuilder._(size, withCache: withCache);
 }

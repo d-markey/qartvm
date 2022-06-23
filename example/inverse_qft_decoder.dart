@@ -4,23 +4,10 @@ import 'package:qartvm/qartvm.dart';
 
 import 'utils.dart';
 
-String? getArg(List<String> args, int idx) =>
-    (0 <= idx && idx < args.length) ? args[idx] : null;
-
-void main(List<String> args) {
-  final start = int.tryParse(getArg(args, 0) ?? '4');
-  final end = int.tryParse(getArg(args, 1) ?? '64');
-  final measures = int.tryParse(getArg(args, 2) ?? '100');
-
-  if (start == null) {
-    throw Exception('Invalid start argument (${getArg(args, 0)})');
-  }
-  if (end == null) {
-    throw Exception('Invalid end argument (${getArg(args, 1)})');
-  }
-  if (measures == null) {
-    throw Exception('Invalid measures argument (${getArg(args, 3)})');
-  }
+void main() {
+  final start = 4;
+  final end = 64;
+  final measures = 10;
 
   for (var nb = start; nb <= end; nb++) {
     print('');
@@ -32,7 +19,7 @@ void main(List<String> args) {
 
     // build decoder
     print('Build decoder (size = ${encoder.size} qubits)...');
-    final decoder = buildDecoder(encoder.size);
+    final decoder = buildDecoder(encoder.gateBuilder);
     describe(decoder);
     draw(decoder);
 
@@ -40,9 +27,9 @@ void main(List<String> args) {
     print('Take $measures measures...');
     final outcomes = <int, int>{};
     for (var i = 0; i < measures; i++) {
-      final qreg = QRegister.zero(encoder.size);
-      encoder.execute(qreg);
-      final n = decode(decoder, qreg);
+      final qmem = QMemorySpace.zero(encoder.size);
+      encoder.execute(qmem);
+      final n = decode(decoder, qmem);
       outcomes[n] = outcomes.putIfAbsent(n, () => 0) + 1;
     }
 
@@ -67,7 +54,8 @@ QCircuit buildEncoder(int number) {
   if (nbQubits == 0) nbQubits = 1;
 
   // build encoder
-  final encoder = QCircuit(size: nbQubits);
+  final gateBuilder = QGateBuilder.get(nbQubits);
+  final encoder = QCircuit(gateBuilder);
   encoder.hadamard(Iterable<int>.generate(encoder.size));
   final twoPi = 2 * pi;
   var div = 1;
@@ -83,17 +71,18 @@ QCircuit buildEncoder(int number) {
   return encoder;
 }
 
-QCircuit buildDecoder(int size) {
-  final decoder = QCircuit(size: size);
-  // decoder.addListener((step, gate, qreg) => print(gate?.label ?? 'initializing'));
+QCircuit buildDecoder(QGateBuilder gateBuilder) {
+  final decoder = QCircuit(gateBuilder);
+  // decoder.addListener((step, gate, qmem) => print(gate?.label ?? 'initializing'));
   // inverse QFT
-  decoder.invQft(Iterable<int>.generate(size).toList(), label: "INV_QFT");
+  decoder.invQft(Iterable<int>.generate(gateBuilder.size).toList(),
+      label: "INV_QFT");
   // measure
   decoder.measure();
   return decoder;
 }
 
-int decode(QCircuit decoder, QRegister qreg) {
-  decoder.execute(qreg);
-  return qreg.read();
+int decode(QCircuit decoder, QMemorySpace qmem) {
+  decoder.execute(qmem);
+  return qmem.read();
 }

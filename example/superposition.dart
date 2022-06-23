@@ -15,44 +15,49 @@ void main() {
   //         ---
   //  2 ----| H |----
   //         ---
-  final circuit = QCircuit(size: 3);
+
+  final qmem = QMemorySpace.zero(3);
+  final qa = qmem.createRegister('a', at: 0);
+  final qb = qmem.createRegister('b', at: 1);
+  final qc = qmem.createRegister('c', at: 2);
+  final gateBuilder = QGateBuilder.get(qmem.size);
+  final circuit = QCircuit(gateBuilder);
   circuit.hadamard({0, 2});
 
   describe(circuit);
-  draw(circuit);
+  draw(circuit, qmem: qmem);
 
-  final qreg = QRegister.zero(3);
   print('Initial states');
-  print(' * amplitudes:    ${amplInfo(qreg.amplitudes, fractionDigits: 6)}');
-  print(' * probabilities: ${probInfo(qreg.probabilities, fractionDigits: 2)}');
-  circuit.execute(qreg);
+  print(' * amplitudes:    ${amplInfo(qmem, fractionDigits: 6)}');
+  print(' * probabilities: ${probInfo(qmem, fractionDigits: 2)}');
+  circuit.execute(qmem);
   print('Final states');
-  print(' * amplitudes:    ${amplInfo(qreg.amplitudes, fractionDigits: 6)}');
-  print(' * probabilities: ${probInfo(qreg.probabilities, fractionDigits: 2)}');
+  print(' * amplitudes:    ${amplInfo(qmem, fractionDigits: 6)}');
+  print(' * probabilities: ${probInfo(qmem, fractionDigits: 2)}');
 
   print('');
 
-  final a = qreg.read(qubits: [0]);
+  final a = qa.read();
 
   print('measured qubit 0 = $a');
   print(
-      ' * amplitudes after measurement of qubit 0: ${amplInfo(qreg.amplitudes, fractionDigits: 6)}');
+      ' * amplitudes after measurement of qubit 0: ${amplInfo(qmem, fractionDigits: 6)}');
   print(
-      ' * probabilities after measurement of qubit 0: ${probInfo(qreg.probabilities, fractionDigits: 6)}');
+      ' * probabilities after measurement of qubit 0: ${probInfo(qmem, fractionDigits: 6)}');
 
-  final b = qreg.read(qubits: [1]);
+  final b = qb.read();
 
   print('measured qubit 1 = $b');
   print(
-      ' * amplitudes after measurement of qubit 1: ${amplInfo(qreg.amplitudes, fractionDigits: 6)}');
+      ' * amplitudes after measurement of qubit 1: ${amplInfo(qmem, fractionDigits: 6)}');
   print(
-      ' * probabilities after measurement of qubit 1: ${probInfo(qreg.probabilities, fractionDigits: 6)}');
+      ' * probabilities after measurement of qubit 1: ${probInfo(qmem, fractionDigits: 6)}');
 
-  final c = qreg.read(qubits: [2]);
+  final c = qc.read();
 
   print('measured qubit 2 = $c');
   print(
-      ' * amplitudes after measurement of qubit 2: ${amplInfo(qreg.amplitudes, fractionDigits: 6)}');
+      ' * amplitudes after measurement of qubit 2: ${amplInfo(qmem, fractionDigits: 6)}');
   print(
-      ' * probabilities after measurement of qubit 2: ${probInfo(qreg.probabilities, fractionDigits: 6)}');
+      ' * probabilities after measurement of qubit 2: ${probInfo(qmem, fractionDigits: 6)}');
 }

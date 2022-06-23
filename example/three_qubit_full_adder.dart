@@ -36,7 +36,13 @@ void main() {
   //    5      =      b1    /      b1
   //    6      =      b2    /      b2
   //    7      =      |0>                           (suppressed as this qubit is useless)
-  final circuit = QCircuit(size: 7);
+
+  final qmem = QMemorySpace.zero(7);
+  final qa = qmem.createRegister('qa', addresses: [3, 2, 1, 0]);
+  final qb = qmem.createRegister('qb', addresses: [6, 5, 4]);
+
+  final gateBuilder = QGateBuilder.get(qmem.size, withCache: true);
+  final circuit = QCircuit(gateBuilder);
 
   circuit.qft([3, 2, 1, 0]);
 
@@ -56,33 +62,40 @@ void main() {
 
   circuit.invQft([3, 2, 1, 0]);
 
+  circuit.addObserver((step, gate, qmem) {
+    if (step == 0) {
+      print('INITIAL STATE: ${probInfo(qmem)}');
+    }
+  });
+
   describe(circuit);
-  draw(circuit);
+  draw(circuit, qmem: qmem);
 
   final sw = Stopwatch();
 
   sw.start();
-  verifyAddition(circuit);
+  verifyAddition(circuit, qmem, qa, qb);
   sw.stop();
   print(
-      'Completed in ${sw.elapsed} before compilation, total executions = $_nbExec (${sw.elapsedMicroseconds.toDouble() / _nbExec} µs/execution)');
+      'Completed in ${sw.elapsed} before compilation, total executions = $_nbExec (${sw.elapsedMicroseconds / _nbExec} µs/execution)');
 
   circuit.compile();
 
   describe(circuit);
-  draw(circuit);
+  draw(circuit, qmem: qmem);
 
   sw.reset();
   sw.start();
-  verifyAddition(circuit);
+  verifyAddition(circuit, qmem, qa, qb);
   sw.stop();
   print(
-      'Completed in ${sw.elapsed} after compilation, total executions = $_nbExec (${sw.elapsedMicroseconds.toDouble() / _nbExec} µs/execution)');
+      'Completed in ${sw.elapsed} after compilation, total executions = $_nbExec (${sw.elapsedMicroseconds / _nbExec} µs/execution)');
 }
 
 int _nbExec = 0;
 
-void verifyAddition(QCircuit circuit) {
+void verifyAddition(
+    QCircuit circuit, QMemorySpace qmem, QRegister qa, QRegister qb) {
   _nbExec = 0;
 
   // truth table
@@ -91,14 +104,14 @@ void verifyAddition(QCircuit circuit) {
     for (var b = 0; b <= 7; b++) {
       final results = <int, int>{};
       for (var i = 0; i < 100; i++) {
-        final qreg = QRegister([
-          ...Qbit.fromInt(a, count: 4),
-          ...Qbit.fromInt(b, count: 3),
-        ]);
+        qmem.initialize({
+          qa: a,
+          qb: b,
+        });
 
-        circuit.execute(qreg);
+        circuit.execute(qmem);
         _nbExec++;
-        final n = qreg.read(qubits: [3, 2, 1, 0]);
+        final n = qa.read();
         results[n] = results.putIfAbsent(n, () => 0) + 1;
       }
 
@@ -110,18 +123,20 @@ void verifyAddition(QCircuit circuit) {
 
   // random checks
   for (var i = 0; i < 10000; i++) {
-    final rndQreg =
-        QRegister([qrnd(), qrnd(), qrnd(), qrnd(), qrnd(), qrnd(), qrnd()]);
+    qmem.initialize({
+      qa: [qrnd(), qrnd(), qrnd(), qrnd()],
+      qb: [qrnd(), qrnd(), qrnd()],
+    });
 
     // read value of a before execution (this will collapse the register's qubits #0-#3 states)
-    final a = rndQreg.read(qubits: [3, 2, 1, 0]);
+    final a = qa.read();
 
-    circuit.execute(rndQreg);
+    circuit.execute(qmem);
     _nbExec++;
 
     // read values of b and sum after execution
-    final b = rndQreg.read(qubits: [6, 5, 4]);
-    final sum = rndQreg.read(qubits: [3, 2, 1, 0]);
+    final b = qb.read();
+    final sum = qa.read();
     if (sum != (a + b) % 16) {
       throw Exception('Invalid sum $sum for $a + $b');
     }

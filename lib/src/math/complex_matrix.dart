@@ -1,25 +1,22 @@
 import '../exceptions.dart';
-import 'complex_array.dart';
+import '_complex_array.dart';
 import 'complex.dart';
 
 /// Class representing a matrix of [Complex] values in [ComplexMatrix.rows] rows and [ComplexMatrix.columns] columns
 class ComplexMatrix {
-  ComplexMatrix._(this.rows, this.columns, List<Complex> values)
-      : _values = ComplexArray(values);
+  ComplexMatrix._clone(this.rows, this.columns, ComplexArray values)
+      : _values = values.clone();
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with values obtained from the [generator] function
   ComplexMatrix.generate(
-      int rows, int columns, Complex Function(int row, int column) generator)
-      : this._(
-            rows,
-            columns,
-            Iterable.generate(
-              rows,
-              (row) => Iterable.generate(
-                columns,
-                (column) => generator(row, column),
-              ),
-            ).expand((v) => v).toList());
+      this.rows, this.columns, Complex Function(int row, int column) generator)
+      : _values = ComplexArray.zero(rows * columns) {
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < columns; c++) {
+        _values.set(_idx(r, c), generator(r, c));
+      }
+    }
+  }
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with values obtained from [values]
   factory ComplexMatrix(List<List<Complex>> values) {
@@ -51,8 +48,7 @@ class ComplexMatrix {
             (row, column) => (row == column) ? Complex.one : Complex.zero);
 
   /// Builds a clone of this instance
-  ComplexMatrix clone() =>
-      ComplexMatrix.zero(rows, columns).._values.copy(_values);
+  ComplexMatrix clone() => ComplexMatrix._clone(rows, columns, _values);
 
   final ComplexArray _values;
 
@@ -402,7 +398,7 @@ class ComplexMatrix {
     for (var r = row; r < rows; r++) {
       final m = _values.modulus2(_idx(r, row));
       if (m == 0) continue;
-      final diff = (m - 1).abs().toDouble();
+      final diff = (m - 1).abs();
       if (diff < bestDiff) {
         bestDiff = diff;
         best = r;
@@ -469,13 +465,16 @@ class ComplexMatrix {
   }
 
   @override
-  String toString() => toStringIndent(0);
+  String toString() => toStringIndent();
 
   /// Returns a String representation of this matrix with indentation at level [indent]
   /// If [hideZeroes] is `true`, values equal to [Complex.zero] down to a precision of [precision] will not be displayed
   /// The optional [fractionDigits] is used to format [Complex] values
-  String toStringIndent(int indent,
-      {int? fractionDigits, bool hideZeroes = false, double precision = 0}) {
+  String toStringIndent(
+      {int indent = 0,
+      int? fractionDigits,
+      bool hideZeroes = false,
+      double precision = 0}) {
     final spaces = '   ';
     final tabs = spaces * indent;
     final sb = StringBuffer();
@@ -510,4 +509,13 @@ class ComplexMatrix {
     sb.write('\n$tabs]');
     return sb.toString();
   }
+
+  List serialize() => [
+        rows,
+        columns,
+        _values.serialize(),
+      ];
+
+  static ComplexMatrix deserialize(List json) =>
+      ComplexMatrix._clone(json[0], json[1], ComplexArray.deserialize(json[2]));
 }

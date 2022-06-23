@@ -1,7 +1,7 @@
 extension DoubleExt on num {
   /// Returns `true` if this instance and [other] are equal down to a precision of [precision]
   bool equals(num other, {double precision = 0}) {
-    final diff = (this - other).toDouble().abs();
+    final diff = (this - other).abs();
     return diff == 0 || diff < precision;
   }
 

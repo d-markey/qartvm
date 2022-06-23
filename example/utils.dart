@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:qartvm/qartvm.dart';
 
 void describe(QCircuit circuit) {
@@ -6,25 +8,44 @@ void describe(QCircuit circuit) {
   }
 }
 
-void draw(QCircuit circuit) {
-  final drawer = QCircuitAsciiDrawer();
-  for (var l in drawer.draw(circuit)) {
-    print('  $l');
+String z2(int n) => n.toString().padLeft(2, '0');
+String z4(int n) => n.toString().padLeft(4, '0');
+
+Future draw(QCircuit circuit, {QMemorySpace? qmem, String? filePrefix}) async {
+  IOSink? writer;
+  try {
+    final drawer = QCircuitAsciiDrawer();
+    var log = (String t) => print(t);
+    if (filePrefix != null) {
+      final now = DateTime.now();
+      final file = File('./$filePrefix-${z4(now.year)}${z2(now.month)}${z2(now.day)}-${z2(now.hour)}${z2(now.minute)}${z2(now.second)}.txt');
+      writer = file.openWrite();
+      log = writer.writeln;
+    }
+    for (var l in drawer.draw(circuit, qmem)) {
+      log('  $l');
+    }
+  } finally {
+    if (writer != null) {
+      await writer.flush();
+      writer.close();
+    }
   }
 }
 
-String probInfo(Map<String, double> states, {int fractionDigits = 0}) => states
-    .entries
+String probInfo(QMemorySpace qmem, {int fractionDigits = 0}) => qmem
+    .probabilities.entries
     .where((e) => e.value > 1e-9)
-    .map(
-        (e) => '${e.key} (${percent(e.value, fractionDigits: fractionDigits)})')
+    .map((e) =>
+        '${qmem.formatState(e.key)} (${percent(e.value, fractionDigits: fractionDigits)})')
     .join(', ');
 
-String amplInfo(Map<String, Complex> states, {int fractionDigits = 0}) =>
-    states.entries
-        .where((e) => e.value.det > 1e-9)
-        .map((e) => '${e.key} (${e.value.toStringAsFixed(fractionDigits)})')
-        .join(', ');
+String amplInfo(QMemorySpace qmem, {int fractionDigits = 0}) => qmem
+    .amplitudes.entries
+    .where((e) => e.value.det > 1e-9)
+    .map((e) =>
+        '${qmem.formatState(e.key)} (${e.value.toStringAsFixed(fractionDigits)})')
+    .join(', ');
 
 String percent(double percent, {int fractionDigits = 0}) =>
     '${(percent * 100).toStringAsFixed(fractionDigits)} %';

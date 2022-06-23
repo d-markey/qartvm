@@ -61,7 +61,8 @@ class Qbit {
 
   /// generates a sequence of [count] qubits derived from bits in [n]
   /// if [count] is not provided or <= 0, the sequence will contain just enough qubits to represent [n]
-  static Iterable<Qbit> fromInt(int n, {int? count}) {
+  static Iterable<Qbit> fromInt(int n, {int? count}) sync* {
+    final value = n;
     var nb = count ?? 0;
     if (nb <= 0) {
       nb = 0;
@@ -74,8 +75,15 @@ class Qbit {
         nb = 1;
       }
     }
-    return Iterable.generate(
-        nb, (i) => (n & (1 << i)) == 0 ? Qbit.zero : Qbit.one);
+    while (nb > 0) {
+      yield ((n & 1) == 0) ? Qbit.zero : Qbit.one;
+      n >>= 1;
+      nb--;
+    }
+    if (n != 0) {
+      throw InvalidOperationException(
+          'Overflow for initialization value $value');
+    }
   }
 
   String _component(Complex c) {
@@ -85,6 +93,18 @@ class Qbit {
       return '($c)';
     }
   }
+
+  @override
+  bool operator ==(dynamic other) =>
+      (other is Qbit) && (ket0 == other.ket0) && (ket1 == other.ket1);
+
+  bool equals(Object other, {double precision = 0}) =>
+      (other is Qbit) &&
+      ket0.equals(other.ket0, precision: precision) &&
+      ket1.equals(other.ket1, precision: precision);
+
+  @override
+  int get hashCode => ket0.hashCode + 31 * ket1.hashCode;
 
   @override
   String toString() {
@@ -102,6 +122,10 @@ class Qbit {
         final k0 = _component(ket0);
         return '$k0 |0>';
       }
+    } else if (equals(Qbit.plus)) {
+      return '|+>';
+    } else if (equals(Qbit.minus)) {
+      return '|->';
     } else {
       final k0 = _component(ket0);
       var k1 = _component(ket1);

@@ -138,7 +138,7 @@ class Complex {
   }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(dynamic other) {
     if (other is num) {
       return re == other && im == 0;
     } else if (other is Complex) {
@@ -152,9 +152,10 @@ class Complex {
   /// [other] may be a [num] or a [Complex]
   bool equals(Object other, {double precision = 0}) {
     if (other is num) {
-      return (modulus - other.abs()).abs() <= precision;
+      return (re - other).abs() <= precision;
     } else if (other is Complex) {
-      return (modulus - other.modulus).abs() <= precision;
+      final complex = this - other;
+      return complex.modulus <= precision;
     } else {
       throw InvalidOperationException(
           'Cannot compare ${other.runtimeType} with $this');
@@ -162,7 +163,7 @@ class Complex {
   }
 
   @override
-  int get hashCode => re.hashCode * 17 + im.hashCode;
+  int get hashCode => re.hashCode + im.hashCode * 17;
 
   /// Returns a new [Complex] value which is the inverse of this instance
   Complex get inverse {

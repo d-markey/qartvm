@@ -2,11 +2,8 @@ import 'dart:math' as math;
 
 /// Enum-like class for Quantum gate types
 class QGateType {
-  /// Creates a constant, built-in gate type
-  const QGateType._(this.label, this.symbol);
-
   /// Creates a new, custom gate type
-  QGateType(this.label, this.symbol);
+  const QGateType(this.label, this.symbol);
 
   /// The gate type's [label]
   final String label;
@@ -14,53 +11,65 @@ class QGateType {
   /// The gate type's [symbol]
   final String symbol;
 
+  /// Built-in separator gate
+  static const separator = QGateType('separator', '|');
+
   /// Built-in measurement gate
-  static const measure = QGateType._('measure', '/');
+  static const measure = QGateType('measure', '[ / ]');
 
   /// Generic custom gate
-  static const custom = QGateType._('custom', 'CUSTOM');
+  static const custom = QGateType('custom', 'CUSTOM');
 
   /// Compiled gate
-  static const compiled = QGateType._('compiled', 'COMPILED');
+  static const compiled = QGateType('compiled', 'COMPILED');
 
   /// Hadamard gate
-  static const hadamard = QGateType._('hadamard', 'H');
+  static const hadamard = QGateType('hadamard', 'H');
 
   /// Pauli X (NOT) gate
-  static const pauliX = QGateType._('pauliX', 'NOT');
+  static const pauliX = QGateType('pauliX', 'NOT');
 
   /// Pauli Y gate
-  static const pauliY = QGateType._('pauliY', 'Y');
+  static const pauliY = QGateType('pauliY', 'Y');
 
   /// Pauli Z gate
-  static const pauliZ = QGateType._('pauliZ', 'Z');
+  static const pauliZ = QGateType('pauliZ', 'Z');
 
   /// Square root of NOT gate
-  static const squareRootOfX = QGateType._('squareRootOfX', 'SQRT-NOT');
+  static const squareRootOfX = QGateType('squareRootOfX', 'SQRT-NOT');
 
   /// Phase S gate
-  static const phaseS = QGateType._('phaseS', 'S');
+  static const phaseS = QGateType('phaseS', 'S');
 
   /// Phase T gate
-  static const phaseT = QGateType._('phaseT', 'T');
+  static const phaseT = QGateType('phaseT', 'T');
 
   /// Phase gate
-  static const phase = QGateType._('phase [angle]', 'P([angle])');
+  static const phase = QGateType('phase [angle]', 'P([angle])');
+
+  /// Rotation X gate
+  static const rotateX = QGateType('rotate-X [angle]', 'Rx([angle])');
+
+  /// Rotation Y gate
+  static const rotateY = QGateType('rotate-Y [angle]', 'Ry([angle])');
+
+  /// Rotation Z gate
+  static const rotateZ = QGateType('rotate-Z [angle]', 'Rz([angle])');
 
   /// SWAP gate
-  static const swap = QGateType._('swap', 'SWAP');
+  static const swap = QGateType('swap', 'SWAP');
 
   /// Fredkin (C-SWAP) gate
-  static const fredkin = QGateType._('fredkin', 'C-SWAP');
+  static const fredkin = QGateType('fredkin', 'C-SWAP');
 
   /// Toffoli (CC-NOT) gate
-  static const toffoli = QGateType._('toffoli', 'CC-NOT');
+  static const toffoli = QGateType('toffoli', 'CC-NOT');
 
   /// Quantum Fourrier Transform (QFT) gate
-  static const qft = QGateType._('qft', 'QFT');
+  static const qft = QGateType('qft', 'QFT');
 
   /// Inverse Quantum Fourrier Transform (INV-QFT) gate
-  static const invqft = QGateType._('invqft', 'INV-QFT');
+  static const invqft = QGateType('invqft', 'INV-QFT');
 
   static const _unitary = [
     measure,
@@ -71,10 +80,11 @@ class QGateType {
     squareRootOfX,
     phaseS,
     phaseT,
-    phase
+    phase,
   ];
 
   static const _builtIn = [
+    separator,
     measure,
     compiled,
     custom,
@@ -89,7 +99,7 @@ class QGateType {
     swap,
     toffoli,
     qft,
-    invqft
+    invqft,
   ];
 
   /// Returns `true` if the gate type operates on a single-qubit without any control qubits
