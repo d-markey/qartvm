@@ -183,18 +183,16 @@ Future<QCircuit> buildModularMultiplierGate(
   final program = QCircuit(builder);
 
   final components = await Future.wait([
-    _buildSwapperGate(shorBuilders, qvalue, qzero, qctrl, builder),
     _buildQftGate(shorBuilders, qzeroext, builder),
     _buildInvQftGate(shorBuilders, qzeroext, builder),
     _buildFlagSetterGate(shorBuilders, qzeroext, qflag, builder),
     _buildFlagResetterGate(shorBuilders, qzeroext, qflag, builder),
   ]);
 
-  final swapperGate = components[0];
-  final qftGate = components[1];
-  final invQftGate = components[2];
-  final flagSetterGate = components[3];
-  final flagResetterGate = components[4];
+  final qftGate = components[0];
+  final invQftGate = components[1];
+  final flagSetterGate = components[2];
+  final flagResetterGate = components[3];
 
   final mulGates = await Future.wait([
     _buildMultiplyAndAddModuloGate(
@@ -223,10 +221,12 @@ Future<QCircuit> buildModularMultiplierGate(
         flagSetterGate,
         flagResetterGate,
         builder),
+    _buildSwapperGate(shorBuilders, qvalue, qzero, qctrl, builder),
   ]);
 
   final mulConstantGate = mulGates[0];
   final mulInverseGate = mulGates[1];
+  final swapperGate = mulGates[2];
 
   program.append(mulConstantGate, merge: false);
   program.append(swapperGate, merge: false);
@@ -241,7 +241,7 @@ Future main() async {
 
   Squadron.setId('main');
   Squadron.setLogger(ConsoleSquadronLogger());
-  Squadron.logLevel = SquadronLogLevel.warning;
+  Squadron.logLevel = SquadronLogLevel.fine;
 
   Squadron.info('Program started');
 
@@ -269,23 +269,27 @@ Future main() async {
   final qzero = qmem.createRegister('ZERO', from: 2 * bits, to: bits + 1);
   final qflag = qmem.createRegister('FLAG', at: 2 * bits + 2);
 
-  Squadron.config('=== PARAMETERS ===');
-  Squadron.config('   * modulo = $modulo');
-  Squadron.config('   * constant = $constant');
-  Squadron.config('');
-  Squadron.config('=== REGISTERS ===');
-  Squadron.config('   * $qctrl');
-  Squadron.config('   * $qvalue');
-  Squadron.config('   * $qzeroext');
-  Squadron.config('   * $qzero');
-  Squadron.config('   * $qflag');
-  Squadron.config('');
+  Squadron.info('=== PARAMETERS ===');
+  Squadron.info('   * modulo = $modulo');
+  Squadron.info('   * constant = $constant');
+  Squadron.info(' ');
+  Squadron.info('=== REGISTERS ===');
+  Squadron.info('   * $qctrl');
+  Squadron.info('   * $qvalue');
+  Squadron.info('   * $qzeroext');
+  Squadron.info('   * $qzero');
+  Squadron.info('   * $qflag');
+  Squadron.info(' ');
 
   final builder = QGateBuilder.get(qmem.size, withCache: true);
 
   ShorBuilders shorBuilders = ShorBuildersPool(builder.size,
       ConcurrencySettings(minWorkers: 4, maxWorkers: 4, maxParallel: 1));
   // ShorBuilders shorBuilders = ShorBuildersImpl(builder.size);
+
+  if (shorBuilders is ShorBuildersPool) {
+    await shorBuilders.start();
+  }
 
   QCircuit program;
   try {
@@ -303,14 +307,17 @@ Future main() async {
     //  * qzeroext = |0> (unchanged)
     //  * qflag    = |0> (unchanged)
 
+    Squadron.info('Building program...');
     program = await buildModularMultiplierGate(shorBuilders, constant, modulo,
         qvalue, qzero, qzeroext, qctrl, qflag, builder);
   } finally {
     shorBuilders.clearCache();
     if (shorBuilders is ShorBuildersPool) {
       shorBuilders.stop();
-      Squadron.info(shorBuilders.fullStats.map((stat) => '   - $stat'));
-      Squadron.info(
+      Squadron.config('WORKER STATS:');
+      Squadron.config(shorBuilders.fullStats
+          .map((stat) => '   - ${stat.totalWorkload} - ${stat.upTime}'));
+      Squadron.config(
           'cache hits: ${shorBuilders.hits}, cache misses: ${shorBuilders.misses}');
     }
   }
@@ -337,7 +344,7 @@ Future main() async {
 
   for (var ctrl = 1; ctrl >= 0; ctrl--) {
     for (var val = 0; val < modulo; val++) {
-      print('');
+      log(' ');
 
       qmem.initialize({
         qctrl: ctrl,
@@ -354,7 +361,7 @@ Future main() async {
       assert(mzero == 0);
       assert(mflag == 0);
 
-      log('');
+      log(' ');
       log('=== INITIAL STATE ===');
       log('   * Initial values: ${qvalue.name} = $mvalue, ${qctrl.name} = $mctrl');
       log('   * Initial states: ${probInfo(qmem)}');
@@ -373,7 +380,11 @@ Future main() async {
 
       log('=== FINAL STATE ===');
       log('   * Final states: ${probInfo(qmem)}');
-      log('   * Expectation: ($val * $constant) % $modulo = ${val * constant} % $modulo = ${(val * constant) % modulo}');
+      if (ctrl == 0) {
+        log('   * Expectation: ctrl = 0 => $val');
+      } else {
+        log('   * Expectation: ctrl = 1 => ($val * $constant) % $modulo = ${val * constant} % $modulo = ${(val * constant) % modulo}');
+      }
       log('   * Result:');
       log('     * ${qctrl.name} = $expctrl => $rctrl ${rctrl == expctrl ? 'OK' : 'KO'}',
           rctrl == expctrl);

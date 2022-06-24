@@ -34,10 +34,9 @@ class ShorBuildersImpl extends WorkerService implements ShorBuilders {
   }
 
   ComplexMatrix _perf(String key, ComplexMatrix Function() compute) {
-    final started = DateTime.now().microsecondsSinceEpoch;
+    final sw = Stopwatch()..start();
     final m = compute();
-    Squadron.config(
-        '$key computed in ${Duration(microseconds: DateTime.now().microsecondsSinceEpoch - started)}');
+    Squadron.config('$key computed in ${sw.elapsed}');
     return m;
   }
 
@@ -50,9 +49,9 @@ class ShorBuildersImpl extends WorkerService implements ShorBuilders {
         for (var i = 0; i < len; i++) {
           final angle = (2 * constant) / div;
           div <<= 1;
-          // if (angle % 2 != 0) {
-          adder.phase(angle * math.pi, {qubits[len - 1 - i]});
-          // }
+          if (angle % 2 != 0) {
+            adder.phase(angle * math.pi, {qubits[len - 1 - i]});
+          }
         }
         adder.compile();
         return adder.gates.first.matrix!;

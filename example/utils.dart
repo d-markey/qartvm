@@ -18,7 +18,8 @@ Future draw(QCircuit circuit, {QMemorySpace? qmem, String? filePrefix}) async {
     var log = (String t) => print(t);
     if (filePrefix != null) {
       final now = DateTime.now();
-      final file = File('./$filePrefix-${z4(now.year)}${z2(now.month)}${z2(now.day)}-${z2(now.hour)}${z2(now.minute)}${z2(now.second)}.txt');
+      final file = File(
+          './$filePrefix-${z4(now.year)}${z2(now.month)}${z2(now.day)}-${z2(now.hour)}${z2(now.minute)}${z2(now.second)}.txt');
       writer = file.openWrite();
       log = writer.writeln;
     }

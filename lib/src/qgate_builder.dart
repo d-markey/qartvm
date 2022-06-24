@@ -363,7 +363,8 @@ class HighLevelGateBuilder {
         // 1 --NOT---*---NOT--
         //
         if (qubits.length != 2) {
-          throw InvalidOperationException('Swap gates operate on 2 qubits, got $qubits');
+          throw InvalidOperationException(
+              'Swap gates operate on 2 qubits, got $qubits');
         }
         final qb1 = {qubits.first};
         final qb2 = {qubits.last};

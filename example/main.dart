@@ -11,8 +11,8 @@ import 'multi_controlled_swap.dart' as _multi_controlled_swap;
 import 'qubit_teleportation.dart' as _qubit_teleportation;
 import 'fredkin_implementation.dart' as _fredkin_implementation;
 import 'inverse_qft_decoder.dart' as _inverse_qft_decoder;
-import 'modulo_multiplier.dart' as _modulo_multiplier;
 import 'phase_kickback.dart' as _phase_kickback;
+import 'modulo_multiplier.dart' as _modulo_multiplier;
 import 'shor_algorithm.dart' as _shor_algorithm;
 
 final programs = <String, FutureOr Function()>{
@@ -26,8 +26,8 @@ final programs = <String, FutureOr Function()>{
   'QUBIT TELEPORTATION': _qubit_teleportation.main,
   'FREDKIN GATE': _fredkin_implementation.main,
   'INVERSE QFT': _inverse_qft_decoder.main,
-  'MODULO MULTIPLIER': _modulo_multiplier.main,
   'PHASE KICKBACK': _phase_kickback.main,
+  'MODULO MULTIPLIER': _modulo_multiplier.main,
   'SHOR ALGORITHM': _shor_algorithm.main,
 };
 

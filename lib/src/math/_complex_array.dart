@@ -8,34 +8,33 @@ import 'complex.dart';
 /// Class holding a list of [Complex] values
 class ComplexArray {
   /// Builds a list from [values]
-  ComplexArray._clone(Float64List re, Float64List im)
-      : _re = Float64List.fromList(re),
-        _im = Float64List.fromList(im);
+  ComplexArray._clone(Float64List values)
+      : _values = Float64List.fromList(values);
 
   /// Builds a list of [length] elements initialized to [Complex.zero]
-  ComplexArray.zero(int length)
-      : _re = Float64List(length),
-        _im = Float64List(length);
+  ComplexArray.zero(int length) : _values = Float64List(2 * length);
 
   /// Number of elements in the list
-  int get length => _re.length;
+  int get length => _values.length ~/ 2;
 
   /// Obtains the value stored at index [idx]
-  Complex operator [](int idx) => Complex(re: _re[idx], im: _im[idx]);
+  Complex operator [](int idx) =>
+      Complex(re: _values[2 * idx], im: _values[2 * idx + 1]);
+
+  final Float64List _values;
 
   /// Obtains the real part of the value stored at index [idx]
-  double re(int idx) => _re[idx];
-  final Float64List _re;
+  double re(int idx) => _values[2 * idx];
 
   /// Obtains the imaginary part of the value stored at index [idx]
-  double im(int idx) => _im[idx];
-  final Float64List _im;
+  double im(int idx) => _values[2 * idx + 1];
 
   /// Obtains the squared modulus of the value at index [idx]
   /// this is equal to [re]([idx]) * [re]([idx]) + [im]([idx]) * [im]([idx])
   double modulus2(int idx) {
-    final r = _re[idx];
-    final i = _im[idx];
+    idx *= 2;
+    final r = _values[idx];
+    final i = _values[idx + 1];
     return r * r + i * i;
   }
 
@@ -49,18 +48,16 @@ class ComplexArray {
     if (length != other.length) {
       throw InvalidOperationException();
     }
-    _re.setRange(0, length, other._re);
-    _im.setRange(0, length, other._im);
+    _values.setRange(0, _values.length, other._values);
     return this;
   }
 
   /// Creates a clone of this instance
-  ComplexArray clone() => ComplexArray._clone(_re, _im);
+  ComplexArray clone() => ComplexArray._clone(_values);
 
   /// Resets all values to [Complex.zero]
   void _zero() {
-    _re.fillRange(0, length, 0);
-    _im.fillRange(0, length, 0);
+    _values.fillRange(0, _values.length, 0);
   }
 
   void _swap(Float64List values, int i1, int i2) {
@@ -71,92 +68,121 @@ class ComplexArray {
 
   /// Exchanges values stored at indices [idx1] and [idx2]
   void swap(int idx1, int idx2) {
-    _swap(_re, idx1, idx2);
-    _swap(_im, idx1, idx2);
+    idx1 *= 2;
+    idx2 *= 2;
+    _swap(_values, idx1, idx2);
+    _swap(_values, idx1 + 1, idx2 + 1);
   }
 
   /// Negates the value stored at index [idx]
   void neg(int idx) {
-    _re[idx] = -_re[idx];
-    _im[idx] = -_im[idx];
+    idx *= 2;
+    _values[idx] = -_values[idx];
+    _values[idx + 1] = -_values[idx + 1];
   }
 
   /// Conjugates the value stored at index [idx]
   void conj(int idx) {
-    _im[idx] = -_im[idx];
+    idx = 2 * idx + 1;
+    _values[idx] = -_values[idx];
   }
 
   /// Inverts the value stored at index [idx]
   void inv(int idx) {
-    final re = _re[idx];
-    final im = _im[idx];
+    idx *= 2;
+    final re = _values[idx];
+    final im = _values[idx + 1];
     final d = re * re + im * im;
-    _re[idx] = re / d;
-    _im[idx] = -im / d;
+    _values[idx] = re / d;
+    _values[idx + 1] = -im / d;
   }
 
   /// Adds values from [a] at index [ai] and [b] at index [bi] and stores the result in this instance at index [idx]
   void add(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
-    _re[idx] = a._re[ai] + b._re[bi];
-    _im[idx] = a._im[ai] + b._im[bi];
+    idx *= 2;
+    ai *= 2;
+    bi *= 2;
+    _values[idx] = a._values[ai] + b._values[bi];
+    _values[idx + 1] = a._values[ai + 1] + b._values[bi + 1];
   }
 
   /// Subtracts value in [b] at index [bi] from [a] at index [ai] and and stores the result in this instance at index [idx]
   void sub(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
-    _re[idx] = a._re[ai] - b._re[bi];
-    _im[idx] = a._im[ai] - b._im[bi];
+    idx *= 2;
+    ai *= 2;
+    bi *= 2;
+    _values[idx] = a._values[ai] - b._values[bi];
+    _values[idx + 1] = a._values[ai + 1] - b._values[bi + 1];
   }
 
   /// Multiplies values from [a] at index [ai] and [b] at index [bi] and stores the result in this instance at index [idx]
   void mul(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
-    final are = a._re[ai];
-    final aim = a._im[ai];
-    final bre = b._re[bi];
-    final bim = b._im[bi];
-    _re[idx] = are * bre - aim * bim;
-    _im[idx] = are * bim + aim * bre;
+    idx *= 2;
+    ai *= 2;
+    bi *= 2;
+    final are = a._values[ai];
+    final aim = a._values[ai + 1];
+    final bre = b._values[bi];
+    final bim = b._values[bi + 1];
+    _values[idx] = are * bre - aim * bim;
+    _values[idx + 1] = are * bim + aim * bre;
   }
 
   /// Divides values in [a] at index [ai] by [b] at index [bi] and stores the result in this instance at index [idx]
   void div(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
-    final are = a._re[ai];
-    final aim = a._im[ai];
-    if (are == 0 && aim == 0) return;
-    final bre = b._re[bi];
-    final bim = b._im[bi];
+    idx *= 2;
+    ai *= 2;
+    bi *= 2;
+    final are = a._values[ai];
+    final aim = a._values[ai + 1];
+    final bre = b._values[bi];
+    final bim = b._values[bi + 1];
     final d = bre * bre + bim * bim;
-    _re[idx] = (are * bre + aim * bim) / d;
-    _im[idx] = (aim * bre - are * bim) / d;
+    if (d != 0 && are == 0 && aim == 0) return;
+    _values[idx] = (are * bre + aim * bim) / d;
+    _values[idx + 1] = (aim * bre - are * bim) / d;
   }
 
   /// Multiplies values from [a] at index [ai] and [b] at index [bi] and adds the result to the value at index [idx] in this instance
   void addmul(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
-    final are = a._re[ai];
-    final aim = a._im[ai];
+    idx *= 2;
+    ai *= 2;
+    bi *= 2;
+    final are = a._values[ai];
+    final aim = a._values[ai + 1];
     if (are == 0 && aim == 0) return;
-    final bre = b._re[bi];
-    final bim = b._im[bi];
+    final bre = b._values[bi];
+    final bim = b._values[bi + 1];
     if (bre == 0 && bim == 0) return;
-    _re[idx] += are * bre - aim * bim;
-    _im[idx] += are * bim + aim * bre;
+    _values[idx] += are * bre - aim * bim;
+    _values[idx + 1] += are * bim + aim * bre;
   }
 
   /// Returns `true` if the value at index [idx] is [Complex.zero]
-  bool isZero(int idx) => _re[idx] == 0 && _im[idx] == 0;
+  bool isZero(int idx) {
+    idx *= 2;
+    return _values[idx] == 0 && _values[idx + 1] == 0;
+  }
 
   /// Returns `true` if the value at index [idx] is [Complex.one]
-  bool isOne(int idx) => _re[idx] == 1 && _im[idx] == 0;
+  bool isOne(int idx) {
+    idx *= 2;
+    return _values[idx] == 1 && _values[idx + 1] == 0;
+  }
 
   /// Sets value at index [idx] with [value]
   void set(int idx, Complex value) {
-    _re[idx] = value.re;
-    _im[idx] = value.im;
+    idx *= 2;
+    _values[idx] = value.re;
+    _values[idx + 1] = value.im;
   }
 
   /// Sets value at index [idx] with the value from [a] at index [ai]
   void assign(int idx, ComplexArray a, int ai) {
-    _re[idx] = a._re[ai];
-    _im[idx] = a._im[ai];
+    idx *= 2;
+    ai *= 2;
+    _values[idx] = a._values[ai];
+    _values[idx + 1] = a._values[ai + 1];
   }
 
   /// Multiplies all values in this instance by [factor] ([num] or [Complex] value)
@@ -167,9 +193,9 @@ class ComplexArray {
       } else if (factor == 1) {
         // nothing to do
       } else {
-        for (var i = 0; i < length; i++) {
-          _re[i] *= factor;
-          _im[i] *= factor;
+        final len = _values.length;
+        for (var i = 0; i < len; i++) {
+          _values[i] *= factor;
         }
       }
     } else if (factor is Complex) {
@@ -180,11 +206,12 @@ class ComplexArray {
       } else {
         final fre = factor.re;
         final fim = factor.im;
-        for (var i = 0; i < length; i++) {
-          final re = _re[i];
-          final im = _im[i];
-          _re[i] = re * fre - im * fim;
-          _im[i] = re * fim + im * fre;
+        final len = _values.length;
+        for (var i = 0; i < len; i += 2) {
+          final re = _values[i];
+          final im = _values[i + 1];
+          _values[i] = re * fre - im * fim;
+          _values[i + 1] = re * fim + im * fre;
         }
       }
     } else {
@@ -198,9 +225,9 @@ class ComplexArray {
       if (factor == 1) {
         // nothing to do
       } else {
-        for (var i = 0; i < length; i++) {
-          _re[i] /= factor;
-          _im[i] /= factor;
+        final len = _values.length;
+        for (var i = 0; i < len; i++) {
+          _values[i] /= factor;
         }
       }
     } else if (factor is Complex) {
@@ -210,11 +237,12 @@ class ComplexArray {
         final fre = factor.re;
         final fim = factor.im;
         final d = fre * fre + fim * fim;
-        for (var i = 0; i < length; i++) {
-          final re = _re[i];
-          final im = _im[i];
-          _re[i] = (re * fre + im * fim) / d;
-          _im[i] = (im * fre - re * fim) / d;
+        final len = _values.length;
+        for (var i = 0; i < len; i += 2) {
+          final re = _values[i];
+          final im = _values[i + 1];
+          _values[i] = (re * fre + im * fim) / d;
+          _values[i + 1] = (im * fre - re * fim) / d;
         }
       }
     } else {
@@ -228,8 +256,9 @@ class ComplexArray {
     if (other is! ComplexArray || length != other.length) {
       return false;
     }
-    for (var i = 0; i < length; i++) {
-      if (_re[i] != other._re[i] || _im[i] != other._im[i]) {
+    final len = _values.length;
+    for (var i = 0; i < len; i++) {
+      if (_values[i] != other._values[i]) {
         return false;
       }
     }
@@ -239,7 +268,6 @@ class ComplexArray {
   /// Returns true if [other] is a [ComplexArray] of same [length] with same values down to a precision of [precision]
   bool equals(ComplexArray other, {double precision = 0}) {
     if (length != other.length) return false;
-    // precision *= precision;
     for (var i = 0; i < length; i++) {
       if ((modulus(i) - other.modulus(i)).abs() > precision) {
         return false;
@@ -255,15 +283,14 @@ class ComplexArray {
   String toString() =>
       '[' +
       Iterable.generate(
-              length, (i) => '${_re[i].normalize()} + ${_im[i].normalize()} i')
+              length,
+              (i) =>
+                  '${_values[2 * i].normalize()} + ${_values[2 * i + 1].normalize()} i')
           .join(', ') +
       ']';
 
-  List serialize() => [
-        _re,
-        _im,
-      ];
+  List serialize() => _values;
 
-  static ComplexArray deserialize(List json) => ComplexArray._clone(
-      Float64List.fromList(json[0]), Float64List.fromList(json[1]));
+  static ComplexArray deserialize(List json) =>
+      ComplexArray._clone(Float64List.fromList(json.cast<double>()));
 }
