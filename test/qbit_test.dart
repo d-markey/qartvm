@@ -8,7 +8,7 @@ import 'package:qartvm/src/qbit.dart';
 import 'complex_matcher.dart';
 
 void main() {
-  group('Qubit', () {
+  group('Qubit -', () {
     test('Zero |0>', () {
       final zero = Qbit.zero;
       expect(zero.ket0, complexEquals(Complex.one));

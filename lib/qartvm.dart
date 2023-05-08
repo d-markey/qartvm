@@ -14,3 +14,5 @@ export 'src/qgate_type.dart';
 export 'src/qcircuit_gate.dart';
 export 'src/qcircuit.dart';
 export 'src/qcircuit_ascii_drawer.dart';
+
+export 'src/openqasm/program.dart';

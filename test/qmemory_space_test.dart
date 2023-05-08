@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'complex_matcher.dart';
 
 void main() {
-  group('Quantum Memory Space', () {
-    group('Generation', () {
+  group('Quantum Memory Space -', () {
+    group('Generation -', () {
       test('zeroes', () {
         final qmem = QMemorySpace.zero(2);
         final probs = qmem.probabilities;
@@ -146,7 +146,7 @@ void main() {
       });
     });
 
-    group('Gates', () {
+    group('Gates -', () {
       test('QFT inverse', () {
         final nqubits = 7;
         final qft = QGateBuilder.get(nqubits)

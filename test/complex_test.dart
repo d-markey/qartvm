@@ -7,8 +7,8 @@ import 'package:qartvm/src/math/complex.dart';
 import 'complex_matcher.dart';
 
 void main() {
-  group('Complex', () {
-    group('Constants', () {
+  group('Complex -', () {
+    group('Constants -', () {
       test('zero', () {
         final a = Complex.zero;
         expect(a.det, equals(0));
@@ -38,7 +38,7 @@ void main() {
       });
     });
 
-    group('Operators', () {
+    group('Operators -', () {
       test('Addition', () {
         final a = Complex.i;
         final b = Complex(re: 2, im: -2);

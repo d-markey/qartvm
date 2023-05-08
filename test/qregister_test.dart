@@ -5,8 +5,8 @@ import 'package:qartvm/qartvm.dart';
 import 'complex_matcher.dart';
 
 void main() {
-  group('Quantum Register', () {
-    group('Initialization', () {
+  group('Quantum Register -', () {
+    group('Initialization -', () {
       test('bytes', () {
         final qmem = QMemorySpace.zero(8);
         final qa = qmem.createRegister('a', addresses: [3, 2, 1, 0]);
@@ -136,7 +136,7 @@ void main() {
       });
     });
 
-    group('Read', () {
+    group('Read -', () {
       test('QFT inverse', () {
         final nqubits = 7;
         final qft = QGateBuilder.get(nqubits)

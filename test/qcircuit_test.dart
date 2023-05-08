@@ -4,11 +4,11 @@ import 'package:qartvm/qartvm.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Quantum Circuit', () {
+  group('Quantum Circuit -', () {
     final gateBuilder2 = QGateBuilder.get(2, withCache: true);
     final gateBuilder3 = QGateBuilder.get(3, withCache: true);
 
-    group('Unitary gates', () {
+    group('Unitary gates -', () {
       test('Hadamard', () {
         // hadamard on first qubit
         final h0 = QCircuit(gateBuilder2).hadamard(0);
@@ -96,7 +96,7 @@ void main() {
         expect(probs['11'], closeTo(0.5, 1e-9));
       });
 
-      group('Truth table', () {
+      group('Truth table -', () {
         test('PauliX', () {
           final qmem = QMemorySpace([Qbit.zero, Qbit.one]);
           // initial state
@@ -381,7 +381,7 @@ void main() {
       });
     });
 
-    group('Circuit composition', () {
+    group('Circuit composition -', () {
       test('2 NOTs', () {
         final qmem = QMemorySpace.zero(2);
         final qa = qmem.createRegister('a', at: 0);
@@ -433,7 +433,7 @@ void main() {
       });
     });
 
-    test('Circuit observer', () {
+    test('Circuit observer -', () {
       final qmem = QMemorySpace.zero(3);
       final bloc = QCircuit(gateBuilder3);
       bloc.hadamard({1, 0});

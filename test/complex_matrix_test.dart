@@ -13,8 +13,8 @@ ComplexMatrix _complexMatrix(List<List<num>> matrix) => ComplexMatrix(matrix
     .toList());
 
 void main() {
-  group('1x1', () {
-    group('Operators', () {
+  group('1x1 -', () {
+    group('Operators -', () {
       test('Addition', () {
         final a = ComplexMatrix([
           [Complex(re: 1, im: 1)]
@@ -68,7 +68,7 @@ void main() {
       });
     });
 
-    group('In-memory operations', () {
+    group('In-memory operations -', () {
       test('Addition', () {
         final a = ComplexMatrix([
           [Complex(re: 1, im: 1)]
@@ -124,7 +124,7 @@ void main() {
       });
     });
 
-    group('Determinant', () {
+    group('Determinant -', () {
       test('Zero', () {
         final a = ComplexMatrix([
           [Complex.zero]
@@ -141,8 +141,8 @@ void main() {
     });
   });
 
-  group('4x4', () {
-    group('Determinant', () {
+  group('4x4 -', () {
+    group('Determinant -', () {
       test('Invertible', () {
         final a = _complexMatrix([
           [1, 1, 1, 1],
@@ -165,7 +165,7 @@ void main() {
       });
     });
 
-    group('Inverse', () {
+    group('Inverse -', () {
       test('Invertible', () {
         final a = _complexMatrix([
           [1, 1, 1, 1],
@@ -205,7 +205,7 @@ void main() {
     });
   });
 
-  group('Random', () {
+  group('Random -', () {
     test('Inverse', () {
       final rnd = Random.secure();
       for (var i = 0; i < 100; i++) {
