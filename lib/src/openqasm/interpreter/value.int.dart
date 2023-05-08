@@ -59,6 +59,9 @@ class IntValue extends Value {
       promoteFor(a)?.lte(a) ?? BoolValue(value <= promote(a).value);
 
   @override
+  Value neg() => IntValue(-value);
+
+  @override
   Value add(Value a) =>
       promoteFor(a)?.add(a) ?? IntValue(value + promote(a).value);
 

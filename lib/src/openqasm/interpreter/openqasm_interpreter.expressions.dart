@@ -38,8 +38,8 @@ extension _OpenQAsmInterpreterContextExprExt on _OpenQAsmInterpreterContext {
     throw Exception('Unexpected literal ${expr.literal.text}');
   }
 
-  Value _expr_set(AstExpression expr) {
-    expr = expr as AstExpressionSets;
+  Value _expr_array(AstExpression expr) {
+    expr = expr as AstExpressionArray;
     return SetValue(expr.children.map(evaluate));
   }
 

@@ -44,14 +44,18 @@ class _OpenQAsmInterpreterContext {
   }
 
   void leaveScope() {
-    _currentScope = _scopes.removeLast();
+    _scopes.removeLast();
+    _currentScope = _scopes.last;
   }
 
   Variable? find(String name) {
     for (var i = _scopes.length - 1; i >= 0; i--) {
-      var v = _scopes[i][name];
+      final scope = _scopes[i];
+      final v = scope[name];
       if (v != null) {
         return v;
+      } else {
+        // print('$name not in scope $scope');
       }
     }
     return null;
@@ -72,6 +76,7 @@ class _OpenQAsmInterpreterContext {
     if (executor == null) {
       throw UnsupportedError('No executor for ${statement.runtimeType}');
     }
+    // print('[${statement.runtimeType}] $statement');
     return executor(statement);
   }
 
@@ -142,6 +147,7 @@ class _OpenQAsmInterpreterContext {
       throw Exception('Unexpected variable type "${decl.runtimeType}".');
     }
     scope[v.name] = v;
+    // print('registered ${v.name} = ${v.value} in $scope');
     return v;
   }
 
@@ -183,7 +189,7 @@ class _OpenQAsmInterpreterContext {
     AstExpressionBinary: _expr_binary,
     AstExpressionCast: _expr_cast,
     AstExpressionFunctionCall: _expr_call,
-    AstExpressionSets: _expr_set,
+    AstExpressionArray: _expr_array,
     AstExpressionRange: _expr_range,
   };
 
@@ -192,6 +198,7 @@ class _OpenQAsmInterpreterContext {
     if (evaluator == null) {
       throw UnsupportedError('No evaluator for ${expr.runtimeType}');
     }
+    // print('[${expr.runtimeType}] $expr');
     return evaluator(expr);
   }
 }

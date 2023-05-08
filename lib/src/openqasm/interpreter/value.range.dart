@@ -10,7 +10,6 @@ class RangeValue extends IterableValue {
   @override
   Iterable<Value> get value sync* {
     var v = start;
-    yield v;
     while (true) {
       if (v.gt(end).value) {
         break;

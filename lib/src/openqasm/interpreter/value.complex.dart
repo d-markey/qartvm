@@ -58,6 +58,9 @@ class ComplexValue extends Value {
   }
 
   @override
+  Value neg() => ComplexValue(-re, -im);
+
+  @override
   Value add(Value a) {
     final c = a.toComplex();
     return ComplexValue(re + c.re, im + c.im);

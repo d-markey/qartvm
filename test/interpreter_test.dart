@@ -52,6 +52,19 @@ void main() {
     if (n == 3) { break; }
     n -= 1;
   }
+  for int i in {2, 3, 5, 7, 11, 13, 17} {
+    print("i = ", i);
+  }
+  for int i in [0:2:8] {
+    print("i = ", i);
+  }
+  for int i in [0:8] {
+    print("i = ", i);
+  }
+  array[float, 4] my_floats = {1.2, -3.4, 0.5, 9.8};
+  for float f in my_floats {
+    print("f = ", f);
+  }
 ''', OpenQAsmParser());
   final interpreter = OpenQAsmInterpreter();
   final io = <String, dynamic>{

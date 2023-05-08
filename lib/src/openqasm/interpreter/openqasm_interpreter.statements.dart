@@ -67,7 +67,7 @@ extension _OpenQAsmInterpreterContextStmtExt on _OpenQAsmInterpreterContext {
     try {
       register(loop.variable);
       final body = loop.body;
-      final set = evaluate(loop.set) as SetValue;
+      final set = evaluate(loop.set) as IterableValue;
       for (var item in set.value) {
         assign(loop.variable.identifier, '=', item);
         final result = execute(body);

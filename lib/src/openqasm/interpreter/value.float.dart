@@ -63,6 +63,9 @@ class FloatValue extends Value {
       promoteFor(a)?.lte(a) ?? BoolValue(value <= promote(a).value);
 
   @override
+  Value neg() => FloatValue(-value);
+
+  @override
   Value add(Value a) =>
       promoteFor(a)?.add(a) ?? FloatValue(value + promote(a).value);
 
