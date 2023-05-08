@@ -7,20 +7,25 @@ import 'status_codes.dart';
 import 'value.dart';
 
 part 'openqasm_interpreter.statements.dart';
+part 'openqasm_interpreter.expressions.dart';
 
 class OpenQAsmInterpreter {
   StatusCode execute(Program p, Map<String, dynamic> io) {
     final context = _OpenQAsmInterpreterContext(io);
+    StatusCode result;
     context.enterScope();
-    final status = context.run(p);
-    context.leaveScope();
+    try {
+      result = context.run(p.children);
+    } finally {
+      context.leaveScope();
+    }
     for (var entry in context._rootScope.entries) {
       if (entry.value.decl is AstVariable &&
           (entry.value.decl as AstVariable).output) {
         io[entry.key] = entry.value.value?.value;
       }
     }
-    return status;
+    return result;
   }
 }
 
@@ -53,29 +58,33 @@ class _OpenQAsmInterpreterContext {
   }
 
   StatusCode run(Iterable<AstStatement> statements) {
-    for (var statement in statements) {
-      final executor = _executors[statement.runtimeType];
-      if (executor == null) {
-        throw UnsupportedError('No executor for ${statement.runtimeType}');
-      }
-      final res = executor(statement);
-      if (res is Return || res is Break || res is Continue) {
-        return res;
+    for (var stmt in statements) {
+      final s = execute(stmt);
+      if (s is Return || s is Break || s is Continue) {
+        return s;
       }
     }
     return Done();
   }
 
+  StatusCode execute(AstStatement statement) {
+    final executor = _executors[statement.runtimeType];
+    if (executor == null) {
+      throw UnsupportedError('No executor for ${statement.runtimeType}');
+    }
+    return executor(statement);
+  }
+
   late final _executors = <Type, StatusCode Function(AstStatement)>{
-    AstStatementDeclaration: _declare,
-    AstStatementExpression: _expression,
-    AstStatementReturn: _return,
-    AstStatementContinue: _continue,
-    AstStatementBreak: _break,
-    AstBlock: _block,
-    AstStatementIf: _if,
-    AstStatementFor: _for,
-    AstStatementWhile: _while,
+    AstStatementDeclaration: _stmt_declare,
+    AstStatementExpression: _stmt_expression,
+    AstStatementReturn: _stmt_return,
+    AstStatementContinue: _stmt_continue,
+    AstStatementBreak: _stmt_break,
+    AstBlock: _stmt_block,
+    AstStatementIf: _stmt_if,
+    AstStatementFor: _stmt_for,
+    AstStatementWhile: _stmt_while,
   };
 
   Variable register(AstDeclaration decl) {
@@ -161,194 +170,29 @@ class _OpenQAsmInterpreterContext {
     }
   }
 
+  late final _evaluators = <Type, Value Function(AstExpression)>{
+    AstExpressionAssignment: _expr_assign,
+    AstExpressionParenthesis: _expr_parenthesis,
+    AstExpressionInteger: _expr_number,
+    AstExpressionImaginary: _expr_number,
+    AstExpressionReal: _expr_number,
+    AstExpressionString: _expr_string,
+    AstExpressionConstant: _expr_constant,
+    AstIdentifier: _expr_identifier,
+    AstExpressionUnary: _expr_unary,
+    AstExpressionBinary: _expr_binary,
+    AstExpressionCast: _expr_cast,
+    AstExpressionFunctionCall: _expr_call,
+    AstExpressionSets: _expr_set,
+    AstExpressionRange: _expr_range,
+  };
+
   Value evaluate(AstExpression expr) {
-    Value v;
-    if (expr is AstExpressionAssignment) {
-      v = evaluate(expr.expression);
-      assign(expr.assignee, expr.op.text, v);
-    } else if (expr is AstExpressionParenthesis) {
-      v = evaluate(expr.expression);
-    } else if (expr is AstExpressionNumber) {
-      v = _evaluateNumber(expr);
-    } else if (expr is AstExpressionString) {
-      v = _evaluateString(expr);
-    } else if (expr is AstExpressionConstant) {
-      v = _evaluateConstant(expr);
-    } else if (expr is AstExpressionSets) {
-      v = SetValue(expr.children.map(evaluate));
-    } else if (expr is AstExpressionRange) {
-      final start = evaluate(expr.slice.start);
-      final end = evaluate(expr.slice.end);
-      final step = expr.slice.incr;
-      final incr = (step == null) ? IntValue(1) : evaluate(step);
-      v = RangeValue(start, end, incr);
-    } else if (expr is AstIdentifier) {
-      v = _evaluateIdentifier(expr);
-    } else if (expr is AstExpressionUnary) {
-      v = _evaluateUnary(expr);
-    } else if (expr is AstExpressionBinary) {
-      v = _evaluateBinary(expr);
-    } else if (expr is AstExpressionCast) {
-      v = _evaluateCast(expr);
-    } else if (expr is AstExpressionFunctionCall) {
-      v = _evaluateFunctionCall(expr);
-    } else {
-      throw Exception('Unexpected expression type "${expr.runtimeType}".');
+    final evaluator = _evaluators[expr.runtimeType];
+    if (evaluator == null) {
+      throw UnsupportedError('No evaluator for ${expr.runtimeType}');
     }
-    return v;
-  }
-
-  Value _evaluateNumber(AstExpressionNumber expr) {
-    final val = expr.literal.text;
-    if (expr is AstExpressionReal) {
-      return FloatValue(double.parse(val));
-    } else if (expr is AstExpressionImaginary) {
-      return ComplexValue(0, double.parse(val.substring(0, val.length - 2)));
-    } else if (expr is AstExpressionInteger) {
-      if (val.length > 2) {
-        final p = val.substring(0, 2).toLowerCase();
-        if (p == '0x') {
-          return IntValue(int.parse(val.substring(2), radix: 16));
-        } else if (p == '0o') {
-          return IntValue(int.parse(val.substring(2), radix: 8));
-        } else if (p == '0b') {
-          return IntValue(int.parse(val.substring(2), radix: 2));
-        }
-      }
-      return IntValue(int.parse(val));
-    }
-    throw Exception('Unexpected literal ${expr.literal.text}');
-  }
-
-  static const _specialChars = {
-    '\\n': '\n',
-    '\\r': '\r',
-    '\\t': '\t',
-    '\\\\': '\\'
-  };
-
-  Value _evaluateString(AstExpressionString expr) {
-    var v = expr.literal.text;
-    final quote = v.substring(0, 1);
-    v = v.substring(1, v.length - 1);
-    v = v.replaceAll('\\$quote', quote);
-    for (var entry in _specialChars.entries) {
-      v = v.replaceAll(entry.key, entry.value);
-    }
-    // TODO: replace escaped unicode code points "\\u0000"
-    return StringValue(v);
-  }
-
-  static final _constants = <String, Value>{
-    Constants.$pi: FloatValue.$pi,
-    Constants.$$pi: FloatValue.$pi,
-    Constants.$tau: FloatValue.$tau,
-    Constants.$$tau: FloatValue.$tau,
-    Constants.$euler: FloatValue.$euler,
-    Constants.$$euler: FloatValue.$euler,
-    Constants.$true: BoolValue.$true,
-    Constants.$false: BoolValue.$false,
-  };
-
-  Value _evaluateConstant(AstExpressionConstant expr) =>
-      _constants[expr.name.text]!;
-
-  Value _evaluateIdentifier(AstIdentifier expr) {
-    final v = find(expr.name.text);
-    if (v == null) {
-      throw Exception('Unknown variable "${expr.name.text}".');
-    }
-    final value = v.value;
-    if (value == null) {
-      throw Exception('Uninitialized variable "${expr.name.text}".');
-    }
-    return value;
-  }
-
-  static final _unaryOps = <String, Value Function(Value)>{
-    '+': (v) => v,
-    '-': (v) => v.neg(),
-    '!': (v) => v.not(),
-    '~': (v) => v.twoCompl(),
-  };
-
-  Value _evaluateUnary(AstExpressionUnary expr) {
-    final v = evaluate(expr.expression);
-    return _unaryOps[expr.tokens.first.text]!(v);
-  }
-
-  static final _binaryOps = <String, Value Function(Value, Value)>{
-    '+': (a, b) => a.add(b),
-    '-': (a, b) => a.sub(b),
-    '*': (a, b) => a.mul(b),
-    '/': (a, b) => a.div(b),
-    '%': (a, b) => a.mod(b),
-    '**': (a, b) => a.pow(b),
-    '|': (a, b) => a.bitOr(b),
-    '&': (a, b) => a.bitAnd(b),
-    '^': (a, b) => a.bitXor(b),
-    '<<': (a, b) => a.shiftl(b),
-    '>>': (a, b) => a.shiftr(b),
-    '||': (a, b) => a.or(b),
-    '&&': (a, b) => a.and(b),
-    '^^': (a, b) => a.xor(b),
-    '==': (a, b) => a.eq(b),
-    '!=': (a, b) => a.neq(b),
-    '<': (a, b) => a.lt(b),
-    '<=': (a, b) => a.lte(b),
-    '>': (a, b) => a.gt(b),
-    '>=': (a, b) => a.gte(b),
-  };
-
-  Value _evaluateBinary(AstExpressionBinary expr) {
-    final left = evaluate(expr.leftOperand);
-    final right = evaluate(expr.rightOperand);
-    return _binaryOps[expr.tokens.first.text]!(left, right);
-  }
-
-  Value _evaluateCast(AstExpressionCast expr) {
-    final v = evaluate(expr.expression);
-    return v.cast(expr.type);
-  }
-
-  static double _float(Value value) => value.toFloat().value;
-  static ComplexValue _complex(Value value) => value.toComplex();
-
-  static final _buintInFunctions = <String, Value Function(Iterable<Value>)>{
-    'print': (values) {
-      final str = values.map((v) => v is StringValue ? v.value : v.toString());
-      print('[${DateTime.now().toIso8601String()}] ${str.join(' ')}');
-      return Value.$void;
-    },
-    'real': (values) => FloatValue(_complex(values.single).re),
-    'imag': (values) => FloatValue(_complex(values.single).im),
-    'abs': (values) => FloatValue(_float(values.single).abs()),
-    'arccos': (values) => FloatValue(math.acos(_float(values.single))),
-    'arcsin': (values) => FloatValue(math.asin(_float(values.single))),
-    'arctan': (values) => FloatValue(math.atan(_float(values.single))),
-    'ceiling': (values) => FloatValue(_float(values.single).ceilToDouble()),
-    'cos': (values) => FloatValue(math.cos(_float(values.single))),
-    'exp': (values) => values.single.exp(),
-    'floor': (values) => FloatValue(_float(values.single).floorToDouble()),
-    'log': (values) => values.single.log(),
-    'mod': (values) => values.first.mod(values.skip(1).single),
-    'popcount': (values) => values.single.toBit().popCount(),
-    'pow': (values) => values.first.pow(values.skip(1).single),
-    'rotl': (values) => values.first.rotl(values.skip(1).single),
-    'rotr': (values) => values.first.rotr(values.skip(1).single),
-    'sin': (values) => FloatValue(math.sin(_float(values.single))),
-    'sqrt': (values) => values.single.sqrt(),
-    'tan': (values) => FloatValue(math.tan(_float(values.single))),
-  };
-
-  Value _evaluateFunctionCall(AstExpressionFunctionCall expr) {
-    final funcName = expr.function.name.text;
-    final f = _buintInFunctions[funcName];
-    if (f != null) {
-      return f(expr.arguments.map((a) => evaluate(a)));
-    } else {
-      throw Exception('Unknown function name "$funcName".');
-    }
+    return evaluator(expr);
   }
 }
 
