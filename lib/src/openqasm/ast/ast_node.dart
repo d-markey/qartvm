@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 import '../_token.dart';
 import '../_tokenizer.dart';
+import '../interpreter/value.dart';
 
 part 'ast_block.dart';
 part 'ast_declaration.dart';

@@ -1,10 +1,13 @@
 import 'dart:math' as math;
-import 'package:qartvm/qartvm.dart';
-import 'package:qartvm/src/openqasm/interpreter/openqasm_interpreter.dart';
-import 'package:qartvm/src/openqasm/parser/openqasm_parser.dart';
+import 'package:antlr4/antlr4.dart';
+import 'package:qartvm/src/openqasm/antlr4/interpreter/qasm_interpreter.dart';
+import 'package:qartvm/src/openqasm/antlr4/parser/OpenQASM3Lexer.dart';
+import 'package:qartvm/src/openqasm/antlr4/parser/OpenQASM3Parser.dart';
 
 void main() {
-  final p = Program.parse('''
+  OpenQASM3Lexer.checkVersion();
+  OpenQASM3Parser.checkVersion();
+  final input = InputStream.fromString('''
   input string label;
   input int n;
   input angle x;
@@ -39,9 +42,9 @@ void main() {
   print("   log(exp(z)) = ", log(exp(z)));
   print();
   print("   sqrt(y) = ", sqrt(y));
-  print("   pow(y, 2) = ", pow(y, 2));
-  print("   pow(sqrt(z), 2) = ", pow(sqrt(z), 2));
-  print("   sqrt(pow(z, 2)) = ", sqrt(pow(z, 2)));
+  //print("   pow(y, 2) = ", pow(y, 2));
+  //print("   pow(sqrt(z), 2) = ", pow(sqrt(z), 2));
+  //print("   sqrt(pow(z, 2)) = ", sqrt(pow(z, 2)));
   print();
   out = angle(y);
   z=y;
@@ -63,14 +66,23 @@ void main() {
     print("i = ", i);
     print("a = ", a);
   }
+
+  array[int, 6] test = { 1, {2, 3}, 4, 5, {6, 7} };
+
   array[float[64], 4] my_floats = {1.2, -3.4, 0.5, 9.8};
   for float[64] f in my_floats {
     print("f = ", f);
   }
   bit[4] flags = "0110";
   print("flags = ", flags);
-''', OpenQAsmParser());
-  final interpreter = OpenQAsmInterpreter();
+''');
+  final lexer = OpenQASM3Lexer(input);
+  final tokens = CommonTokenStream(lexer);
+  final parser = OpenQASM3Parser(tokens);
+  parser.addErrorListener(DiagnosticErrorListener());
+  final p = parser.program();
+  print('parsed program --> ${p.statements().length} statements');
+
   final io = <String, dynamic>{
     'label': "Hop là",
     'n': 12,
@@ -78,7 +90,9 @@ void main() {
     'y': {'re': -3, 'im': 0},
     'z': {'re': 0, 'im': -3},
   };
-  final status = interpreter.execute(p, io);
+  final interpreter = QasmInterpreter(io);
+  final status = interpreter.visitProgram(p);
+
   print('DONE: $status');
   for (var entry in io.entries) {
     print('   ${entry.key} = ${entry.value}');

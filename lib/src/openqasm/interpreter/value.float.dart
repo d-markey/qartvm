@@ -1,13 +1,31 @@
 part of 'value.dart';
 
 class FloatValue extends Value {
-  const FloatValue(this.value) : super._();
+  const FloatValue._(this.value) : super._();
 
-  static const $zero = FloatValue(0);
-  static const $one = FloatValue(1);
-  static const $pi = FloatValue(math.pi);
-  static const $tau = FloatValue(2 * math.pi);
-  static const $euler = FloatValue(math.e);
+  factory FloatValue(double value) {
+    if (value == 0) {
+      return $zero;
+    } else if (value == 1) {
+      return $one;
+    } else if (value == math.pi) {
+      return $pi;
+    } else if (value == _tau) {
+      return $tau;
+    } else if (value == math.e) {
+      return $euler;
+    } else {
+      return FloatValue._(value);
+    }
+  }
+
+  static const _tau = 2 * math.pi;
+
+  static const $zero = FloatValue._(0);
+  static const $one = FloatValue._(1);
+  static const $pi = FloatValue._(math.pi);
+  static const $tau = FloatValue._(_tau);
+  static const $euler = FloatValue._(math.e);
 
   @override
   final double value;

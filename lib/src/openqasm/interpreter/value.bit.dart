@@ -7,7 +7,7 @@ class BitValue extends Value {
   final int value;
 
   @override
-  String toString() => 'Bit($value)';
+  String toString() => 'Bit(${value.toRadixString(2)})';
 
   @override
   ComplexValue toComplex() => toInt().toComplex();

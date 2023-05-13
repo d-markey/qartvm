@@ -271,6 +271,27 @@ class AstExpressionCast extends AstExpression {
   final AstType type;
   final AstExpression expression;
 
+  BaseType getType() {
+    switch (type.toString()) {
+      case 'bit':
+        return BitType();
+      case 'int':
+        return IntType();
+      case 'uint':
+        return UintType();
+      case 'float':
+        return FloatType();
+      case 'complex':
+        return ComplexType();
+      case 'angle':
+        return AngleType();
+      case 'bool':
+        return BoolType();
+      default:
+        throw UnsupportedError('Unsupported type $type');
+    }
+  }
+
   @override
   Iterable<Ast> getChildren() sync* {
     yield type;

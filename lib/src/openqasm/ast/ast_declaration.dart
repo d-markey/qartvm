@@ -1,6 +1,8 @@
 part of 'ast_node.dart';
 
-abstract class AstDeclaration extends AstNode {}
+abstract class AstDeclaration extends AstNode {
+  AstType? get type;
+}
 
 abstract class AstDefinition extends AstNode {}
 
@@ -107,7 +109,10 @@ class AstVariable extends AstDeclaration implements AstParameter {
   Token? _constant;
   Token? _input;
   Token? _output;
+
+  @override
   final AstType type;
+
   final AstIdentifier identifier;
   final Token? eq;
   final AstExpression? expression;
@@ -134,7 +139,9 @@ class AstVariable extends AstDeclaration implements AstParameter {
 class AstQubit extends AstDeclaration implements AstParameter {
   AstQubit(this.type, this.identifier);
 
+  @override
   final AstQuantumType type;
+
   final AstIdentifier identifier;
 
   @override
@@ -146,6 +153,9 @@ class AstQubit extends AstDeclaration implements AstParameter {
 
 class AstRegister extends AstDeclaration implements AstParameter {
   AstRegister(this.identifier, this.designator);
+
+  @override
+  AstType? get type => null;
 
   final AstIdentifier identifier;
   final AstDesignator? designator;
@@ -162,6 +172,9 @@ class AstRegister extends AstDeclaration implements AstParameter {
 
 class AstAlias extends AstDeclaration {
   AstAlias(this.identifier, this.sets);
+
+  @override
+  AstType? get type => null;
 
   final AstIdentifier identifier;
   final AstExpressionSets sets;

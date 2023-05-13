@@ -1,10 +1,21 @@
 part of 'value.dart';
 
 class IntValue extends Value {
-  const IntValue(this.value) : super._();
+  const IntValue._(this.value) : super._();
 
-  static const $zero = IntValue(0);
-  static const $one = IntValue(1);
+  factory IntValue(int value) {
+    switch (value) {
+      case 0:
+        return $zero;
+      case 1:
+        return $one;
+      default:
+        return IntValue._(value);
+    }
+  }
+
+  static const $zero = IntValue._(0);
+  static const $one = IntValue._(1);
 
   @override
   final int value;

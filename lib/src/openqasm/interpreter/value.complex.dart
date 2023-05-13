@@ -1,11 +1,23 @@
 part of 'value.dart';
 
 class ComplexValue extends Value {
-  const ComplexValue(this.re, this.im) : super._();
+  const ComplexValue._(this.re, this.im) : super._();
 
-  static const $zero = ComplexValue(0, 0);
-  static const $one = ComplexValue(1, 0);
-  static const $i = ComplexValue(0, 1);
+  factory ComplexValue(double re, double im) {
+    if (re == 0 && im == 0) {
+      return $zero;
+    } else if (re == 1 && im == 0) {
+      return $one;
+    } else if (re == 0 && im == 1) {
+      return $i;
+    } else {
+      return ComplexValue._(re, im);
+    }
+  }
+
+  static const $zero = ComplexValue._(0, 0);
+  static const $one = ComplexValue._(1, 0);
+  static const $i = ComplexValue._(0, 1);
 
   final double re;
   final double im;

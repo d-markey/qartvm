@@ -5,7 +5,7 @@
             "name": "qartvm",
             "request": "launch",
             "type": "dart",
-            "program": "./test/interpreter_test.dart"
+            "program": "./test/antlr4_interpreter_test.dart"
         },
         {
             "name": "Dart Tests",

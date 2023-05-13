@@ -1,26 +1,21 @@
 part of 'value.dart';
 
-class RangeValue extends IterableValue {
-  const RangeValue(this.start, this.step, this.stop) : super._();
+class ArrayValue extends IterableValue {
+  ArrayValue.from(Iterable<Value> values)
+      : _values = values.toList(),
+        super._();
 
-  final Value start;
-  final Value step;
-  final Value stop;
-
-  @override
-  Iterable<Value> get value sync* {
-    var v = start;
-    while (true) {
-      if (v.gt(stop).value) {
-        break;
-      }
-      yield v;
-      v = v.add(step);
-    }
-  }
+  final List<Value> _values;
 
   @override
-  String toString() => 'Range()';
+  Iterable<Value> get value => _values;
+
+  Value operator [](int index) => _values[index];
+
+  void operator []=(int index, Value value) => _values[index] = value;
+
+  @override
+  String toString() => 'Array[${_values.length}]';
 
   @override
   ComplexValue toComplex() => throw InvalidOperationException('Cannot convert');

@@ -104,22 +104,8 @@ class _OpenQAsmInterpreterContext {
         }
         v = Variable(name, decl);
         final val = io[name];
-        if (val is bool) {
-          v.value = BoolValue(val);
-        } else if (val is int) {
-          v.value = IntValue(val);
-        } else if (val is double) {
-          v.value = FloatValue(val);
-        } else if (val is String) {
-          v.value = StringValue(val);
-        } else if (val is Map) {
-          if (val['re'] is num && val['im'] is num) {
-            v.value = ComplexValue(val['re'].toDouble(), val['im'].toDouble());
-          } else if (val['rad'] is num) {
-            v.value = AngleValue(val['rad'].toDouble());
-          } else if (val['deg'] is num) {
-            v.value = AngleValue(val['deg'].toDouble() * math.pi / 180);
-          }
+        if (val != null) {
+          v.set(val);
         }
       } else {
         if (scope.containsKey(name)) {
@@ -128,7 +114,7 @@ class _OpenQAsmInterpreterContext {
         v = Variable(name, decl);
         final expr = decl.expression;
         if (expr != null) {
-          v.value = evaluate(expr);
+          v.set(evaluate(expr));
         }
       }
     } else if (decl is AstQubit) {
@@ -151,26 +137,28 @@ class _OpenQAsmInterpreterContext {
     return v;
   }
 
-  static final _assignOps = <String, void Function(Variable, Value)>{
-    '=': (variable, value) => variable.value = value,
-    '+=': (variable, value) => variable.value = variable.value!.add(value),
-    '-=': (variable, value) => variable.value = variable.value!.sub(value),
-    '*=': (variable, value) => variable.value = variable.value!.mul(value),
-    '/=': (variable, value) => variable.value = variable.value!.div(value),
-    '%=': (variable, value) => variable.value = variable.value!.mod(value),
-    '**=': (variable, value) => variable.value = variable.value!.pow(value),
-    '|=': (variable, value) => variable.value = variable.value!.or(value),
-    '&=': (variable, value) => variable.value = variable.value!.and(value),
-    '^=': (variable, value) => variable.value = variable.value!.xor(value),
-    '~=': (variable, value) => throw Exception('Not supported.'),
-    '<<=': (variable, value) => variable.value = variable.value!.shiftr(value),
-    '>>=': (variable, value) => variable.value = variable.value!.shiftl(value),
+  static final _assignOps = <String, Value Function(Variable, Value)>{
+    '=': (variable, value) => value,
+    '+=': (variable, value) => variable.value!.add(value),
+    '-=': (variable, value) => variable.value!.sub(value),
+    '*=': (variable, value) => variable.value!.mul(value),
+    '/=': (variable, value) => variable.value!.div(value),
+    '%=': (variable, value) => variable.value!.mod(value),
+    '**=': (variable, value) => variable.value!.pow(value),
+    '|=': (variable, value) => variable.value!.or(value),
+    '&=': (variable, value) => variable.value!.and(value),
+    '^=': (variable, value) => variable.value!.xor(value),
+    '~=': (variable, value) =>
+        throw UnsupportedError('Operator ~= not supported'),
+    '<<=': (variable, value) => variable.value!.shiftr(value),
+    '>>=': (variable, value) => variable.value!.shiftl(value),
   };
 
   void assign(AstExpression assignee, String op, Value v) {
     if (assignee is AstIdentifier) {
       final variable = find(assignee.name.text)!;
-      _assignOps[op]!(variable, v);
+      final val = _assignOps[op]!(variable, v);
+      variable.set(val);
     } else if (assignee is AstExpressionArrayAccess) {
       throw Exception('Not supported');
     }
@@ -208,7 +196,46 @@ class Variable {
 
   final String name;
   final AstDeclaration decl;
-  Value? value;
+  Value? _value;
+
+  Value? get value => _value;
+
+  void set(dynamic value) {
+    final type = decl.type;
+
+    Value? val;
+
+    if (value is Value) {
+      val = value;
+    } else if (value is bool) {
+      val = BoolValue(value);
+    } else if (value is int) {
+      val = IntValue(value);
+    } else if (value is double) {
+      val = FloatValue(value);
+    } else if (value is String) {
+      val = StringValue(value);
+    } else if (value is Map) {
+      if (value['re'] is num && value['im'] is num) {
+        val = ComplexValue(value['re'].toDouble(), value['im'].toDouble());
+      } else if (value['rad'] is num) {
+        val = AngleValue(value['rad'].toDouble());
+      } else if (value['deg'] is num) {
+        val = AngleValue((value['deg'].toDouble() * math.pi) / 180);
+      }
+    }
+
+    if (val == null) {
+      throw UnsupportedError(
+          'Cant set variable with (${value.runtimeType}) $value');
+    }
+
+    if (type != null && type.type.text == 'bit' && val is StringValue) {
+      val = BitValue(int.parse(val.value, radix: 2));
+    }
+
+    _value = val;
+  }
 }
 
 class Qubit extends Variable {

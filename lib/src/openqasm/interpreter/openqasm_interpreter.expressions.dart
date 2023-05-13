@@ -147,7 +147,7 @@ extension _OpenQAsmInterpreterContextExprExt on _OpenQAsmInterpreterContext {
   Value _expr_cast(AstExpression expr) {
     expr = expr as AstExpressionCast;
     final v = evaluate(expr.expression);
-    return v.cast(expr.type);
+    return v.cast(expr.getType());
   }
 
   static double _float(Value value) => value.toFloat().value;

@@ -1,10 +1,12 @@
 part of 'value.dart';
 
 class StringValue extends Value {
-  StringValue(this.value) : super._();
+  StringValue(this._value) : super._();
+
+  final String _value;
 
   @override
-  final String value;
+  String get value => _value.substring(1, _value.length - 1);
 
   @override
   String toString() => 'String($value)';
