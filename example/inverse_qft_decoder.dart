@@ -75,8 +75,10 @@ QCircuit buildDecoder(QGateBuilder gateBuilder) {
   final decoder = QCircuit(gateBuilder);
   // decoder.addListener((step, gate, qmem) => print(gate?.label ?? 'initializing'));
   // inverse QFT
-  decoder.invQft(Iterable<int>.generate(gateBuilder.size).toList(),
-      label: "INV_QFT");
+  decoder.invQft(
+    Iterable<int>.generate(gateBuilder.size).toList(),
+    label: "INV_QFT",
+  );
   // measure
   decoder.measure();
   return decoder;

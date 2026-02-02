@@ -17,9 +17,9 @@ class QMemorySpace {
 
   /// Builds a Quantum memory space with the input [qubits] as initial state
   QMemorySpace(List<Qbit> qubits)
-      : size = qubits.length,
-        _states = List.generate(1 << qubits.length, (i) => '', growable: false),
-        _amplitudes = ComplexArray.zero(1 << qubits.length) {
+    : size = qubits.length,
+      _states = List.generate(1 << qubits.length, (i) => '', growable: false),
+      _amplitudes = ComplexArray.zero(1 << qubits.length) {
     _loadQubits(qubits, _states, _amplitudes);
     for (var id = 0; id < size; id++) {
       _qstates.add(QStateImpl.ctor(this, id));
@@ -28,7 +28,7 @@ class QMemorySpace {
 
   /// Builds a Quantum memory space and initialize qubits based on bits in the input [number]
   QMemorySpace.load(int number, {int? size})
-      : this(Qbit.fromInt(number, count: size ?? 8).toList());
+    : this(Qbit.fromInt(number, count: size ?? 8).toList());
 
   /// Builds a Quantum memory space of specified [size], all qubits set to |0>
   QMemorySpace.zero(int size) : this(List.generate(size, (i) => Qbit.zero));
@@ -44,11 +44,11 @@ class QMemorySpace {
 
   /// Builds a Quantum memory space of specified [size] with random qubits
   QMemorySpace.random(int size)
-      : this(List.generate(size, (i) => Qbit.random()));
+    : this(List.generate(size, (i) => Qbit.random()));
 
   /// Builds a Quantum memory space of specified [size] and initializes qubits using the [generator] function
   QMemorySpace.generate(int size, Qbit Function(int i) generator)
-      : this(List.generate(size, generator));
+    : this(List.generate(size, generator));
 
   /// Size of the Quantum memory space (total number of qubits)
   final int size;
@@ -93,14 +93,16 @@ class QMemorySpace {
             final qval = val.toList();
             if (qval.length != rs) {
               throw InvalidOperationException(
-                  'Incompatible size for initialization value $qval and $rs-qubit register');
+                'Incompatible size for initialization value $qval and $rs-qubit register',
+              );
             }
             for (var i = 0; i < rs; i++) {
               qubits[reg[i]] = qval[i];
             }
           } else {
             throw InvalidOperationException(
-                'Unsupported initialization value $val for register ${reg.name}');
+              'Unsupported initialization value $val for register ${reg.name}',
+            );
           }
         } else if (reg is int) {
           // initialize individual qubit
@@ -111,14 +113,16 @@ class QMemorySpace {
           if (val is int) {
             if (val != 0 && val != 1) {
               throw InvalidOperationException(
-                  'Unsupported initialization value $val for qubit $reg');
+                'Unsupported initialization value $val for qubit $reg',
+              );
             }
             qubits[reg] = (val == 0) ? Qbit.zero : Qbit.one;
           } else if (val is Qbit) {
             qubits[reg] = val;
           } else {
             throw InvalidOperationException(
-                'Unsupported initialization value $val for qubit $reg');
+              'Unsupported initialization value $val for qubit $reg',
+            );
           }
         }
       }
@@ -130,7 +134,10 @@ class QMemorySpace {
   }
 
   static void _loadQubits(
-      List<Qbit> values, List<String> states, ComplexArray amplitudes) {
+    List<Qbit> values,
+    List<String> states,
+    ComplexArray amplitudes,
+  ) {
     Iterable<MapEntry<String, Complex>> _kronecker([int idx = 0]) sync* {
       final value = values[idx];
       if (idx == values.length - 1) {
@@ -163,8 +170,13 @@ class QMemorySpace {
   final Map<String, QRegister> _qregisters = <String, QRegister>{};
 
   /// Creates a quantum register in this memory space
-  QRegister createRegister(String name,
-      {List<int>? addresses, int? from, int? to, int? at}) {
+  QRegister createRegister(
+    String name, {
+    List<int>? addresses,
+    int? from,
+    int? to,
+    int? at,
+  }) {
     if (_qregisters.containsKey(name)) {
       throw InvalidOperationException('Regsiter $name already exists');
     }
@@ -173,7 +185,8 @@ class QMemorySpace {
       if (at != null) {
         if (from != null || to != null) {
           throw InvalidOperationException(
-              'Parareters "to" and "from" must be null if "at" is provided');
+            'Parareters "to" and "from" must be null if "at" is provided',
+          );
         }
         addresses.add(at);
       } else if (from != null && to != null) {
@@ -183,17 +196,20 @@ class QMemorySpace {
         }
       } else {
         throw InvalidOperationException(
-            'Both parareters "to" and "from" must be provided if "at" and "addresses" are null');
+          'Both parareters "to" and "from" must be provided if "at" and "addresses" are null',
+        );
       }
     } else {
       if (at != null || from != null || to != null) {
         throw InvalidOperationException(
-            'Parareters "at", "to" and "from" must be null if "addresses" is provided');
+          'Parareters "at", "to" and "from" must be null if "addresses" is provided',
+        );
       }
     }
     if (addresses.any((i) => i < 0 || i >= size)) {
       throw InvalidOperationException(
-          'Invalid qubit addresses: ${addresses.where((i) => i < 0 || i >= size)}, memory space size = $size');
+        'Invalid qubit addresses: ${addresses.where((i) => i < 0 || i >= size)}, memory space size = $size',
+      );
     }
     return (_qregisters[name] = QRegisterImpl.ctor(name, this, addresses));
   }
@@ -235,11 +251,15 @@ class QMemorySpace {
 
   /// Returns the list of states with associated amplitudes
   Map<String, Complex> get amplitudes => Map.fromIterables(
-      _states, Iterable.generate(_amplitudes.length, (i) => _amplitudes[i]));
+    _states,
+    Iterable.generate(_amplitudes.length, (i) => _amplitudes[i]),
+  );
 
   /// Returns the list of states with associated probabilities
-  Map<String, double> get probabilities => Map.fromIterables(_states,
-      Iterable.generate(_amplitudes.length, (i) => _amplitudes.modulus2(i)));
+  Map<String, double> get probabilities => Map.fromIterables(
+    _states,
+    Iterable.generate(_amplitudes.length, (i) => _amplitudes.modulus2(i)),
+  );
 
   static bool _match(String mask, String state) {
     if (mask.length != state.length) return false;

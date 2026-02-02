@@ -77,5 +77,6 @@ void main(List<String> args) async {
   }
 
   print(
-      'Executed $executed ${executed > 1 ? 'programs' : 'program'}, $failed failed, $skipped skipped');
+    'Executed $executed ${executed > 1 ? 'programs' : 'program'}, $failed failed, $skipped skipped',
+  );
 }

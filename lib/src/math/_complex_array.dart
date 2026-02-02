@@ -9,7 +9,7 @@ import 'complex.dart';
 class ComplexArray {
   /// Builds a list from [values]
   ComplexArray._clone(List<Float64x2> values)
-      : _values = Float64x2List.fromList(values);
+    : _values = Float64x2List.fromList(values);
 
   /// Builds a list of [length] elements initialized to [Complex.zero]
   ComplexArray.zero(int length) : _values = Float64x2List(length);
@@ -95,8 +95,10 @@ class ComplexArray {
   void mul(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
     final av = a._values[ai];
     final bv = b._values[bi];
-    _values[idx] =
-        Float64x2(av.x * bv.x - av.y * bv.y, av.x * bv.y + av.y * bv.x);
+    _values[idx] = Float64x2(
+      av.x * bv.x - av.y * bv.y,
+      av.x * bv.y + av.y * bv.x,
+    );
   }
 
   /// Divides values in [a] at index [ai] by [b] at index [bi] and stores the result in this instance at index [idx]
@@ -106,15 +108,19 @@ class ComplexArray {
     final bv2 = bv * bv;
     final d = bv2.x + bv2.y;
     _values[idx] = Float64x2(
-        (av.x * bv.x + av.y * bv.y) / d, (av.y * bv.x - av.x * bv.y) / d);
+      (av.x * bv.x + av.y * bv.y) / d,
+      (av.y * bv.x - av.x * bv.y) / d,
+    );
   }
 
   /// Multiplies values from [a] at index [ai] and [b] at index [bi] and adds the result to the value at index [idx] in this instance
   void addmul(int idx, ComplexArray a, int ai, ComplexArray b, int bi) {
     final av = a._values[ai];
     final bv = b._values[bi];
-    _values[idx] +=
-        Float64x2(av.x * bv.x - av.y * bv.y, av.x * bv.y + av.y * bv.x);
+    _values[idx] += Float64x2(
+      av.x * bv.x - av.y * bv.y,
+      av.x * bv.y + av.y * bv.x,
+    );
   }
 
   /// Returns `true` if the value at index [idx] is [Complex.zero]
@@ -216,10 +222,9 @@ class ComplexArray {
   String toString() =>
       '[' +
       Iterable.generate(
-              length,
-              (i) =>
-                  '${_values[i].x.normalize()} + ${_values[i].y.normalize()} i')
-          .join(', ') +
+        length,
+        (i) => '${_values[i].x.normalize()} + ${_values[i].y.normalize()} i',
+      ).join(', ') +
       ']';
 
   List serialize() => _values.expand((f) => [f.x, f.y]).toList();

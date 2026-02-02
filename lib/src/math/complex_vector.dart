@@ -6,18 +6,18 @@ import 'complex_matrix.dart';
 class ComplexVector extends ComplexMatrix {
   /// Builds a vector of [length] values obtained from [values]
   ComplexVector(List<Complex> values)
-      : super.generate(values.length, 1, (row, column) => values[row]);
+    : super.generate(values.length, 1, (row, column) => values[row]);
 
   /// Builds a vector of [length] values all initialized to [Complex.zero]
   ComplexVector.zero(int length) : super.zero(length, 1);
 
   /// Builds a vector of [length] values all initialized to [value]
   ComplexVector.filled(int length, Complex value)
-      : super.filled(length, 1, value);
+    : super.filled(length, 1, value);
 
   /// Builds a vector of [length] values obtained from the [generator] function
   ComplexVector.generate(int length, Complex Function(int i) generator)
-      : super.generate(length, 1, (i, j) => generator(i));
+    : super.generate(length, 1, (i, j) => generator(i));
 
   /// Returns the [length] of this vector
   int get length => rows;
@@ -37,7 +37,8 @@ class ComplexVector extends ComplexMatrix {
   ComplexVector transform(ComplexMatrix m) {
     if (!m.square || m.rows != length) {
       throw InvalidOperationException(
-          'Cannot transform a vector($length) with a matrix(${m.rows}x${m.columns})');
+        'Cannot transform a vector($length) with a matrix(${m.rows}x${m.columns})',
+      );
     }
     copy(m * this);
     return this;

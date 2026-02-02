@@ -8,10 +8,7 @@ void main() {
   final qa = qmem.createRegister('qa', addresses: [0, 1, 2]);
   final qb = qmem.createRegister('qb', addresses: [3, 4, 5, 6, 7]);
 
-  qmem.initialize({
-    qa: 3,
-    qb: 8,
-  });
+  qmem.initialize({qa: 3, qb: 8});
 
   print('state: ${probInfo(qmem)}');
 

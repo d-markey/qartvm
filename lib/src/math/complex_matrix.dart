@@ -5,12 +5,14 @@ import 'complex.dart';
 /// Class representing a matrix of [Complex] values in [ComplexMatrix.rows] rows and [ComplexMatrix.columns] columns
 class ComplexMatrix {
   ComplexMatrix._clone(this.rows, this.columns, ComplexArray values)
-      : _values = values.clone();
+    : _values = values.clone();
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with values obtained from the [generator] function
   ComplexMatrix.generate(
-      this.rows, this.columns, Complex Function(int row, int column) generator)
-      : _values = ComplexArray.zero(rows * columns) {
+    this.rows,
+    this.columns,
+    Complex Function(int row, int column) generator,
+  ) : _values = ComplexArray.zero(rows * columns) {
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < columns; c++) {
         _values.set(_idx(r, c), generator(r, c));
@@ -36,16 +38,19 @@ class ComplexMatrix {
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with [Complex.zero]
   ComplexMatrix.zero(this.rows, this.columns)
-      : _values = ComplexArray.zero(rows * columns);
+    : _values = ComplexArray.zero(rows * columns);
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with [value]
   ComplexMatrix.filled(int rows, int columns, Complex value)
-      : this.generate(rows, columns, (row, column) => value);
+    : this.generate(rows, columns, (row, column) => value);
 
   /// Builds the identity matrix of [rows] rows and [columns] columns
   ComplexMatrix.identity(int rows)
-      : this.generate(rows, rows,
-            (row, column) => (row == column) ? Complex.one : Complex.zero);
+    : this.generate(
+        rows,
+        rows,
+        (row, column) => (row == column) ? Complex.one : Complex.zero,
+      );
 
   /// Builds a clone of this instance
   ComplexMatrix clone() => ComplexMatrix._clone(rows, columns, _values);
@@ -132,7 +137,8 @@ class ComplexMatrix {
   ComplexMatrix add(ComplexMatrix other) {
     if (rows != other.rows || columns != other.columns) {
       throw InvalidOperationException(
-          'Cannot add a ${rows}x$columns matrix and a ${other.rows}x${other.columns} matrix ');
+        'Cannot add a ${rows}x$columns matrix and a ${other.rows}x${other.columns} matrix ',
+      );
     }
     final ov = other._values;
     final len = _values.length;
@@ -170,7 +176,8 @@ class ComplexMatrix {
     } else if (other is ComplexMatrix) {
       if (columns != other.rows) {
         throw InvalidOperationException(
-            'Cannot multiply ${rows}x$columns by ${other.rows}x${other.columns}');
+          'Cannot multiply ${rows}x$columns by ${other.rows}x${other.columns}',
+        );
       }
       final res = ComplexMatrix.zero(rows, other.columns);
       final rrows = res.rows, rcolumns = res.columns;
@@ -187,7 +194,8 @@ class ComplexMatrix {
       return res;
     } else {
       throw InvalidOperationException(
-          'Cannot multiply ${rows}x$columns with ${other.runtimeType}');
+        'Cannot multiply ${rows}x$columns with ${other.runtimeType}',
+      );
     }
   }
 
@@ -200,13 +208,15 @@ class ComplexMatrix {
     } else if (other is ComplexMatrix) {
       if (!square || !other.square) {
         throw InvalidDimensionsException(
-            'Matrices must be square for in-place multiplication');
+          'Matrices must be square for in-place multiplication',
+        );
       }
       final res = this * other;
       _values.copy(res._values);
     } else {
       throw InvalidOperationException(
-          'Cannot multiply ${rows}x$columns with ${other.runtimeType}');
+        'Cannot multiply ${rows}x$columns with ${other.runtimeType}',
+      );
     }
     return this;
   }
@@ -470,11 +480,12 @@ class ComplexMatrix {
   /// Returns a String representation of this matrix with indentation at level [indent]
   /// If [hideZeroes] is `true`, values equal to [Complex.zero] down to a precision of [precision] will not be displayed
   /// The optional [fractionDigits] is used to format [Complex] values
-  String toStringIndent(
-      {int indent = 0,
-      int? fractionDigits,
-      bool hideZeroes = false,
-      double precision = 0}) {
+  String toStringIndent({
+    int indent = 0,
+    int? fractionDigits,
+    bool hideZeroes = false,
+    double precision = 0,
+  }) {
     final spaces = '   ';
     final tabs = spaces * indent;
     final sb = StringBuffer();
@@ -499,9 +510,11 @@ class ComplexMatrix {
           sb.write(' ');
         } else {
           isZero &= false;
-          sb.write((fractionDigits == null)
-              ? v.toString()
-              : v.toStringAsFixed(fractionDigits));
+          sb.write(
+            (fractionDigits == null)
+                ? v.toString()
+                : v.toStringAsFixed(fractionDigits),
+          );
         }
       }
       sb.write(']');
@@ -510,11 +523,7 @@ class ComplexMatrix {
     return sb.toString();
   }
 
-  List serialize() => [
-        rows,
-        columns,
-        _values.serialize(),
-      ];
+  List serialize() => [rows, columns, _values.serialize()];
 
   static ComplexMatrix deserialize(List json) =>
       ComplexMatrix._clone(json[0], json[1], ComplexArray.deserialize(json[2]));

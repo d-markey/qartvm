@@ -1,7 +1,7 @@
 import 'package:qartvm/qartvm.dart';
 import 'package:test/test.dart';
 
-import 'complex_matcher.dart';
+import 'math/complex_matcher.dart';
 
 void main() {
   group('Quantum Memory Space -', () {
@@ -79,22 +79,38 @@ void main() {
         final probs = qmem.probabilities;
         final sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
-        expect(probs['000'],
-            closeTo(q1.ket0.det * q2.ket0.det * q3.ket0.det, 1e-9));
-        expect(probs['001'],
-            closeTo(q1.ket0.det * q2.ket0.det * q3.ket1.det, 1e-9));
-        expect(probs['010'],
-            closeTo(q1.ket0.det * q2.ket1.det * q3.ket0.det, 1e-9));
-        expect(probs['011'],
-            closeTo(q1.ket0.det * q2.ket1.det * q3.ket1.det, 1e-9));
-        expect(probs['100'],
-            closeTo(q1.ket1.det * q2.ket0.det * q3.ket0.det, 1e-9));
-        expect(probs['101'],
-            closeTo(q1.ket1.det * q2.ket0.det * q3.ket1.det, 1e-9));
-        expect(probs['110'],
-            closeTo(q1.ket1.det * q2.ket1.det * q3.ket0.det, 1e-9));
-        expect(probs['111'],
-            closeTo(q1.ket1.det * q2.ket1.det * q3.ket1.det, 1e-9));
+        expect(
+          probs['000'],
+          closeTo(q1.ket0.det * q2.ket0.det * q3.ket0.det, 1e-9),
+        );
+        expect(
+          probs['001'],
+          closeTo(q1.ket0.det * q2.ket0.det * q3.ket1.det, 1e-9),
+        );
+        expect(
+          probs['010'],
+          closeTo(q1.ket0.det * q2.ket1.det * q3.ket0.det, 1e-9),
+        );
+        expect(
+          probs['011'],
+          closeTo(q1.ket0.det * q2.ket1.det * q3.ket1.det, 1e-9),
+        );
+        expect(
+          probs['100'],
+          closeTo(q1.ket1.det * q2.ket0.det * q3.ket0.det, 1e-9),
+        );
+        expect(
+          probs['101'],
+          closeTo(q1.ket1.det * q2.ket0.det * q3.ket1.det, 1e-9),
+        );
+        expect(
+          probs['110'],
+          closeTo(q1.ket1.det * q2.ket1.det * q3.ket0.det, 1e-9),
+        );
+        expect(
+          probs['111'],
+          closeTo(q1.ket1.det * q2.ket1.det * q3.ket1.det, 1e-9),
+        );
       });
 
       test('qubyte', () {
@@ -135,13 +151,7 @@ void main() {
         final qmem = QMemorySpace.load(127);
         expect(qmem.probabilities['11111110'], equals(1));
 
-        qmem.initialize({
-          0: 1,
-          1: Qbit.one,
-          3: Qbit.one,
-          6: 1,
-          7: 0,
-        });
+        qmem.initialize({0: 1, 1: Qbit.one, 3: Qbit.one, 6: 1, 7: 0});
         expect(qmem.probabilities['11010010'], equals(1));
       });
     });
@@ -149,25 +159,31 @@ void main() {
     group('Gates -', () {
       test('QFT inverse', () {
         final nqubits = 7;
-        final qft = QGateBuilder.get(nqubits)
-            .highLevel
-            .qft(Iterable<int>.generate(nqubits).toList());
+        final qft = QGateBuilder.get(
+          nqubits,
+        ).highLevel.qft(Iterable<int>.generate(nqubits).toList());
 
         final tc = qft.transpose().conjugate();
         var p = qft * tc;
         expect(
-            p,
-            complexMatrixEquals(ComplexMatrix.identity(1 << nqubits),
-                precision: 1e-9));
+          p,
+          complexMatrixEquals(
+            ComplexMatrix.identity(1 << nqubits),
+            precision: 1e-9,
+          ),
+        );
 
-        final inv = QGateBuilder.get(nqubits)
-            .highLevel
-            .invqft(Iterable<int>.generate(nqubits).toList());
+        final inv = QGateBuilder.get(
+          nqubits,
+        ).highLevel.invqft(Iterable<int>.generate(nqubits).toList());
         p = qft * inv;
         expect(
-            p,
-            complexMatrixEquals(ComplexMatrix.identity(1 << nqubits),
-                precision: 1e-9));
+          p,
+          complexMatrixEquals(
+            ComplexMatrix.identity(1 << nqubits),
+            precision: 1e-9,
+          ),
+        );
       });
     });
   });

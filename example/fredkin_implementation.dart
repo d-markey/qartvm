@@ -37,8 +37,12 @@ void main() {
   final myFredkinGate = cnot21 * toffoli012 * cnot21;
   final fredkinType = QGateType('My Fredkin gate', 'MY-C-SWAP');
   final fredkinCircuitWithCustomGate = QCircuit(gateBuilder);
-  fredkinCircuitWithCustomGate.custom({1, 2}, myFredkinGate,
-      controls: {0}, type: fredkinType);
+  fredkinCircuitWithCustomGate.custom(
+    {1, 2},
+    myFredkinGate,
+    controls: {0},
+    type: fredkinType,
+  );
 
   print(myFredkinGate.toStringIndent(indent: 1, hideZeroes: true));
   describe(fredkinCircuitWithCustomGate);
@@ -67,8 +71,9 @@ void verifyFredkin(QCircuit circuit) {
     circuit.execute(qmem);
 
     final outcomes = probInfo(qmem);
-    final outcome =
-        qmem.probabilities.entries.singleWhere((e) => e.value > 0).key;
+    final outcome = qmem.probabilities.entries
+        .singleWhere((e) => e.value > 0)
+        .key;
 
     bool ok;
     if (init[0] == '0') {
@@ -82,7 +87,8 @@ void verifyFredkin(QCircuit circuit) {
     print('Initial: $initial => Final: $outcomes: ${ok ? 'OK' : 'KO'}');
     if (!ok) {
       throw Exception(
-          'C-SWAP gate failure for $init: unexpected result $outcome');
+        'C-SWAP gate failure for $init: unexpected result $outcome',
+      );
     }
   }
 }

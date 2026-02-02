@@ -67,7 +67,8 @@ void main() {
   verifyAddition(circuit, qmem, qa, qb);
   sw.stop();
   print(
-      'Completed in ${sw.elapsed} before compilation, total executions = $_nbExec (${sw.elapsedMicroseconds / _nbExec} µs/execution)');
+    'Completed in ${sw.elapsed} before compilation, total executions = $_nbExec (${sw.elapsedMicroseconds / _nbExec} µs/execution)',
+  );
 
   circuit.compile();
 
@@ -79,13 +80,18 @@ void main() {
   verifyAddition(circuit, qmem, qa, qb);
   sw.stop();
   print(
-      'Completed in ${sw.elapsed} after compilation, total executions = $_nbExec (${sw.elapsedMicroseconds / _nbExec} µs/execution)');
+    'Completed in ${sw.elapsed} after compilation, total executions = $_nbExec (${sw.elapsedMicroseconds / _nbExec} µs/execution)',
+  );
 }
 
 int _nbExec = 0;
 
 void verifyAddition(
-    QCircuit circuit, QMemorySpace qmem, QRegister qa, QRegister qb) {
+  QCircuit circuit,
+  QMemorySpace qmem,
+  QRegister qa,
+  QRegister qb,
+) {
   _nbExec = 0;
 
   // truth table
@@ -114,10 +120,7 @@ void verifyAddition(
     final a = rnd.nextInt(8);
     final b = rnd.nextInt(4);
 
-    qmem.initialize({
-      qa: a,
-      qb: b,
-    });
+    qmem.initialize({qa: a, qb: b});
 
     circuit.execute(qmem);
     _nbExec++;

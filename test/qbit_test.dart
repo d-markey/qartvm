@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 import 'package:qartvm/src/math/complex.dart';
 import 'package:qartvm/src/qbit.dart';
 
-import 'complex_matcher.dart';
+import 'math/complex_matcher.dart';
 
 void main() {
   group('Qubit -', () {
@@ -33,8 +33,10 @@ void main() {
     test('Minus |->', () {
       final minus = Qbit.minus;
       expect(minus.ket0, complexEquals(Complex.one * sqrt1_2, precision: 1e-9));
-      expect(minus.ket1,
-          complexEquals(Complex.minusOne * sqrt1_2, precision: 1e-9));
+      expect(
+        minus.ket1,
+        complexEquals(Complex.minusOne * sqrt1_2, precision: 1e-9),
+      );
       expect(minus.ket0.det + minus.ket1.det, closeTo(1, 1e-9));
     });
 

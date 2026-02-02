@@ -11,24 +11,36 @@ QGateType flagSetter = QGateType('check overflow', 'set');
 QGateType flagResetter = QGateType('reset overflow', 'reset');
 QGateType swapper = QGateType('swap registers [a] and [b]', 'r-swap');
 
-Future<QCircuit> _buildAddGate(ShorBuilders shorBuilders, int constant,
-    QRegister qreg, QGateBuilder builder) async {
+Future<QCircuit> _buildAddGate(
+  ShorBuilders shorBuilders,
+  int constant,
+  QRegister qreg,
+  QGateBuilder builder,
+) async {
   final gate = await shorBuilders.addGate(qreg.qubits, constant);
   final component = QCircuit(builder);
   component.custom(qreg, gate, type: adder, params: {'x': constant});
   return component;
 }
 
-Future<QCircuit> _buildFlagSetterGate(ShorBuilders shorBuilders, QRegister qreg,
-    QRegister qflag, QGateBuilder builder) async {
+Future<QCircuit> _buildFlagSetterGate(
+  ShorBuilders shorBuilders,
+  QRegister qreg,
+  QRegister qflag,
+  QGateBuilder builder,
+) async {
   final gate = await shorBuilders.setFlagOnOverflowGate(qreg.qubits, qflag[0]);
   final component = QCircuit(builder);
   component.custom([...qreg.qubits, ...qflag.qubits], gate, type: flagSetter);
   return component;
 }
 
-Future<QCircuit> _buildFlagResetterGate(ShorBuilders shorBuilders,
-    QRegister qreg, QRegister qflag, QGateBuilder builder) async {
+Future<QCircuit> _buildFlagResetterGate(
+  ShorBuilders shorBuilders,
+  QRegister qreg,
+  QRegister qflag,
+  QGateBuilder builder,
+) async {
   final gate = await shorBuilders.resetFlagGate(qreg.qubits, qflag[0]);
   final component = QCircuit(builder);
   component.custom([...qreg.qubits, ...qflag.qubits], gate, type: flagResetter);
@@ -36,7 +48,10 @@ Future<QCircuit> _buildFlagResetterGate(ShorBuilders shorBuilders,
 }
 
 Future<QCircuit> _buildQftGate(
-    ShorBuilders shorBuilders, QRegister qreg, QGateBuilder builder) async {
+  ShorBuilders shorBuilders,
+  QRegister qreg,
+  QGateBuilder builder,
+) async {
   final gate = await shorBuilders.qftGate(qreg.qubits);
   final component = QCircuit(builder);
   component.custom(qreg, gate, type: QGateType.qft);
@@ -44,7 +59,10 @@ Future<QCircuit> _buildQftGate(
 }
 
 Future<QCircuit> _buildInvQftGate(
-    ShorBuilders shorBuilders, QRegister qreg, QGateBuilder builder) async {
+  ShorBuilders shorBuilders,
+  QRegister qreg,
+  QGateBuilder builder,
+) async {
   final gate = await shorBuilders.invQftGate(qreg.qubits);
   final component = QCircuit(builder);
   component.custom(qreg, gate, type: QGateType.invqft);
@@ -52,19 +70,24 @@ Future<QCircuit> _buildInvQftGate(
 }
 
 Future<QCircuit> _buildAddModuloGate(
-    ShorBuilders shorBuilders,
-    int constant,
-    int modulo,
-    QCircuit addModuloGate,
-    QCircuit addModuloIfFlagGate,
-    QCircuit subModuloGate,
-    QCircuit flagSetterGate,
-    QCircuit flagResetterGate,
-    QRegister qreg,
-    QGateBuilder builder) async {
+  ShorBuilders shorBuilders,
+  int constant,
+  int modulo,
+  QCircuit addModuloGate,
+  QCircuit addModuloIfFlagGate,
+  QCircuit subModuloGate,
+  QCircuit flagSetterGate,
+  QCircuit flagResetterGate,
+  QRegister qreg,
+  QGateBuilder builder,
+) async {
   final params = {'x': constant};
-  final addConstantCircuit =
-      await _buildAddGate(shorBuilders, constant, qreg, builder);
+  final addConstantCircuit = await _buildAddGate(
+    shorBuilders,
+    constant,
+    qreg,
+    builder,
+  );
   final subConstantCircuit = QCircuit(builder)
       .append(addConstantCircuit, dagger: true)
       .compile(type: subtractor, params: params);
@@ -80,29 +103,34 @@ Future<QCircuit> _buildAddModuloGate(
 }
 
 Future<QCircuit> _buildMultiplyAndAddModuloGate(
-    ShorBuilders shorBuilders,
-    int constant,
-    int modulo,
-    QRegister qzeroext,
-    QRegister qvalue,
-    QRegister qflag,
-    QRegister qctrl,
-    QCircuit qftGate,
-    QCircuit invQftGate,
-    QCircuit flagSetterGate,
-    QCircuit flagResetterGate,
-    QGateBuilder builder) async {
+  ShorBuilders shorBuilders,
+  int constant,
+  int modulo,
+  QRegister qzeroext,
+  QRegister qvalue,
+  QRegister qflag,
+  QRegister qctrl,
+  QCircuit qftGate,
+  QCircuit invQftGate,
+  QCircuit flagSetterGate,
+  QCircuit flagResetterGate,
+  QGateBuilder builder,
+) async {
   final params = {'x': modulo};
 
-  final addModuloGate =
-      await _buildAddGate(shorBuilders, modulo, qzeroext, builder);
+  final addModuloGate = await _buildAddGate(
+    shorBuilders,
+    modulo,
+    qzeroext,
+    builder,
+  );
 
   final subModuloGate = QCircuit(builder)
       .append(addModuloGate, dagger: true)
       .compile(type: subtractor, params: params);
-  final addModuloIfFlagGate = QCircuit(builder)
-      .append(addModuloGate, controls: qflag)
-      .compile(type: adder, params: params);
+  final addModuloIfFlagGate = QCircuit(
+    builder,
+  ).append(addModuloGate, controls: qflag).compile(type: adder, params: params);
 
   final component = QCircuit(builder);
   final size = qvalue.size;
@@ -110,13 +138,15 @@ Future<QCircuit> _buildMultiplyAndAddModuloGate(
   component.append(qftGate, controls: qctrl, merge: false);
 
   component.separation(
-      label:
-          '================ BEGIN ${qzeroext.name} + $constant * ${qvalue.name} % $modulo ================',
-      merge: false);
+    label:
+        '================ BEGIN ${qzeroext.name} + $constant * ${qvalue.name} % $modulo ================',
+    merge: false,
+  );
 
-  final gates = await Future.wait(Iterable.generate(size, (i) {
-    final n = constant * (1 << i);
-    return _buildAddModuloGate(
+  final gates = await Future.wait(
+    Iterable.generate(size, (i) {
+      final n = constant * (1 << i);
+      return _buildAddModuloGate(
         shorBuilders,
         n % modulo,
         modulo,
@@ -126,34 +156,51 @@ Future<QCircuit> _buildMultiplyAndAddModuloGate(
         flagSetterGate,
         flagResetterGate,
         qzeroext,
-        builder);
-  }));
+        builder,
+      );
+    }),
+  );
 
   for (var i = 0; i < size; i++) {
     final n = constant * (1 << i);
     component.separation(
-        label:
-            '================ ADD $n MODULO $modulo = ADD ${n % modulo} % MODULO $modulo CONTROLLED BY #${qvalue[size - 1 - i]} ================',
-        merge: false);
-    component.append(gates[i],
-        controls: [qvalue[size - 1 - i], qctrl[0]], merge: false);
+      label:
+          '================ ADD $n MODULO $modulo = ADD ${n % modulo} % MODULO $modulo CONTROLLED BY #${qvalue[size - 1 - i]} ================',
+      merge: false,
+    );
+    component.append(
+      gates[i],
+      controls: [qvalue[size - 1 - i], qctrl[0]],
+      merge: false,
+    );
   }
   component.separation(
-      label:
-          '================ END ${qzeroext.name} + $constant * ${qvalue.name} % $modulo ================',
-      merge: false);
+    label:
+        '================ END ${qzeroext.name} + $constant * ${qvalue.name} % $modulo ================',
+    merge: false,
+  );
 
   component.append(invQftGate, controls: qctrl[0], merge: false);
 
   return component;
 }
 
-Future<QCircuit> _buildSwapperGate(ShorBuilders shorBuilders, QRegister qa,
-    QRegister qb, QRegister qctrl, QGateBuilder builder) async {
+Future<QCircuit> _buildSwapperGate(
+  ShorBuilders shorBuilders,
+  QRegister qa,
+  QRegister qb,
+  QRegister qctrl,
+  QGateBuilder builder,
+) async {
   final gate = await shorBuilders.swapperGate(qa.qubits, qb.qubits);
   final component = QCircuit(builder);
-  component.custom([...qa.qubits, ...qb.qubits], gate,
-      controls: qctrl, type: swapper, params: {'a': qa.name, 'b': qb.name});
+  component.custom(
+    [...qa.qubits, ...qb.qubits],
+    gate,
+    controls: qctrl,
+    type: swapper,
+    params: {'a': qa.name, 'b': qb.name},
+  );
   return component;
 }
 
@@ -165,19 +212,21 @@ int inverse(int constant, int modulo) {
 }
 
 Future<QCircuit> buildModularMultiplierGate(
-    ShorBuilders shorBuilders,
-    int constant,
-    int modulo,
-    QRegister qvalue,
-    QRegister qzero,
-    QRegister qzeroext,
-    QRegister qctrl,
-    QRegister qflag,
-    QGateBuilder builder) async {
+  ShorBuilders shorBuilders,
+  int constant,
+  int modulo,
+  QRegister qvalue,
+  QRegister qzero,
+  QRegister qzeroext,
+  QRegister qctrl,
+  QRegister qflag,
+  QGateBuilder builder,
+) async {
   final inv = inverse(constant, modulo);
   if (inv == 0) {
     throw Exception(
-        'Invalid parameters: constant $constant and modulo $modulo must be coprime');
+      'Invalid parameters: constant $constant and modulo $modulo must be coprime',
+    );
   }
 
   final program = QCircuit(builder);
@@ -196,31 +245,33 @@ Future<QCircuit> buildModularMultiplierGate(
 
   final mulGates = await Future.wait([
     _buildMultiplyAndAddModuloGate(
-        shorBuilders,
-        constant,
-        modulo,
-        qzeroext,
-        qvalue,
-        qflag,
-        qctrl,
-        qftGate,
-        invQftGate,
-        flagSetterGate,
-        flagResetterGate,
-        builder),
+      shorBuilders,
+      constant,
+      modulo,
+      qzeroext,
+      qvalue,
+      qflag,
+      qctrl,
+      qftGate,
+      invQftGate,
+      flagSetterGate,
+      flagResetterGate,
+      builder,
+    ),
     _buildMultiplyAndAddModuloGate(
-        shorBuilders,
-        inv,
-        modulo,
-        qzeroext,
-        qvalue,
-        qflag,
-        qctrl,
-        qftGate,
-        invQftGate,
-        flagSetterGate,
-        flagResetterGate,
-        builder),
+      shorBuilders,
+      inv,
+      modulo,
+      qzeroext,
+      qvalue,
+      qflag,
+      qctrl,
+      qftGate,
+      invQftGate,
+      flagSetterGate,
+      flagResetterGate,
+      builder,
+    ),
     _buildSwapperGate(shorBuilders, qvalue, qzero, qctrl, builder),
   ]);
 
@@ -239,11 +290,7 @@ Future main() async {
   final sw = Stopwatch();
   sw.start();
 
-  Squadron.setId('main');
-  Squadron.setLogger(ConsoleSquadronLogger());
-  Squadron.logLevel = SquadronLogLevel.fine;
-
-  Squadron.info('Program started');
+  print('Program started');
 
   // see https://medium.com/mit-6-s089-intro-to-quantum-computing/a-general-implementation-of-shors-algorithm-da1595694430
 
@@ -264,30 +311,41 @@ Future main() async {
 
   final qctrl = qmem.createRegister('CTRL', at: 0);
   final qvalue = qmem.createRegister('VALUE', from: bits, to: 1); // LSB first
-  final qzeroext = qmem.createRegister('ZERO-EXT',
-      from: 2 * bits + 1, to: bits + 1); // LSB first
+  final qzeroext = qmem.createRegister(
+    'ZERO-EXT',
+    from: 2 * bits + 1,
+    to: bits + 1,
+  ); // LSB first
   final qzero = qmem.createRegister('ZERO', from: 2 * bits, to: bits + 1);
   final qflag = qmem.createRegister('FLAG', at: 2 * bits + 2);
 
-  Squadron.info('=== PARAMETERS ===');
-  Squadron.info('   * modulo = $modulo');
-  Squadron.info('   * constant = $constant');
-  Squadron.info(' ');
-  Squadron.info('=== REGISTERS ===');
-  Squadron.info('   * $qctrl');
-  Squadron.info('   * $qvalue');
-  Squadron.info('   * $qzeroext');
-  Squadron.info('   * $qzero');
-  Squadron.info('   * $qflag');
-  Squadron.info(' ');
+  print(
+    '=== PARAMETERS ===\n'
+    '   * modulo = $modulo\n'
+    '   * constant = $constant\n'
+    ' \n'
+    '=== REGISTERS ===\n'
+    '   * $qctrl\n'
+    '   * $qvalue\n'
+    '   * $qzeroext\n'
+    '   * $qzero\n'
+    '   * $qflag\n'
+    ' ',
+  );
 
   final builder = QGateBuilder.get(qmem.size, withCache: true);
 
-  ShorBuilders shorBuilders = ShorBuildersPool(builder.size,
-      ConcurrencySettings(minWorkers: 4, maxWorkers: 4, maxParallel: 1));
+  ShorBuilders shorBuilders = ShorBuildersWorkerPool.vm(
+    builder.size,
+    concurrencySettings: ConcurrencySettings(
+      minWorkers: 4,
+      maxWorkers: 4,
+      maxParallel: 1,
+    ),
+  );
   // ShorBuilders shorBuilders = ShorBuildersImpl(builder.size);
 
-  if (shorBuilders is ShorBuildersPool) {
+  if (shorBuilders is ShorBuildersWorkerPool) {
     await shorBuilders.start();
   }
 
@@ -307,18 +365,28 @@ Future main() async {
     //  * qzeroext = |0> (unchanged)
     //  * qflag    = |0> (unchanged)
 
-    Squadron.info('Building program...');
-    program = await buildModularMultiplierGate(shorBuilders, constant, modulo,
-        qvalue, qzero, qzeroext, qctrl, qflag, builder);
+    print('Building program...');
+    program = await buildModularMultiplierGate(
+      shorBuilders,
+      constant,
+      modulo,
+      qvalue,
+      qzero,
+      qzeroext,
+      qctrl,
+      qflag,
+      builder,
+    );
   } finally {
     shorBuilders.clearCache();
-    if (shorBuilders is ShorBuildersPool) {
+    if (shorBuilders is ShorBuildersWorkerPool) {
       shorBuilders.stop();
-      Squadron.config('WORKER STATS:');
-      Squadron.config(shorBuilders.fullStats
-          .map((stat) => '   - ${stat.totalWorkload} - ${stat.upTime}'));
-      Squadron.config(
-          'cache hits: ${shorBuilders.hits}, cache misses: ${shorBuilders.misses}');
+      print('WORKER STATS:');
+      print(
+        shorBuilders.fullStats.map(
+          (stat) => '   - ${stat.totalWorkload} - ${stat.upTime}',
+        ),
+      );
     }
   }
 
@@ -327,29 +395,25 @@ Future main() async {
   program.addObserver((step, gate, qmem) {
     if (gate != null && gate.type == QGateType.separator) {
       if (gate.label.startsWith('DBG-')) {
-        Squadron.fine('     - $step: ${gate.label}: ${probInfo(qmem)}');
+        print('     - $step: ${gate.label}: ${probInfo(qmem)}');
       } else {
-        Squadron.finer('     - $step: ${gate.label}');
+        print('     - $step: ${gate.label}');
       }
     } else {
-      Squadron.finer(
-          '     - $step: ${gate?.label ?? 'START'}: ${probInfo(qmem)}');
+      print('     - $step: ${gate?.label ?? 'START'}: ${probInfo(qmem)}');
     }
   });
 
   var broken = 0;
 
   void log(dynamic message, [bool ok = true]) =>
-      ok ? Squadron.info(message) : Squadron.shout(message);
+      ok ? print(message) : print('!!! $message');
 
   for (var ctrl = 1; ctrl >= 0; ctrl--) {
     for (var val = 0; val < modulo; val++) {
       log(' ');
 
-      qmem.initialize({
-        qctrl: ctrl,
-        qvalue: val,
-      });
+      qmem.initialize({qctrl: ctrl, qvalue: val});
 
       final mctrl = qctrl.read();
       final mvalue = qvalue.read();
@@ -363,7 +427,9 @@ Future main() async {
 
       log(' ');
       log('=== INITIAL STATE ===');
-      log('   * Initial values: ${qvalue.name} = $mvalue, ${qctrl.name} = $mctrl');
+      log(
+        '   * Initial values: ${qvalue.name} = $mvalue, ${qctrl.name} = $mctrl',
+      );
       log('   * Initial states: ${probInfo(qmem)}');
 
       program.execute(qmem);
@@ -383,17 +449,27 @@ Future main() async {
       if (ctrl == 0) {
         log('   * Expectation: ctrl = 0 => $val');
       } else {
-        log('   * Expectation: ctrl = 1 => ($val * $constant) % $modulo = ${val * constant} % $modulo = ${(val * constant) % modulo}');
+        log(
+          '   * Expectation: ctrl = 1 => ($val * $constant) % $modulo = ${val * constant} % $modulo = ${(val * constant) % modulo}',
+        );
       }
       log('   * Result:');
-      log('     * ${qctrl.name} = $expctrl => $rctrl ${rctrl == expctrl ? 'OK' : 'KO'}',
-          rctrl == expctrl);
-      log('     * ${qvalue.name} = $expvalue => $rvalue ${rvalue == expvalue ? 'OK' : 'KO'}',
-          rvalue == expvalue);
-      log('     * ${qzero.name} = $expzero => $rzero ${rzero == expzero ? 'OK' : 'KO'}',
-          rzero == expzero);
-      log('     * ${qflag.name} = $expflag => $rflag ${rflag == expflag ? 'OK' : 'KO'}',
-          rflag == expflag);
+      log(
+        '     * ${qctrl.name} = $expctrl => $rctrl ${rctrl == expctrl ? 'OK' : 'KO'}',
+        rctrl == expctrl,
+      );
+      log(
+        '     * ${qvalue.name} = $expvalue => $rvalue ${rvalue == expvalue ? 'OK' : 'KO'}',
+        rvalue == expvalue,
+      );
+      log(
+        '     * ${qzero.name} = $expzero => $rzero ${rzero == expzero ? 'OK' : 'KO'}',
+        rzero == expzero,
+      );
+      log(
+        '     * ${qflag.name} = $expflag => $rflag ${rflag == expflag ? 'OK' : 'KO'}',
+        rflag == expflag,
+      );
       if (rctrl != expctrl ||
           rvalue != expvalue ||
           rzero != expzero ||
@@ -404,13 +480,13 @@ Future main() async {
   }
 
   if (broken == 0) {
-    Squadron.warning('All tests passed');
+    print('All tests passed');
   } else {
-    Squadron.shout('$broken tests failed');
+    print('!!! $broken tests failed');
   }
 
   sw.stop();
-  Squadron.warning('Program completed in ${sw.elapsed}');
+  print('Program completed in ${sw.elapsed}');
 
   if (broken > 0) {
     throw Exception('$broken tests failed');

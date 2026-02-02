@@ -12,16 +12,20 @@ class Complex {
 
   /// Builds a new complex value from polar coordinates, with radius [radius] and angle [angle]
   Complex.polar({double radius = 0, double angle = 0})
-      : this(re: radius * math.cos(angle), im: radius * math.sin(angle));
+    : this(re: radius * math.cos(angle), im: radius * math.sin(angle));
 
   /// Builds a new random complex value so that [modulus] < [radius]
   /// If [re] is `false`, the real part will be forced to 0
   /// If [im] is `true`, the imaginary part will be forced to 0
-  factory Complex.random(
-      {double radius = 1.0, bool re = true, bool im = true}) {
+  factory Complex.random({
+    double radius = 1.0,
+    bool re = true,
+    bool im = true,
+  }) {
     var complex = Complex(
-        re: re ? _rnd.nextDouble() * 2 - 1 : 0,
-        im: im ? _rnd.nextDouble() * 2 - 1 : 0);
+      re: re ? _rnd.nextDouble() * 2 - 1 : 0,
+      im: im ? _rnd.nextDouble() * 2 - 1 : 0,
+    );
     if (complex != Complex.zero) {
       complex = complex * ((radius * _rnd.nextDouble()) / complex.modulus);
     }
@@ -63,7 +67,8 @@ class Complex {
           : Complex(re: re + other.re, im: im + other.im);
     } else {
       throw InvalidOperationException(
-          'Cannot add ${other.runtimeType} to $this');
+        'Cannot add ${other.runtimeType} to $this',
+      );
     }
   }
 
@@ -79,7 +84,8 @@ class Complex {
           : Complex(re: re - other.re, im: im - other.im);
     } else {
       throw InvalidOperationException(
-          'Cannot subtract ${other.runtimeType} from $this');
+        'Cannot subtract ${other.runtimeType} from $this',
+      );
     }
   }
 
@@ -103,12 +109,14 @@ class Complex {
         return this;
       } else {
         return Complex(
-            re: re * other.re - im * other.im,
-            im: re * other.im + im * other.re);
+          re: re * other.re - im * other.im,
+          im: re * other.im + im * other.re,
+        );
       }
     } else {
       throw InvalidOperationException(
-          'Cannot multiply ${other.runtimeType} by $this');
+        'Cannot multiply ${other.runtimeType} by $this',
+      );
     }
   }
 
@@ -128,17 +136,19 @@ class Complex {
       } else {
         final d = other.det;
         return Complex(
-            re: (re * other.re + im * other.im) / d,
-            im: (im * other.re - re * other.im) / d);
+          re: (re * other.re + im * other.im) / d,
+          im: (im * other.re - re * other.im) / d,
+        );
       }
     } else {
       throw InvalidOperationException(
-          'Cannot divide ${other.runtimeType} by $this');
+        'Cannot divide ${other.runtimeType} by $this',
+      );
     }
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other is num) {
       return re == other && im == 0;
     } else if (other is Complex) {
@@ -158,7 +168,8 @@ class Complex {
       return complex.modulus <= precision;
     } else {
       throw InvalidOperationException(
-          'Cannot compare ${other.runtimeType} with $this');
+        'Cannot compare ${other.runtimeType} with $this',
+      );
     }
   }
 

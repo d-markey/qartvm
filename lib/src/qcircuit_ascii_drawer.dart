@@ -8,13 +8,15 @@ class QCircuitAsciiDrawer {
   /// Returns a set of strings representing the [circuit]
   Iterable<String> draw(QCircuit circuit, [QMemorySpace? qmem]) {
     final nbQubits = circuit.size;
-    final names =
-        Iterable.generate(nbQubits, (i) => qmem?.getLogicalName(i) ?? '#$i')
-            .toList();
+    final names = Iterable.generate(
+      nbQubits,
+      (i) => qmem?.getLogicalName(i) ?? '#$i',
+    ).toList();
     final nameWidth = names.fold<int>(
-        0,
-        (previousValue, element) =>
-            element.length > previousValue ? element.length : previousValue);
+      0,
+      (previousValue, element) =>
+          element.length > previousValue ? element.length : previousValue,
+    );
 
     final lines = <StringBuffer>[];
     var idx = 0;
@@ -82,21 +84,23 @@ class _QCircuitGateAsciiDrawer {
         ctrl = '$ctrl X -$ctrl';
       }
       final min = gate.qubits.fold<int>(
-          gate.circuit.size,
-          (previousValue, element) =>
-              element < previousValue ? element : previousValue);
+        gate.circuit.size,
+        (previousValue, element) =>
+            element < previousValue ? element : previousValue,
+      );
       final max = gate.qubits.fold<int>(
-          -1,
-          (previousValue, element) =>
-              element > previousValue ? element : previousValue);
+        -1,
+        (previousValue, element) =>
+            element > previousValue ? element : previousValue,
+      );
       for (var i = 0; i < gate.circuit.size; i++) {
         if (gate.controls.contains(i)) {
           yield blanks;
           yield ctrl;
           yield blanks;
         } else if (gate.qubits.contains(i)) {
-          final last = gate.isUnitary || !gate.qubits.any((_) => _ > i);
-          final first = gate.isUnitary || !gate.qubits.any((_) => _ < i);
+          final last = gate.isUnitary || !gate.qubits.any(($) => $ > i);
+          final first = gate.isUnitary || !gate.qubits.any(($) => $ < i);
           yield first ? border : cbox;
           yield box;
           yield last ? border : cbox;

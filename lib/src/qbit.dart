@@ -52,12 +52,16 @@ class Qbit {
   static final Qbit one = Qbit(ket0: Complex.zero, ket1: Complex.one);
 
   /// constant for state |+> = (|0> + |1>) / sqrt(2)
-  static final Qbit plus =
-      Qbit(ket0: Complex(re: math.sqrt1_2), ket1: Complex(re: math.sqrt1_2));
+  static final Qbit plus = Qbit(
+    ket0: Complex(re: math.sqrt1_2),
+    ket1: Complex(re: math.sqrt1_2),
+  );
 
   /// constant for state |-> = (|0> - |1>) / sqrt(2)
-  static final Qbit minus =
-      Qbit(ket0: Complex(re: math.sqrt1_2), ket1: Complex(re: -math.sqrt1_2));
+  static final Qbit minus = Qbit(
+    ket0: Complex(re: math.sqrt1_2),
+    ket1: Complex(re: -math.sqrt1_2),
+  );
 
   /// generates a sequence of [count] qubits derived from bits in [n]
   /// if [count] is not provided or <= 0, the sequence will contain just enough qubits to represent [n]
@@ -82,7 +86,8 @@ class Qbit {
     }
     if (n != 0) {
       throw InvalidOperationException(
-          'Overflow for initialization value $value');
+        'Overflow for initialization value $value',
+      );
     }
   }
 
@@ -95,7 +100,7 @@ class Qbit {
   }
 
   @override
-  bool operator ==(dynamic other) =>
+  bool operator ==(Object other) =>
       (other is Qbit) && (ket0 == other.ket0) && (ket1 == other.ket1);
 
   bool equals(Object other, {double precision = 0}) =>

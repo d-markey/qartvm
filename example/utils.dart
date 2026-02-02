@@ -19,7 +19,8 @@ Future draw(QCircuit circuit, {QMemorySpace? qmem, String? filePrefix}) async {
     if (filePrefix != null) {
       final now = DateTime.now();
       final file = File(
-          './$filePrefix-${z4(now.year)}${z2(now.month)}${z2(now.day)}-${z2(now.hour)}${z2(now.minute)}${z2(now.second)}.txt');
+        './$filePrefix-${z4(now.year)}${z2(now.month)}${z2(now.day)}-${z2(now.hour)}${z2(now.minute)}${z2(now.second)}.txt',
+      );
       writer = file.openWrite();
       log = writer.writeln;
     }
@@ -35,17 +36,23 @@ Future draw(QCircuit circuit, {QMemorySpace? qmem, String? filePrefix}) async {
 }
 
 String probInfo(QMemorySpace qmem, {int fractionDigits = 0}) => qmem
-    .probabilities.entries
+    .probabilities
+    .entries
     .where((e) => e.value > 1e-9)
-    .map((e) =>
-        '${qmem.formatState(e.key)} (${percent(e.value, fractionDigits: fractionDigits)})')
+    .map(
+      (e) =>
+          '${qmem.formatState(e.key)} (${percent(e.value, fractionDigits: fractionDigits)})',
+    )
     .join(', ');
 
 String amplInfo(QMemorySpace qmem, {int fractionDigits = 0}) => qmem
-    .amplitudes.entries
+    .amplitudes
+    .entries
     .where((e) => e.value.det > 1e-9)
-    .map((e) =>
-        '${qmem.formatState(e.key)} (${e.value.toStringAsFixed(fractionDigits)})')
+    .map(
+      (e) =>
+          '${qmem.formatState(e.key)} (${e.value.toStringAsFixed(fractionDigits)})',
+    )
     .join(', ');
 
 String percent(double percent, {int fractionDigits = 0}) =>

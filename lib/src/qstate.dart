@@ -8,8 +8,10 @@ class QState {
 
   /// Builds a Quantum state for qubit [id] in [_qmem]
   QState._(this._qmem, this.id)
-      : _mask =
-            Iterable.generate(_qmem.size, (i) => (i == id) ? '0' : '.').join();
+    : _mask = Iterable.generate(
+        _qmem.size,
+        (i) => (i == id) ? '0' : '.',
+      ).join();
 
   /// The qubit's [id]
   final int id;

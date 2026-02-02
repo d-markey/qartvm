@@ -4,8 +4,8 @@ import 'qmemory_space.dart';
 class QRegister {
   /// Creates a register with name [name] using qubits [addresses] from [qmem] space
   QRegister._(this.name, QMemorySpace qmem, List<int> addresses)
-      : _qmem = qmem,
-        qubits = addresses.toList();
+    : _qmem = qmem,
+      qubits = addresses.toList();
 
   final QMemorySpace _qmem;
 
@@ -45,6 +45,8 @@ class QRegister {
 
 extension QRegisterImpl on QRegister {
   static QRegister ctor(
-          String name, QMemorySpace memory, List<int> addresses) =>
-      QRegister._(name, memory, addresses);
+    String name,
+    QMemorySpace memory,
+    List<int> addresses,
+  ) => QRegister._(name, memory, addresses);
 }

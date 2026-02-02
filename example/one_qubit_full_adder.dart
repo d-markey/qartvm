@@ -35,11 +35,7 @@ void main() {
 
   for (var a = 0; a <= 1; a++) {
     for (var b = 0; b <= 1; b++) {
-      qmem.initialize({
-        qa: a,
-        qb: b,
-        qc: 0,
-      });
+      qmem.initialize({qa: a, qb: b, qc: 0});
 
       print('[$a/$b] Initial states: ${probInfo(qmem)}');
 

@@ -58,7 +58,11 @@ void main() {
 }
 
 void checkTeleportation(
-    QCircuit circuit, QMemorySpace qmem, QRegister alice, QRegister bob) {
+  QCircuit circuit,
+  QMemorySpace qmem,
+  QRegister alice,
+  QRegister bob,
+) {
   // initialize Alice's qubit with a random state
   final qmem = QMemorySpace([Qbit.random(), Qbit.zero, Qbit.zero]);
 
@@ -71,7 +75,8 @@ void checkTeleportation(
   final alice0 = qmem.getPropability('0..');
   final alice1 = qmem.getPropability('1..');
   print(
-      '   Alice: 0 (${percent(alice0, fractionDigits: 2)}) / 1 (${percent(alice1, fractionDigits: 2)})');
+    '   Alice: 0 (${percent(alice0, fractionDigits: 2)}) / 1 (${percent(alice1, fractionDigits: 2)})',
+  );
 
   circuit.execute(qmem);
 
@@ -80,7 +85,8 @@ void checkTeleportation(
   final bob0 = qmem.getPropability('..0');
   final bob1 = qmem.getPropability('..1');
   print(
-      '   Bob  : 0 (${percent(bob0, fractionDigits: 2)}) / 1 (${percent(bob1, fractionDigits: 2)})');
+    '   Bob  : 0 (${percent(bob0, fractionDigits: 2)}) / 1 (${percent(bob1, fractionDigits: 2)})',
+  );
 
   if ((bob0 - alice0).abs() > 1e-9 || (bob1 - alice1).abs() > 1e-9) {
     throw Exception('Teleportation failed');

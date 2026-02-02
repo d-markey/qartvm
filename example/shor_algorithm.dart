@@ -16,7 +16,7 @@ void main() {
   while (true) {
     // pick a
     final a = 1 + rnd.nextInt(N - 1);
-    final K = gcd(a, N);
+    final K = N.gcd(a);
     if (K != 1) {
       // classical solution (by chance)
       classical = true;
@@ -32,26 +32,12 @@ void main() {
     if (b % N == N - 1) continue;
     // quantum solution
     classical = false;
-    p = gcd(b - 1, N);
-    q = gcd(b + 1, N);
+    p = N.gcd(b - 1);
+    q = N.gcd(b + 1);
     break;
   }
 
   print('found ${classical ? 'classical' : 'quantum'} solution: $N = $p * $q');
-}
-
-int gcd(int a, int b) {
-  if (a < b) {
-    var t = a;
-    a = b;
-    b = t;
-  }
-  while (b != 0) {
-    var t = b;
-    b = a % b;
-    a = t;
-  }
-  return a;
 }
 
 int quantumPart(int N, int a, int widthOfN) {

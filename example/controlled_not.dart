@@ -35,17 +35,20 @@ void main() {
 
       if (a0 != a1) {
         throw Exception(
-            'Control qubit changed unexpectedly: a0 = $a0 => a1 = $a1');
+          'Control qubit changed unexpectedly: a0 = $a0 => a1 = $a1',
+        );
       }
       if (a0 == 0) {
         if (b0 != b1) {
           throw Exception(
-              'Target qubit changed unexpectedly: a0 = $a0, b0 = $b0 => b1 = $b1');
+            'Target qubit changed unexpectedly: a0 = $a0, b0 = $b0 => b1 = $b1',
+          );
         }
       } else {
         if (b0 == b1) {
           throw Exception(
-              'Target qubit was not changed: a0 = $a0, b0 = $b0 => b1 = $b1');
+            'Target qubit was not changed: a0 = $a0, b0 = $b0 => b1 = $b1',
+          );
         }
       }
 

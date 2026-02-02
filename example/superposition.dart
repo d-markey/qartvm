@@ -41,23 +41,29 @@ void main() {
 
   print('measured qubit 0 = $a');
   print(
-      ' * amplitudes after measurement of qubit 0: ${amplInfo(qmem, fractionDigits: 6)}');
+    ' * amplitudes after measurement of qubit 0: ${amplInfo(qmem, fractionDigits: 6)}',
+  );
   print(
-      ' * probabilities after measurement of qubit 0: ${probInfo(qmem, fractionDigits: 6)}');
+    ' * probabilities after measurement of qubit 0: ${probInfo(qmem, fractionDigits: 6)}',
+  );
 
   final b = qb.read();
 
   print('measured qubit 1 = $b');
   print(
-      ' * amplitudes after measurement of qubit 1: ${amplInfo(qmem, fractionDigits: 6)}');
+    ' * amplitudes after measurement of qubit 1: ${amplInfo(qmem, fractionDigits: 6)}',
+  );
   print(
-      ' * probabilities after measurement of qubit 1: ${probInfo(qmem, fractionDigits: 6)}');
+    ' * probabilities after measurement of qubit 1: ${probInfo(qmem, fractionDigits: 6)}',
+  );
 
   final c = qc.read();
 
   print('measured qubit 2 = $c');
   print(
-      ' * amplitudes after measurement of qubit 2: ${amplInfo(qmem, fractionDigits: 6)}');
+    ' * amplitudes after measurement of qubit 2: ${amplInfo(qmem, fractionDigits: 6)}',
+  );
   print(
-      ' * probabilities after measurement of qubit 2: ${probInfo(qmem, fractionDigits: 6)}');
+    ' * probabilities after measurement of qubit 2: ${probInfo(qmem, fractionDigits: 6)}',
+  );
 }

@@ -14,8 +14,11 @@ void main() {
   // build uncontrolled swap gate for target qubits
   final swap = gateBuilder.highLevel.swap(targets);
   // control the swap matrix with the control qubits
-  final mcSwap =
-      gateBuilder.controlled.build(targets, swap, controls: controls);
+  final mcSwap = gateBuilder.controlled.build(
+    targets,
+    swap,
+    controls: controls,
+  );
   print('mcSwap = ${mcSwap.toStringIndent(indent: 2, hideZeroes: true)}');
 
   final mcSwapGate = QGateType('Multi-controlled SWAP', 'MC-SWAP');
@@ -43,8 +46,9 @@ void verify(QCircuit circuit, Set<int> controls, Set<int> targets) {
 
     circuit.execute(qmem);
     final finalStates = probInfo(qmem);
-    final outcome =
-        qmem.probabilities.entries.singleWhere((e) => e.value > 0).key;
+    final outcome = qmem.probabilities.entries
+        .singleWhere((e) => e.value > 0)
+        .key;
 
     final mustSwap = controls.every((q) => init[q] == '1');
     final swapped = (outcome[a] == init[b] && outcome[b] == init[a]);

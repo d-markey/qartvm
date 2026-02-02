@@ -8,61 +8,92 @@ import 'qmemory_space.dart';
 
 /// Class representing a Quantum gate in a Quantum [QCircuit]
 class QCircuitGate {
-  QCircuitGate._(this.circuit, this._labelFormat, this._params, this.type,
-      Set<int>? controls, this._qubits, this._matrix)
-      : assert(_matrix != null ||
-            (type == QGateType.measure || type == QGateType.separator)),
-        assert(_qubits.isNotEmpty ||
-            (type == QGateType.measure || type == QGateType.separator)),
-        assert(controls == null ||
+  QCircuitGate._(
+    this.circuit,
+    this._labelFormat,
+    this._params,
+    this.type,
+    Set<int>? controls,
+    this._qubits,
+    this._matrix,
+  ) : assert(
+        _matrix != null ||
+            (type == QGateType.measure || type == QGateType.separator),
+      ),
+      assert(
+        _qubits.isNotEmpty ||
+            (type == QGateType.measure || type == QGateType.separator),
+      ),
+      assert(
+        controls == null ||
             controls.isEmpty ||
-            (type != QGateType.measure && type != QGateType.separator)),
-        _controls = (controls?.isEmpty ?? true) ? null : controls;
+            (type != QGateType.measure && type != QGateType.separator),
+      ),
+      _controls = (controls?.isEmpty ?? true) ? null : controls;
 
   /// Builds a Quantum gate described by its [type], [matrix], [qubits] it operates on and eventual [controls] qubits
   /// [circuit] refers to the circuit the gate is part of
   /// [label] is a description of the gate with optional paramaters [params]
   /// [type] can be any [QGateType] value except [QGateType.measure]
-  QCircuitGate(QGateType type, ComplexMatrix matrix, Set<int> qubits,
-      {required QCircuit circuit,
-      Set<int>? controls,
-      String? label,
-      Map<String, dynamic>? params})
-      : this._(circuit, label, params, type, controls, qubits, matrix);
+  QCircuitGate(
+    QGateType type,
+    ComplexMatrix matrix,
+    Set<int> qubits, {
+    required QCircuit circuit,
+    Set<int>? controls,
+    String? label,
+    Map<String, dynamic>? params,
+  }) : this._(circuit, label, params, type, controls, qubits, matrix);
 
   /// Builds a measurement gate acting on qubits [qubits]
   /// if [qubits] is null or empty, all qubits will be measured (and its quantum state destroyed)
   /// [circuit] refers to the circuit the gate is part of
   /// [label] is a description of the gate
-  QCircuitGate.measure(Set<int>? qubits,
-      {required QCircuit circuit, String? label})
-      : this._(circuit, label, null, QGateType.measure, null,
-            qubits ?? Iterable<int>.generate(circuit.size).toSet(), null);
+  QCircuitGate.measure(
+    Set<int>? qubits, {
+    required QCircuit circuit,
+    String? label,
+  }) : this._(
+         circuit,
+         label,
+         null,
+         QGateType.measure,
+         null,
+         qubits ?? Iterable<int>.generate(circuit.size).toSet(),
+         null,
+       );
 
   /// Builds a separation gate
   /// [circuit] refers to the circuit the gate is part of
   /// [label] is a description of the gate
   QCircuitGate.separation({required QCircuit circuit, String? label})
-      : this._(circuit, label, null, QGateType.separator, null, const {}, null);
+    : this._(circuit, label, null, QGateType.separator, null, const {}, null);
 
-  QCircuitGate copy(QCircuit circuit,
-      {Set<int>? controls,
-      bool dagger = false,
-      String? label,
-      QGateType? type,
-      Map<String, dynamic>? params}) {
+  QCircuitGate copy(
+    QCircuit circuit, {
+    Set<int>? controls,
+    bool dagger = false,
+    String? label,
+    QGateType? type,
+    Map<String, dynamic>? params,
+  }) {
     switch (type) {
       case QGateType.measure:
         if (dagger) {
           throw InvalidOperationException(
-              'Measurement gates are not reservible');
+            'Measurement gates are not reservible',
+          );
         }
         if (controls != null || controls!.isNotEmpty) {
           throw InvalidOperationException(
-              'Measurement gates cannot be controlled');
+            'Measurement gates cannot be controlled',
+          );
         }
-        return QCircuitGate.measure(_qubits,
-            circuit: circuit, label: _labelFormat);
+        return QCircuitGate.measure(
+          _qubits,
+          circuit: circuit,
+          label: _labelFormat,
+        );
       case QGateType.separator:
         return QCircuitGate.separation(circuit: circuit, label: _labelFormat);
       default:
@@ -90,28 +121,28 @@ class QCircuitGate {
           }
         }
         if (controls != null) {
-          m = circuit.gateBuilder.controlled
-              .build(_qubits, m, controls: controls);
+          m = circuit.gateBuilder.controlled.build(
+            _qubits,
+            m,
+            controls: controls,
+          );
         }
-        Set<int>? ctrl;
-        if (_controls != null) {
-          ctrl ??= <int>{};
-          ctrl.addAll(_controls!);
-        }
-        if (controls != null) {
-          ctrl ??= <int>{};
-          ctrl.addAll(controls);
-        }
-        if (params == null) {
-          params = _params;
-        } else if (_params != null) {
-          params = _params!..addAll(params);
-        }
-        return QCircuitGate(type ?? this.type, m, _qubits,
-            circuit: circuit,
-            controls: ctrl,
-            label: (type != null || l == null || l.isEmpty) ? null : l,
-            params: params);
+
+        Set<int>? ctrl = {...?_controls, ...?controls};
+        if (ctrl.isEmpty) ctrl = null;
+
+        Map<String, dynamic>? prms = {...?_params, ...?params};
+        if (prms.isEmpty) prms = null;
+
+        return QCircuitGate(
+          type ?? this.type,
+          m,
+          _qubits,
+          circuit: circuit,
+          controls: ctrl,
+          label: (type != null || l == null || l.isEmpty) ? null : l,
+          params: prms,
+        );
     }
   }
 

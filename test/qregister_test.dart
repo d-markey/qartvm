@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 
 import 'package:qartvm/qartvm.dart';
 
-import 'complex_matcher.dart';
+import 'math/complex_matcher.dart';
 
 void main() {
   group('Quantum Register -', () {
@@ -11,20 +11,14 @@ void main() {
         final qmem = QMemorySpace.zero(8);
         final qa = qmem.createRegister('a', addresses: [3, 2, 1, 0]);
         final qb = qmem.createRegister('b', from: 7, to: 4);
-        qmem.initialize({
-          qa: 6,
-          qb: 7,
-        });
+        qmem.initialize({qa: 6, qb: 7});
         var probs = qmem.probabilities;
         var sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['01101110'], closeTo(1, 1e-9));
         expect(qa.read(), equals(6));
         expect(qb.read(), equals(7));
-        qmem.initialize({
-          qa: 7,
-          qb: 6,
-        });
+        qmem.initialize({qa: 7, qb: 6});
         probs = qmem.probabilities;
         sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
@@ -37,18 +31,12 @@ void main() {
         final qmem = QMemorySpace.zero(8);
         final qa = qmem.createRegister('a', from: 3, to: 0);
         final qb = qmem.createRegister('b', addresses: [7, 6, 5, 4]);
-        qmem.initialize({
-          qa: Qbit.one,
-          qb: Qbit.zero,
-        });
+        qmem.initialize({qa: Qbit.one, qb: Qbit.zero});
         var probs = qmem.probabilities;
         var sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['11110000'], closeTo(1, 1e-9));
-        qmem.initialize({
-          qa: Qbit.zero,
-          qb: Qbit.one,
-        });
+        qmem.initialize({qa: Qbit.zero, qb: Qbit.one});
         probs = qmem.probabilities;
         sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
@@ -81,10 +69,7 @@ void main() {
         final qmem = QMemorySpace.zero(8);
         final qa = qmem.createRegister('a', from: 3, to: 0);
         final qb = qmem.createRegister('b', from: 7, to: 4);
-        qmem.initialize({
-          qa: () => 5,
-          qb: () => 12,
-        });
+        qmem.initialize({qa: () => 5, qb: () => 12});
         final probs = qmem.probabilities;
         final sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
@@ -105,9 +90,7 @@ void main() {
         expect(qa.read(), equals(15));
         expect(qb.read(), equals(15));
 
-        qmem.initialize({
-          qa: 5,
-        });
+        qmem.initialize({qa: 5});
         probs = qmem.probabilities;
         sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
@@ -123,10 +106,7 @@ void main() {
         expect(qa.read(), equals(0));
         expect(qb.read(), equals(0));
 
-        qmem.initialize({
-          qa: 5,
-          6: Qbit.one,
-        });
+        qmem.initialize({qa: 5, 6: Qbit.one});
         probs = qmem.probabilities;
         sum = probs.values.fold<double>(0, (s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
@@ -139,25 +119,31 @@ void main() {
     group('Read -', () {
       test('QFT inverse', () {
         final nqubits = 7;
-        final qft = QGateBuilder.get(nqubits)
-            .highLevel
-            .qft(Iterable<int>.generate(nqubits).toList());
+        final qft = QGateBuilder.get(
+          nqubits,
+        ).highLevel.qft(Iterable<int>.generate(nqubits).toList());
 
         final tc = qft.transpose().conjugate();
         var p = qft * tc;
         expect(
-            p,
-            complexMatrixEquals(ComplexMatrix.identity(1 << nqubits),
-                precision: 1e-9));
+          p,
+          complexMatrixEquals(
+            ComplexMatrix.identity(1 << nqubits),
+            precision: 1e-9,
+          ),
+        );
 
-        final inv = QGateBuilder.get(nqubits)
-            .highLevel
-            .invqft(Iterable<int>.generate(nqubits).toList());
+        final inv = QGateBuilder.get(
+          nqubits,
+        ).highLevel.invqft(Iterable<int>.generate(nqubits).toList());
         p = qft * inv;
         expect(
-            p,
-            complexMatrixEquals(ComplexMatrix.identity(1 << nqubits),
-                precision: 1e-9));
+          p,
+          complexMatrixEquals(
+            ComplexMatrix.identity(1 << nqubits),
+            precision: 1e-9,
+          ),
+        );
       });
     });
   });
