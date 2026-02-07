@@ -11,30 +11,34 @@ class ProgramScanner {
 
   /// Scans the given [program] and registers constants in the context.
   /// Returns the total number of qubits declared.
-  int scan(Program program) {
+  Future<int> scan(Program program) async {
     int totalQubits = 0;
 
-    void _scanStatements(List<Statement> stmts) {
+    Future<void> _scanStatements(List<Statement> stmts) async {
       for (final statement in stmts) {
         if (statement is QubitDeclaration) {
           final sizeExpr = statement.type.designator;
           final size = sizeExpr != null
-              ? evaluator.evaluate(sizeExpr) as int
+              ? await evaluator.evaluate(sizeExpr) as int
               : 1;
           totalQubits += size;
         } else if (statement is ConstantDeclaration) {
-          final value = evaluator.evaluate(statement.value);
+          final value = await evaluator.evaluate(statement.value);
           context.symbols.declareConstant(statement.name, value);
-        } else if (statement is FlowStatement) {
-          _scanStatements(statement.body);
-          if (statement is IfStatement && statement.elseBody != null) {
-            _scanStatements(statement.elseBody!);
+        } else if (statement is IfStatement) {
+          await _scanStatements(statement.ifBody);
+          if (statement.elseBody != null) {
+            await _scanStatements(statement.elseBody!);
           }
+        } else if (statement is WhileStatement) {
+          await _scanStatements(statement.body);
+        } else if (statement is ForStatement) {
+          await _scanStatements(statement.body);
         }
       }
     }
 
-    _scanStatements(program.statements);
+    await _scanStatements(program.statements);
     return totalQubits;
   }
 }

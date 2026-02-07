@@ -1,7 +1,7 @@
 lexer grammar OpenQASM3Lexer;
 
 @lexer::header {
-// ignore_for_file: non_constant_identifier_names, constant_identifier_names, unnecessary_new, file_names, prefer_function_declarations_over_variables
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names, unnecessary_new, file_names, prefer_function_declarations_over_variables, curly_braces_in_flow_control_structures
 }
 
 /* Naming conventions in this lexer grammar

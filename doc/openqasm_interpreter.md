@@ -120,5 +120,51 @@ The interpreter targets **OpenQASM 3.x**.
 
 The interpreter uses a **Quantum Memory Model** (`QMemorySpace`) to simulate the state vector of the system.
 *   **Pre-scan**: The interpreter performs an initial pass to determine the total number of qubits required by the program to allocate the state vector efficiently.
-*   **Async Execution**: Execution is asynchronous (`Future<InterpreterResult>`) to support asynchronous loading of included files (e.g., over a network or file system).
+*   **Async Execution**: Execution is asynchronous (`Future<InterpreterResult>`) to support asynchronous loading of included files (e.g., over a network or file system) and asynchronous observers.
 *   **Expression Evaluation**: A robust `ExpressionEvaluator` handles complex arithmetic and boolean expressions for gate parameters and control flow conditions.
+
+## Program Observers
+
+The interpreter supports an observer pattern that allows you to monitor program execution step-by-step. This is useful for debugging, visualization, or analyzing the quantum state evolution.
+
+### Adding an Observer
+
+You can register an observer using the `addObserver` method. The observer callback is invoked before each statement is executed (except for `include` statements which are handled successfully).
+
+The callback provides:
+1.  **Step Count**: The current step number (0-indexed).
+2.  **Statement**: The `Statement` object about to be executed.
+3.  **Quantum Memory View**: A read-only view (`QMemorySpaceView`) of the current quantum state.
+
+```dart
+// Define an observer
+final observer = (int step, Statement stmt, QMemorySpaceView qmem) {
+  print('Step $step: Executing ${stmt.runtimeType}');
+  
+  // Inspect quantum state (read-only)
+  print('Probabilities: ${qmem.probabilities}');
+  print('Amplitudes: ${qmem.amplitudes}');
+};
+
+// Register the observer
+interpreter.addObserver(observer);
+
+// Execute the program
+await interpreter.execute(program);
+```
+
+### Async Observers
+
+Observers can be asynchronous. If your observer callback returns a `Future`, the interpreter will await it before proceeding to the next step. This allows for side effects like I/O or pausing execution without blocking the main thread.
+
+```dart
+interpreter.addObserver((step, stmt, qmem) async {
+  // Simulate a delay or wait for user input
+  await Future.delayed(Duration(milliseconds: 100));
+  print('Step $step complete');
+});
+```
+
+### Security (Read-Only Access)
+
+To ensure the integrity of the simulation, observers are provided with a `QMemorySpaceView`. This interface allows inspection of the quantum state (size, amplitudes, probabilities) but prevents any modification to the state vector. This ensures that observers cannot inadvertently alter the program's execution logic.

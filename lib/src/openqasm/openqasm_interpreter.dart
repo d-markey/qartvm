@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../qmemory_space.dart';
 import 'interpreter/_execution_context.dart';
 import 'interpreter/_expression_evaluator.dart';
@@ -13,6 +15,17 @@ import 'interpreter/openqasm_include_provider.dart';
 import 'openqasm_parser.dart';
 import 'parser/ast_nodes.dart';
 
+/// Observer callback for OpenQASM execution.
+/// [step] is the current execution step number.
+/// [statement] is the statement being executed.
+/// [qmem] is a read-only view of the quantum memory.
+typedef OpenQASMObserver =
+    FutureOr<void> Function(
+      int step,
+      Statement statement,
+      QMemorySpaceView qmem,
+    );
+
 /// OpenQASM 3.0 interpreter that executes parsed programs.
 class OpenQASMInterpreter {
   OpenQASMInterpreter({OpenQASMIncludeProvider? includeProvider})
@@ -20,28 +33,45 @@ class OpenQASMInterpreter {
 
   final OpenQASMIncludeProvider? _includeProvider;
 
+  // Observers list
+  final List<OpenQASMObserver> _observers = [];
+
   late ExpressionEvaluator _evaluator;
   late GateMapper _gateMapper;
   late QbitResolver _qbitResolver;
+
+  // Execution state
+  int _stepCount = 0;
+
+  /// Registers an observer to be notified during execution.
+  void addObserver(OpenQASMObserver observer) {
+    _observers.add(observer);
+  }
+
+  /// Removes a registered observer.
+  void removeObserver(OpenQASMObserver observer) {
+    _observers.remove(observer);
+  }
 
   /// Executes the given [program] and returns the result.
   ///
   /// The [includeProvider] passed to the constructor is used to load
   /// any files referenced by `include` statements.
   Future<InterpreterResult> execute(Program program) async {
+    _stepCount = 0;
     // Create execution context
     final context = ExecutionContext();
-    _evaluator = ExpressionEvaluator(context, (statements) {
+    _evaluator = ExpressionEvaluator(context, (statements) async {
       for (final statement in statements) {
-        _executeStatement(statement, context);
+        await _executeStatement(statement, context);
       }
     });
     _gateMapper = GateMapper(
       context,
       _evaluator,
-      statementExecutor: (statements, ctx) {
+      statementExecutor: (statements, ctx) async {
         for (final statement in statements) {
-          _executeStatement(statement, ctx);
+          await _executeStatement(statement, ctx);
         }
       },
     );
@@ -54,7 +84,9 @@ class OpenQASMInterpreter {
 
     // 1. Pre-scan for total qubit count and constants
     final scanner = ProgramScanner(context, _evaluator);
-    final totalQubits = scanner.scan(program);
+    final totalQubits = await scanner.scan(
+      program,
+    ); // Scan might trigger eval which is async
 
     // Initialize quantum memory if needed
     if (totalQubits > 0) {
@@ -75,8 +107,7 @@ class OpenQASMInterpreter {
     }
 
     // Collect results
-    final measurements = <String, int>{};
-    // TODO: Extract measurement results from context
+    final measurements = context.measurements;
 
     return InterpreterResult(
       quantumMemory:
@@ -96,42 +127,88 @@ class OpenQASMInterpreter {
     }
   }
 
+  /// Notifies all observers of the current execution state.
+  Future<void> _notify(Statement statement, ExecutionContext context) async {
+    if (_observers.isEmpty) return;
+
+    final qmem = context.quantumMemory;
+    // We only notify if qmem exists, or maybe we notify anyway with empty view?
+    // For now, let's notify only if qmem is initialized, or if not, construct a localized view if possible?
+    // Actually, qmem can be null if no qubits.
+    // If qmem is null, we can't really inspect quantum state.
+    // But the observer signature expects QMemorySpaceView.
+    // So if qmem is null, we might skip notification or pass a "Empty" view?
+    // The previous implementation initialized qmem only if totalQubits > 0.
+
+    if (qmem != null) {
+      final view = QMemorySpaceViewWrapper(qmem);
+      for (final observer in _observers) {
+        await observer(_stepCount, statement, view);
+      }
+    }
+    _stepCount++;
+  }
+
   /// Executes a single statement asynchronously.
   /// Handles include statements which require async file loading.
   Future<void> _executeStatementAsync(
     Statement statement,
     ExecutionContext context,
   ) async {
+    // Notify observers before execution
+    await _notify(statement, context);
+
     if (statement is IncludeStatement) {
       await _executeInclude(statement, context);
     } else {
-      _executeStatement(statement, context);
+      await _executeStatement(statement, context);
     }
   }
 
   /// Executes a single statement.
-  void _executeStatement(Statement statement, ExecutionContext context) {
+  Future<void> _executeStatement(
+    Statement statement,
+    ExecutionContext context,
+  ) async {
+    // Note: _notify is called by _executeStatementAsync for top-level statements.
+    // Nested statements (loops, if, custom gates) call this directly.
+    // We should probably decide: do we notify for EVERY statement recursively?
+    // If yes, then _notify should be here.
+    // But _executeStatementAsync calls this. So we would double notify for top level.
+    // Let's REMOVE _notify from _executeStatementAsync and put it HERE.
+    // EXCEPT: _executeStatementAsync handles Includes specially.
+
+    // Let's guard against double notification or just rely on the caller.
+    // Actually, _executeStatementAsync is called for the main program loop.
+    // Recursive calls usually go to _executeStatement or _executeStatementAsync.
+    // Let's refactor: _executeStatementAsync calls _executeStatement.
+    // We put notification inside _executeStatementAsync?
+    // No, because _executeStatement is recursive for blocks.
+
+    // Better approach: _executeStatement handles dispatch.
+    // We add a wrapper `_runStep` that handles notification and simple statement execution.
+
     switch (statement) {
       case QubitDeclaration():
-        _executeQubitDeclaration(statement, context);
+        await _executeQubitDeclaration(statement, context);
       case ClassicalDeclaration():
-        _executeClassicalDeclaration(statement, context);
+        await _executeClassicalDeclaration(statement, context);
       case GateCallStatement():
-        _executeGateCall(statement, context);
+        await _executeGateCall(statement, context);
       case MeasurementStatement():
-        _executeMeasurement(statement, context);
+        await _executeMeasurement(statement, context);
       case ResetStatement():
-        _executeReset(statement, context);
+        await _executeReset(statement, context);
       case BarrierStatement():
         _executeBarrier(statement, context);
       case AssignmentStatement():
-        _executeAssignment(statement, context);
+        await _executeAssignment(statement, context);
       case IfStatement():
-        _executeIf(statement, context);
+        await _executeIf(statement, context);
       case ForStatement():
-        _executeFor(statement, context);
+        await _executeFor(statement, context);
       case WhileStatement():
-        _executeWhile(statement, context);
+        await _executeWhile(statement, context);
       case BreakStatement():
         throw BreakException();
       case ContinueStatement():
@@ -139,27 +216,23 @@ class OpenQASMInterpreter {
       case EndStatement():
         throw EndException();
       case ReturnStatement():
-        throw ReturnException(_evaluator.evaluate(statement.expression));
+        throw ReturnException(await _evaluator.evaluate(statement.expression));
       case GateStatement():
         _executeGateDefinition(statement, context);
       case SubroutineDefinition():
         _executeSubroutineDefinition(statement, context);
       case IncludeStatement():
-        throw IncludeException(
-          'Include statements must be executed asynchronously. '
-          'Use executeAsync() instead of execute().',
-          filename: statement.filename,
-        );
+        await _executeInclude(statement, context);
       case AliasStatement():
         _executeAlias(statement, context);
       case ConstantDeclaration():
-        _executeConstant(statement, context);
+        await _executeConstant(statement, context);
       case IOStatement():
         _executeIO(statement, context);
       case ExternStatement():
         _executeExtern(statement, context);
       case ExpressionStatement():
-        _executeExpressionStatement(statement, context);
+        await _executeExpressionStatement(statement, context);
       default:
         throw InterpreterException(
           'Unsupported statement type: ${statement.runtimeType}',
@@ -169,24 +242,24 @@ class OpenQASMInterpreter {
 
   // Statement execution methods
 
-  void _executeQubitDeclaration(
+  Future<void> _executeQubitDeclaration(
     QubitDeclaration stmt,
     ExecutionContext context,
-  ) {
+  ) async {
     final sizeExpr = stmt.type.designator;
     final sizeValue = sizeExpr != null
-        ? _evaluator.evaluate(sizeExpr) as int
+        ? await _evaluator.evaluate(sizeExpr) as int
         : 1;
 
     context.declareQubitRegister(stmt.name, sizeValue);
   }
 
-  void _executeClassicalDeclaration(
+  Future<void> _executeClassicalDeclaration(
     ClassicalDeclaration stmt,
     ExecutionContext context,
-  ) {
+  ) async {
     var value = stmt.initializer != null
-        ? _evaluator.evaluate(stmt.initializer)
+        ? await _evaluator.evaluate(stmt.initializer)
         : null;
 
     // If the type is a ScalarTypeNode with a designator, initialize as an array
@@ -194,7 +267,7 @@ class OpenQASMInterpreter {
       final scalarType = stmt.type as ScalarTypeNode;
       if (scalarType.designator != null && value == null) {
         // Evaluate the designator to get the array size
-        final sizeValue = _evaluator.evaluate(scalarType.designator!);
+        final sizeValue = await _evaluator.evaluate(scalarType.designator!);
         if (sizeValue is num) {
           final size = sizeValue.toInt();
           // Initialize array with size, filled with 0s for now
@@ -208,38 +281,36 @@ class OpenQASMInterpreter {
     context.declareClassicalVariable(stmt.name, stmt.type, value);
   }
 
-  void _executeGateCall(GateCallStatement stmt, ExecutionContext context) {
-    _gateMapper.executeGateCall(stmt);
+  Future<void> _executeGateCall(
+    GateCallStatement stmt,
+    ExecutionContext context,
+  ) async {
+    await _gateMapper.executeGateCall(stmt);
   }
 
-  void _executeMeasurement(
+  Future<void> _executeMeasurement(
     MeasurementStatement stmt,
     ExecutionContext context,
-  ) {
-    final qubits = _qbitResolver.resolve(stmt.measureExpression);
-    if (qubits.isEmpty) return;
-
-    final qmem = context.quantumMemory;
-    if (qmem == null) {
-      throw InterpreterException('Cannot measure: no quantum memory');
-    }
-
-    final value = qmem.read(qubits: qubits);
+  ) async {
+    final value = await _evaluator.evaluate(stmt.measureExpression);
 
     if (stmt.targetIdentifier != null) {
       context.updateVariable(stmt.targetIdentifier!, value);
     }
   }
 
-  void _executeReset(ResetStatement stmt, ExecutionContext context) {
-    final qubits = _qbitResolver.resolve(stmt.qubit);
+  Future<void> _executeReset(
+    ResetStatement stmt,
+    ExecutionContext context,
+  ) async {
+    final qubits = await _qbitResolver.resolve(stmt.qubit);
     final qmem = context.quantumMemory;
     if (qmem == null) return;
 
     for (final q in qubits) {
       final value = qmem.read(qubits: [q]);
       if (value == 1) {
-        _gateMapper.applyGate('x', [q], null, null);
+        await _gateMapper.applyGate('x', [q], null, null);
       }
     }
   }
@@ -248,11 +319,11 @@ class OpenQASMInterpreter {
     // Barrier is a no-op in simulation
   }
 
-  void _executeAssignment(AssignmentStatement stmt, ExecutionContext context) {
-    var value = _evaluator.evaluate(stmt.value);
-
-    // If the value is a MeasureExpression, it was evaluated by _evaluator.evaluate
-    // which calls _evaluateMeasure.
+  Future<void> _executeAssignment(
+    AssignmentStatement stmt,
+    ExecutionContext context,
+  ) async {
+    var value = await _evaluator.evaluate(stmt.value);
 
     final target = stmt.target;
     if (target is IdentifierExpression) {
@@ -274,7 +345,7 @@ class OpenQASMInterpreter {
 
       // Extract all indices from the IndexExpression
       for (final indexExpr in target.indices) {
-        indices.add(_evaluator.evaluate(indexExpr) as int);
+        indices.add(await _evaluator.evaluate(indexExpr) as int);
       }
 
       // Get variable name from the base expression
@@ -352,27 +423,30 @@ class OpenQASMInterpreter {
     };
   }
 
-  void _executeIf(IfStatement stmt, ExecutionContext context) {
-    if (_conditionToBool(stmt.condition, context)) {
-      _executeWithScope(stmt.ifBody, context);
+  Future<void> _executeIf(IfStatement stmt, ExecutionContext context) async {
+    if (await _conditionToBool(stmt.condition, context)) {
+      await _executeWithScope(stmt.ifBody, context);
     } else if (stmt.elseBody != null) {
-      _executeWithScope(stmt.elseBody!, context);
+      await _executeWithScope(stmt.elseBody!, context);
     }
   }
 
-  void _executeWithScope(List<Statement> body, ExecutionContext context) {
+  Future<void> _executeWithScope(
+    List<Statement> body,
+    ExecutionContext context,
+  ) async {
     context.pushScope();
     try {
       for (final s in body) {
-        _executeStatement(s, context);
+        await _executeStatementAsync(s, context);
       }
     } finally {
       context.popScope();
     }
   }
 
-  void _executeFor(ForStatement stmt, ExecutionContext context) {
-    final rangeValue = _evaluator.evaluate(stmt.range);
+  Future<void> _executeFor(ForStatement stmt, ExecutionContext context) async {
+    final rangeValue = await _evaluator.evaluate(stmt.range);
     final Iterable<dynamic> values = switch (rangeValue) {
       RangeResult r => r.values,
       Iterable r => r,
@@ -382,7 +456,7 @@ class OpenQASMInterpreter {
     };
 
     for (final val in values) {
-      final shouldBreak = _executeLoopBody(
+      final shouldBreak = await _executeLoopBody(
         stmt.body,
         context,
         onScopeEnter: () {
@@ -396,25 +470,28 @@ class OpenQASMInterpreter {
     }
   }
 
-  void _executeWhile(WhileStatement stmt, ExecutionContext context) {
-    while (_conditionToBool(stmt.condition, context)) {
-      final shouldBreak = _executeLoopBody(stmt.body, context);
+  Future<void> _executeWhile(
+    WhileStatement stmt,
+    ExecutionContext context,
+  ) async {
+    while (await _conditionToBool(stmt.condition, context)) {
+      final shouldBreak = await _executeLoopBody(stmt.body, context);
       if (shouldBreak) break;
     }
   }
 
   /// Executes a loop body, handling break/continue exceptions.
   /// Returns true if the loop should break, false otherwise.
-  bool _executeLoopBody(
+  Future<bool> _executeLoopBody(
     List<Statement> body,
     ExecutionContext context, {
     void Function()? onScopeEnter,
-  }) {
+  }) async {
     context.pushScope();
     onScopeEnter?.call();
     try {
       for (final statement in body) {
-        _executeStatement(statement, context);
+        await _executeStatementAsync(statement, context);
       }
       return false; // Normal completion
     } on BreakException {
@@ -426,8 +503,11 @@ class OpenQASMInterpreter {
     }
   }
 
-  bool _conditionToBool(Expression condition, ExecutionContext context) {
-    final result = _evaluator.evaluate(condition);
+  Future<bool> _conditionToBool(
+    Expression condition,
+    ExecutionContext context,
+  ) async {
+    final result = await _evaluator.evaluate(condition);
     return ExpressionEvaluator.toBool(result);
   }
 
@@ -549,8 +629,11 @@ class OpenQASMInterpreter {
     throw UnimplementedError('AliasStatement not yet implemented');
   }
 
-  void _executeConstant(ConstantDeclaration stmt, ExecutionContext context) {
-    final value = _evaluator.evaluate(stmt.value);
+  Future<void> _executeConstant(
+    ConstantDeclaration stmt,
+    ExecutionContext context,
+  ) async {
+    final value = await _evaluator.evaluate(stmt.value);
     context.symbols.declareConstant(stmt.name, value);
   }
 
@@ -562,10 +645,10 @@ class OpenQASMInterpreter {
     // Extern declarations are no-ops
   }
 
-  void _executeExpressionStatement(
+  Future<void> _executeExpressionStatement(
     ExpressionStatement stmt,
     ExecutionContext context,
-  ) {
-    _evaluator.evaluate(stmt.expression);
+  ) async {
+    await _evaluator.evaluate(stmt.expression);
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import '../../qcircuit.dart';
@@ -11,8 +12,8 @@ import 'exceptions.dart';
 
 /// Base class for calling a quantum gate.
 abstract class GateExecutor {
-  void execute(List<int> qubits, List<num>? params);
-  void inverse(List<int> qubits, List<num>? params);
+  Future<void> execute(List<int> qubits, List<num>? params);
+  Future<void> inverse(List<int> qubits, List<num>? params);
 
   String get name;
 }
@@ -28,14 +29,16 @@ abstract class BuiltInGateExecutor implements GateExecutor {
   @override
   final String name;
 
-  final void Function(List<int>, List<num>?) executor;
-  final void Function(List<int>, List<num>?) inversor;
+  final FutureOr<void> Function(List<int>, List<num>?) executor;
+  final FutureOr<void> Function(List<int>, List<num>?) inversor;
 
   @override
-  void execute(List<int> qubits, List<num>? params) => executor(qubits, params);
+  Future<void> execute(List<int> qubits, List<num>? params) async =>
+      executor(qubits, params);
 
   @override
-  void inverse(List<int> qubits, List<num>? params) => inversor(qubits, params);
+  Future<void> inverse(List<int> qubits, List<num>? params) async =>
+      inversor(qubits, params);
 }
 
 /// Class for calling a custom quantum gate.
@@ -50,13 +53,14 @@ class CustomGateExecutor implements GateExecutor {
   final GateStatement gateDef;
   final ExecutionContext context;
   final ExpressionEvaluator evaluator;
-  final void Function(List<Statement>, ExecutionContext) statementExecutor;
+  final Future<void> Function(List<Statement>, ExecutionContext)
+  statementExecutor;
 
   @override
   String get name => gateDef.name;
 
   @override
-  void execute(List<int> qubits, List<num>? params) {
+  Future<void> execute(List<int> qubits, List<num>? params) async {
     // Validate qubit count matches gate definition
     if (gateDef.qubits.length != qubits.length) {
       throw GateExecutionException(
@@ -100,7 +104,7 @@ class CustomGateExecutor implements GateExecutor {
       }
 
       // Execute the gate body statements
-      statementExecutor(gateDef.body, context);
+      await statementExecutor(gateDef.body, context);
     } finally {
       // Pop the gate scope
       context.symbols.popScope();
@@ -108,7 +112,7 @@ class CustomGateExecutor implements GateExecutor {
   }
 
   @override
-  void inverse(List<int> qubits, List<num>? params) {
+  Future<void> inverse(List<int> qubits, List<num>? params) async {
     // TODO: check that the body only uses gates and play them in reverse order
     // TODO: throw if the definition includes measures, resets, or control-flow statements
   }
@@ -137,7 +141,7 @@ class ControlledGateExecutor implements GateExecutor {
   String get name => 'ctrl_${innerExecutor.name}';
 
   @override
-  void execute(List<int> qubits, List<num>? params) {
+  Future<void> execute(List<int> qubits, List<num>? params) async {
     if (qubits.isEmpty) {
       throw GateExecutionException(
         'Controlled gate requires at least 1 target qubit',
@@ -175,7 +179,7 @@ class ControlledGateExecutor implements GateExecutor {
   }
 
   @override
-  void inverse(List<int> qubits, List<num>? params) {
+  Future<void> inverse(List<int> qubits, List<num>? params) async {
     // TODO
   }
 

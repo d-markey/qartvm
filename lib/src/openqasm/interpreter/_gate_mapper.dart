@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../qregister.dart';
 import '../parser/ast_nodes.dart';
 import '_execution_context.dart';
@@ -14,30 +16,34 @@ class GateMapper {
 
   final ExecutionContext context;
   final ExpressionEvaluator evaluator;
-  final void Function(List<Statement>, ExecutionContext) statementExecutor;
+  final Future<void> Function(List<Statement>, ExecutionContext)
+  statementExecutor;
   late final QbitResolver _qbitResolver;
 
   /// Executes a gate call statement.
-  void executeGateCall(GateCallStatement stmt) {
+  Future<void> executeGateCall(GateCallStatement stmt) async {
     // Evaluate parameters if present
-    final params = stmt.arguments
-        ?.map((arg) => evaluator.evaluate(arg) as num)
-        .toList();
+    final params = <num>[];
+    if (stmt.arguments != null) {
+      for (final arg in stmt.arguments!) {
+        params.add(await evaluator.evaluate(arg) as num);
+      }
+    }
 
     // Resolve qubit arguments to addresses
-    final qubitAddresses = _qbitResolver.resolveAll(stmt.qubits);
+    final qubitAddresses = await _qbitResolver.resolveAll(stmt.qubits);
 
     // Apply the gate
-    applyGate(stmt.name, qubitAddresses, params, stmt.modifiers);
+    await applyGate(stmt.name, qubitAddresses, params, stmt.modifiers);
   }
 
   /// Applies a gate to the quantum memory.
-  void applyGate(
+  Future<void> applyGate(
     String gateName,
     List<int> qubits,
     List<num>? params,
     List<GateModifier>? modifiers,
-  ) {
+  ) async {
     final qmem = context.quantumMemory;
     if (qmem == null) {
       throw GateExecutionException(
@@ -46,15 +52,15 @@ class GateMapper {
     }
 
     // Extract control information, power factor, and inverse flag from modifiers
-    final controlInfo = _extractControlInfo(modifiers);
-    final powerFactor = _extractPowerFactor(modifiers);
+    final controlInfo = await _extractControlInfo(modifiers);
+    final powerFactor = await _extractPowerFactor(modifiers);
     final isInverse = _extractInverseFlag(modifiers);
 
     // Apply control qubits if needed
     if (controlInfo != null) {
       // Apply controlled gate multiple times based on power factor
       for (int i = 0; i < powerFactor; i++) {
-        _applyControlledGate(
+        await _applyControlledGate(
           gateName,
           qubits,
           params,
@@ -67,18 +73,23 @@ class GateMapper {
 
     // Apply gate multiple times based on power factor
     for (int i = 0; i < powerFactor; i++) {
-      _applySingleGateExecution(gateName, qubits, params, isInverse: isInverse);
+      await _applySingleGateExecution(
+        gateName,
+        qubits,
+        params,
+        isInverse: isInverse,
+      );
     }
   }
 
   /// Executes a single application of a gate (called potentially multiple times by pow modifier).
   /// Looks up the gate executor (built-in or custom) from the symbol table and executes it.
-  void _applySingleGateExecution(
+  Future<void> _applySingleGateExecution(
     String gateName,
     List<int> qubits,
     List<num>? processedParams, {
     bool isInverse = false,
-  }) {
+  }) async {
     // Handle inverse gate mapping for non-parameterized gates
     String actualGateName = gateName;
     if (isInverse) {
@@ -97,14 +108,14 @@ class GateMapper {
       final finalParams = isInverse && !_hasInverseMapping(gateName)
           ? _invertParams(actualGateName, processedParams)
           : processedParams;
-      executor.execute(qubits, finalParams);
+      await executor.execute(qubits, finalParams);
       return;
     }
 
     // Fall back to custom gate definitions (for gates not yet converted to executors)
     final gateDef = context.symbols.lookupGate(gateName);
     if (gateDef != null) {
-      _executeCustomGate(gateDef, qubits, processedParams);
+      await _executeCustomGate(gateDef, qubits, processedParams);
       return;
     }
 
@@ -145,11 +156,11 @@ class GateMapper {
   }
 
   /// Executes a custom gate definition with the given qubits and parameters.
-  void _executeCustomGate(
+  Future<void> _executeCustomGate(
     GateStatement gateDef,
     List<int> qubits,
     List<num>? params,
-  ) {
+  ) async {
     // Validate qubit count matches gate definition
     if (gateDef.qubits.length != qubits.length) {
       throw GateExecutionException(
@@ -193,7 +204,7 @@ class GateMapper {
       }
 
       // Execute the gate body statements
-      statementExecutor(gateDef.body, context);
+      await statementExecutor(gateDef.body, context);
     } finally {
       // Pop the gate scope
       context.symbols.popScope();
@@ -204,7 +215,9 @@ class GateMapper {
   ///
   /// Returns a ControlInfo object if ctrl or negctrl modifiers are present,
   /// null otherwise.
-  ControlInfo? _extractControlInfo(List<GateModifier>? modifiers) {
+  Future<ControlInfo?> _extractControlInfo(
+    List<GateModifier>? modifiers,
+  ) async {
     if (modifiers == null) return null;
 
     for (final modifier in modifiers) {
@@ -214,7 +227,7 @@ class GateMapper {
         // Default control count is 1
         int controlCount = 1;
         if (modifier.expression != null) {
-          controlCount = (evaluator.evaluate(modifier.expression) as num)
+          controlCount = (await evaluator.evaluate(modifier.expression) as num)
               .toInt();
         }
 
@@ -229,13 +242,13 @@ class GateMapper {
   ///
   /// Returns the power value (how many times to apply the gate).
   /// Default is 1 if no pow modifier is present.
-  int _extractPowerFactor(List<GateModifier>? modifiers) {
+  Future<int> _extractPowerFactor(List<GateModifier>? modifiers) async {
     if (modifiers == null) return 1;
 
     for (final modifier in modifiers) {
       if (modifier.type == 'pow') {
         if (modifier.expression != null) {
-          return (evaluator.evaluate(modifier.expression) as num).toInt();
+          return (await evaluator.evaluate(modifier.expression) as num).toInt();
         }
       }
     }
@@ -265,13 +278,13 @@ class GateMapper {
   /// - q1, q2, ... are the target qubits
   /// For multiple controls: ctrl(n) @ gate_name c0, c1, ..., cn, t0, t1, ...
   /// where c0...cn are control qubits and t0...tn are target qubits
-  void _applyControlledGate(
+  Future<void> _applyControlledGate(
     String gateName,
     List<int> allQubits,
     List<num>? params,
     ControlInfo controlInfo, {
     bool isInverse = false,
-  }) {
+  }) async {
     if (allQubits.length <= controlInfo.controlCount) {
       throw GateExecutionException(
         'ctrl modifier requires at least ${controlInfo.controlCount} control qubit(s) '
@@ -318,7 +331,7 @@ class GateMapper {
         : params;
 
     // Execute with control
-    controlledExecutor.execute(targetQubits, finalParams);
+    await controlledExecutor.execute(targetQubits, finalParams);
   }
 }
 

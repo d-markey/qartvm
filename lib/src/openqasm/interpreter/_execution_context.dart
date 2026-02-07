@@ -16,10 +16,14 @@ import 'exceptions.dart';
 class ExecutionContext {
   ExecutionContext({this.quantumMemory, this.circuit})
     : symbols = SymbolTable(),
-      _qubitCounter = 0;
+      _qubitCounter = 0,
+      _measurements = {};
 
   /// Symbol table tracking all declared entities.
   final SymbolTable symbols;
+
+  /// Measurement results (last value for each qubit/register key).
+  final Map<String, int> _measurements;
 
   /// Quantum memory space for storing qubit states.
   /// If null, memory will be created lazily when needed.
@@ -62,6 +66,14 @@ class ExecutionContext {
     symbols.updateVariable(name, value);
   }
 
+  /// Records a measurement result.
+  void recordMeasurement(String key, int value) {
+    _measurements[key] = value;
+  }
+
+  /// Returns all measurement results.
+  Map<String, int> get measurements => Map.unmodifiable(_measurements);
+
   /// Gets a quantum register by [name].
   /// Throws if not found.
   QRegister getQubitRegister(String name) {
@@ -100,6 +112,7 @@ class ExecutionContext {
   void resetForExecution() {
     symbols.clear();
     _qubitCounter = 0;
+    _measurements.clear();
   }
 
   /// Ensures quantum memory exists with at least [minSize] qubits.

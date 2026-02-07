@@ -9,8 +9,48 @@ import 'qbit.dart';
 import 'qregister.dart';
 import 'qstate.dart';
 
+/// Read-only view of a Quantum Memory Space.
+abstract class QMemorySpaceView {
+  /// Size of the Quantum memory space (total number of qubits)
+  int get size;
+
+  /// Returns the list of states with associated amplitudes
+  Map<String, Complex> get amplitudes;
+
+  /// Returns the list of states with associated probabilities
+  Map<String, double> get probabilities;
+
+  /// Formats the state string.
+  String formatState(String state);
+
+  /// Computes probability for the specified [mask].
+  double getPropability(String mask);
+}
+
+/// A wrapper that restricts access to a [QMemorySpace] to read-only operations.
+class QMemorySpaceViewWrapper implements QMemorySpaceView {
+  final QMemorySpace _qmem;
+
+  QMemorySpaceViewWrapper(this._qmem);
+
+  @override
+  int get size => _qmem.size;
+
+  @override
+  Map<String, Complex> get amplitudes => _qmem.amplitudes;
+
+  @override
+  Map<String, double> get probabilities => _qmem.probabilities;
+
+  @override
+  String formatState(String state) => _qmem.formatState(state);
+
+  @override
+  double getPropability(String mask) => _qmem.getPropability(mask);
+}
+
 /// Class representing some Quantum memory
-class QMemorySpace {
+class QMemorySpace implements QMemorySpaceView {
   //
   // memory attributes
   //
@@ -51,6 +91,7 @@ class QMemorySpace {
     : this(List.generate(size, generator));
 
   /// Size of the Quantum memory space (total number of qubits)
+  @override
   final int size;
 
   final List<QState> _qstates = <QState>[];
@@ -228,6 +269,7 @@ class QMemorySpace {
     return (qreg == null) ? '#$i:' : '#$i: ${qreg.name}[${qreg.indexOf(i)}]';
   }
 
+  @override
   String formatState(String state) {
     var s = state[0];
     QRegister? last = findRegister(0);
@@ -250,12 +292,14 @@ class QMemorySpace {
   QState operator [](int id) => _qstates[id];
 
   /// Returns the list of states with associated amplitudes
+  @override
   Map<String, Complex> get amplitudes => Map.fromIterables(
     _states,
     Iterable.generate(_amplitudes.length, (i) => _amplitudes[i]),
   );
 
   /// Returns the list of states with associated probabilities
+  @override
   Map<String, double> get probabilities => Map.fromIterables(
     _states,
     Iterable.generate(_amplitudes.length, (i) => _amplitudes.modulus2(i)),
@@ -271,6 +315,7 @@ class QMemorySpace {
 
   /// Computes probability for the specified [mask] (such as '01100', '.0...' or '..1.0..', etc)
   /// [mask] may contain spaces to group qubits together (such as '0000 0000', '0000 ....', etc)
+  @override
   double getPropability(String mask) {
     mask = mask.replaceAll(' ', '');
     double p = 0;

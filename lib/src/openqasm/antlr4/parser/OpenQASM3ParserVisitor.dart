@@ -113,7 +113,9 @@ abstract class OpenQASM3ParserVisitor<T> extends ParseTreeVisitor<T> {
   /// Visit a parse tree produced by [OpenQASM3Parser.measureArrowAssignmentStatement].
   /// [ctx] the parse tree.
   /// Return the visitor result.
-  T? visitMeasureArrowAssignmentStatement(MeasureArrowAssignmentStatementContext ctx);
+  T? visitMeasureArrowAssignmentStatement(
+    MeasureArrowAssignmentStatementContext ctx,
+  );
 
   /// Visit a parse tree produced by [OpenQASM3Parser.resetStatement].
   /// [ctx] the parse tree.
@@ -128,7 +130,9 @@ abstract class OpenQASM3ParserVisitor<T> extends ParseTreeVisitor<T> {
   /// Visit a parse tree produced by [OpenQASM3Parser.classicalDeclarationStatement].
   /// [ctx] the parse tree.
   /// Return the visitor result.
-  T? visitClassicalDeclarationStatement(ClassicalDeclarationStatementContext ctx);
+  T? visitClassicalDeclarationStatement(
+    ClassicalDeclarationStatementContext ctx,
+  );
 
   /// Visit a parse tree produced by [OpenQASM3Parser.constDeclarationStatement].
   /// [ctx] the parse tree.

@@ -67,6 +67,7 @@ gate custom_gate q {
 
   final result = await interpreter.execute(program);
   print('Custom gates execution successful!');
+  print(result);
 }
 
 /// A composite provider that tries multiple providers in order.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import '../parser/ast_nodes.dart';
@@ -15,11 +16,11 @@ class ExpressionEvaluator {
   }
 
   final ExecutionContext context;
-  final void Function(List<Statement>) statementExecutor;
+  final Future<void> Function(List<Statement>) statementExecutor;
   late final QbitResolver _qbitResolver;
 
   /// Evaluates an expression and returns its value.
-  dynamic evaluate(Expression? expr) {
+  Future<dynamic> evaluate(Expression? expr) async {
     if (expr == null) return null;
 
     return switch (expr) {
@@ -30,7 +31,7 @@ class ExpressionEvaluator {
       CallExpression e => _evaluateCall(e),
       IndexExpression e => _evaluateIndex(e),
       RangeExpression e => _evaluateRange(e),
-      SetExpression e => e.expressions.map(evaluate).toList(),
+      SetExpression e => Future.wait(e.expressions.map(evaluate)),
       CastExpression e => _evaluateCast(e),
       HardwareQubitExpression e => e.index,
       DurationOfExpression() => 0, // TODO: Implement properly
@@ -41,8 +42,8 @@ class ExpressionEvaluator {
     };
   }
 
-  dynamic _evaluateMeasure(MeasureExpression expr) {
-    final qubits = _qbitResolver.resolve(expr.qubit);
+  Future<dynamic> _evaluateMeasure(MeasureExpression expr) async {
+    final qubits = await _qbitResolver.resolve(expr.qubit);
     if (qubits.isEmpty) {
       throw EvaluationException('No qubits specified for measurement');
     }
@@ -52,7 +53,35 @@ class ExpressionEvaluator {
       throw EvaluationException('Cannot measure: no quantum memory');
     }
 
-    return qmem.read(qubits: qubits);
+    final value = qmem.read(qubits: qubits);
+
+    // Record the measurement in context
+    final key = _getExpressionKey(expr.qubit);
+    context.recordMeasurement(key, value);
+
+    return value;
+  }
+
+  /// Returns a string representation of an expression to be used as a key.
+  String _getExpressionKey(Expression expr) {
+    if (expr is IdentifierExpression) return expr.name;
+    if (expr is IndexExpression) {
+      final base = _getExpressionKey(expr.expression);
+      // We don't evaluate indices here to keep the key stable/structural,
+      // or should we evaluate? Usually keys like "q[0]" are expected.
+      // If index is a variable, evaluating it gives the current index.
+      // Let's try to evaluate if it's simple or just use placeholder?
+      // Actually, for it to be a useful key, it should probably be resolved if possible.
+      // But OpenQASM typical output uses structural names if they are constant.
+      // For now, let's keep it simple: if it's a literal, use it.
+      final indices = expr.indices.map((i) {
+        if (i is LiteralExpression) return '[${i.value}]';
+        return '[?]'; // Placeholder for dynamic indices
+      }).join();
+      return '$base$indices';
+    }
+    if (expr is HardwareQubitExpression) return '\$${expr.index}';
+    return expr.toString();
   }
 
   dynamic _evaluateIdentifier(IdentifierExpression expr) {
@@ -69,9 +98,9 @@ class ExpressionEvaluator {
     }
   }
 
-  dynamic _evaluateBinary(BinaryExpression expr) {
-    final left = evaluate(expr.left);
-    final right = evaluate(expr.right);
+  Future<dynamic> _evaluateBinary(BinaryExpression expr) async {
+    final left = await evaluate(expr.left);
+    final right = await evaluate(expr.right);
 
     return switch (expr.operator) {
       // Arithmetic
@@ -107,8 +136,8 @@ class ExpressionEvaluator {
     };
   }
 
-  dynamic _evaluateUnary(UnaryExpression expr) {
-    final value = evaluate(expr.expression);
+  Future<dynamic> _evaluateUnary(UnaryExpression expr) async {
+    final value = await evaluate(expr.expression);
 
     return switch (expr.operator) {
       '-' => -(value as num),
@@ -120,8 +149,8 @@ class ExpressionEvaluator {
     };
   }
 
-  dynamic _evaluateCall(CallExpression expr) {
-    final args = expr.arguments.map(evaluate).toList();
+  Future<dynamic> _evaluateCall(CallExpression expr) async {
+    final args = await Future.wait(expr.arguments.map(evaluate));
 
     // Built-in functions
     if (BuiltinLibrary.isFunction(expr.name)) {
@@ -155,7 +184,7 @@ class ExpressionEvaluator {
         }
 
         // Execute body
-        statementExecutor(subroutine.body);
+        await statementExecutor(subroutine.body);
       } catch (e) {
         if (e is ReturnException) {
           return e.value;
@@ -172,14 +201,14 @@ class ExpressionEvaluator {
     );
   }
 
-  dynamic _evaluateIndex(IndexExpression expr) {
+  Future<dynamic> _evaluateIndex(IndexExpression expr) async {
     // If it's an identifier, check if it's a qubit register FIRST
     if (expr.expression case IdentifierExpression identifier) {
       final name = identifier.name;
       final register = context.symbols.lookupQubit(name);
 
       if (register != null) {
-        final result = evaluate(
+        final result = await evaluate(
           expr.indices[0],
         ); // Qubit registers expect single index
         if (result is int) return result;
@@ -189,47 +218,47 @@ class ExpressionEvaluator {
       }
     }
 
-    final base = evaluate(expr.expression);
-    final indices = expr.indices.map(evaluate).toList();
+    final array = await evaluate(expr.expression);
+    final indices = await Future.wait(expr.indices.map(evaluate));
 
     // Array indexing for classical values
-    if (base is List) {
+    if (array is List) {
       if (indices.length == 1) {
         final index = indices[0];
         if (index is int) {
-          return base[index];
+          return array[index];
         } else if (index is RangeResult) {
-          return base.sublist(index.start, index.stop);
+          return array.sublist(index.start, index.stop);
         } else if (index is List) {
-          return index.map((i) => base[i as int]).toList();
+          return index.map((i) => array[i as int]).toList();
         }
       }
     }
 
-    throw EvaluationException('Cannot index $base with $indices');
+    throw EvaluationException('Cannot index $array with $indices');
   }
 
-  RangeResult _evaluateRange(RangeExpression expr) {
-    final start = expr.start != null ? evaluate(expr.start) as int : 0;
+  Future<RangeResult> _evaluateRange(RangeExpression expr) async {
+    final start = expr.start != null ? await evaluate(expr.start) as int : 0;
     int step = 1;
     int stop = 0;
 
     if (expr.stop != null) {
       // start:step:stop
-      step = expr.step != null ? evaluate(expr.step) as int : 1;
-      stop = evaluate(expr.stop) as int;
+      step = expr.step != null ? await evaluate(expr.step) as int : 1;
+      stop = await evaluate(expr.stop) as int;
     } else {
       // start:stop (step OMITS)
       // In this case, expr.step actually contains the STOP value
-      stop = expr.step != null ? evaluate(expr.step) as int : 0;
+      stop = expr.step != null ? await evaluate(expr.step) as int : 0;
       step = 1;
     }
 
     return RangeResult(start, stop, step);
   }
 
-  dynamic _evaluateCast(CastExpression expr) {
-    final value = evaluate(expr.expression);
+  Future<dynamic> _evaluateCast(CastExpression expr) async {
+    final value = await evaluate(expr.expression);
     final type = expr.type;
 
     if (type is ScalarTypeNode) {

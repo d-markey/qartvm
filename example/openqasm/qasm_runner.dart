@@ -10,11 +10,11 @@ void main(List<String> args) async {
   }
 
   var file = File(path);
-  if (!file.existsSync()) {
+  if (!await file.exists()) {
     final scriptPath = Platform.script.toFilePath();
     final scriptDir = File(scriptPath).parent;
     file = File(p.join(scriptDir.path, path));
-    if (!file.existsSync()) {
+    if (!await file.exists()) {
       throw Exception('File "$path" not found.');
     }
   }
@@ -22,6 +22,6 @@ void main(List<String> args) async {
   final code = await file.readAsString();
   final program = OpenQASMParser.parse(code);
   final interpreter = OpenQASMInterpreter();
-  final res = interpreter.execute(program);
+  final res = await interpreter.execute(program);
   print(res);
 }
