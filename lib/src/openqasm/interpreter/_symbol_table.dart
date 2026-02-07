@@ -1,5 +1,6 @@
-import '../parser/ast_nodes.dart';
 import '../../qregister.dart';
+import '../parser/ast_nodes.dart';
+import '_gate_executor.dart';
 import 'exceptions.dart';
 
 /// Symbol table for tracking declared entities during OpenQASM interpretation.
@@ -72,6 +73,15 @@ class SymbolTable {
     _currentScope.constants[name] = value;
   }
 
+  /// Registers a gate executor with the given [name].
+  /// Gate executors are used to execute both built-in and custom gates.
+  void registerGateExecutor(String name, GateExecutor executor) {
+    if (_currentScope.executors.containsKey(name)) {
+      throw SymbolTableException('Gate executor "$name" already registered');
+    }
+    _currentScope.executors[name] = executor;
+  }
+
   /// Looks up a quantum register by [name].
   /// Returns null if not found.
   QRegister? lookupQubit(String name) {
@@ -132,6 +142,18 @@ class SymbolTable {
     return null;
   }
 
+  /// Looks up a gate executor by [name].
+  /// Returns null if not found.
+  GateExecutor? lookupGateExecutor(String name) {
+    // Search from current scope up to global
+    for (var i = _scopes.length - 1; i >= 0; i--) {
+      if (_scopes[i].executors.containsKey(name)) {
+        return _scopes[i].executors[name];
+      }
+    }
+    return null;
+  }
+
   /// Pushes a new scope onto the stack.
   /// Used when entering a block (if, for, while, function, etc.)
   void pushScope() {
@@ -181,4 +203,5 @@ class _Scope {
   final Map<String, GateStatement> gates = {};
   final Map<String, SubroutineDefinition> subroutines = {};
   final Map<String, dynamic> constants = {};
+  final Map<String, GateExecutor> executors = {};
 }

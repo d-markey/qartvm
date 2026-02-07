@@ -1,9 +1,9 @@
-import '../parser/ast_nodes.dart';
-import '_symbol_table.dart';
-import '../../qmemory_space.dart';
-import '../../qregister.dart';
 import '../../qcircuit.dart';
 import '../../qgate_builder.dart';
+import '../../qmemory_space.dart';
+import '../../qregister.dart';
+import '../parser/ast_nodes.dart';
+import '_symbol_table.dart';
 import 'exceptions.dart';
 
 /// Execution context for OpenQASM program interpretation.
@@ -125,6 +125,18 @@ class ExecutionContext {
 
   /// Gets default value for a given type.
   dynamic _getDefaultValue(TypeNode type) {
+    // Handle array types first
+    if (type is ArrayTypeNode) {
+      // Create a properly-sized list with default values
+      List<dynamic> result = [];
+      if (type.dimensions.isNotEmpty) {
+        // Get the size of the first dimension
+        // For now, just return an empty list that will be resized on demand
+        // A proper implementation would evaluate dimensions at parse time
+      }
+      return result;
+    }
+
     if (type is ScalarTypeNode) {
       switch (type.name) {
         case 'bit':
@@ -141,9 +153,6 @@ class ExecutionContext {
         default:
           return null;
       }
-    } else if (type is ArrayTypeNode) {
-      // Create empty list for arrays
-      return [];
     } else if (type is ComplexTypeNode) {
       // Default complex value
       return {'re': 0.0, 'im': 0.0};

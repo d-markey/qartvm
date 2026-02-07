@@ -11,6 +11,7 @@ dependencies:
   antlr4: ^4.12.0
 
 dev_dependencies:
+  path:
   lints: 
   test: 
   squadron_builder:

@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:qartvm/qartvm.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('OpenQASM Interpreter - Basic Tests', () {
@@ -9,19 +9,19 @@ void main() {
       interpreter = OpenQASMInterpreter();
     });
 
-    test('should execute qubit declaration', () {
+    test('should execute qubit declaration', () async {
       final source = '''
 OPENQASM 3.0;
 qubit[2] q;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(2));
     });
 
-    test('should execute classical variable declaration', () {
+    test('should execute classical variable declaration', () async {
       final source = '''
 OPENQASM 3.0;
 int x = 5;
@@ -29,14 +29,14 @@ float y = 3.14;
 bool flag = true;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['x'], equals(5));
       expect(result.classicalVariables['y'], equals(3.14));
       expect(result.classicalVariables['flag'], equals(true));
     });
 
-    test('should evaluate expressions with literals', () {
+    test('should evaluate expressions with literals', () async {
       final source = '''
 OPENQASM 3.0;
 int a = 10 + 5;
@@ -45,7 +45,7 @@ int c = 4 * 3;
 float d = 10 / 2;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['a'], equals(15));
       expect(result.classicalVariables['b'], equals(17));
@@ -53,7 +53,7 @@ float d = 10 / 2;
       expect(result.classicalVariables['d'], equals(5.0));
     });
 
-    test('should handle variable assignment', () {
+    test('should handle variable assignment', () async {
       final source = '''
 OPENQASM 3.0;
 int x = 10;
@@ -61,12 +61,12 @@ x = 20;
 x += 5;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['x'], equals(25));
     });
 
-    test('should evaluate binary expressions', () {
+    test('should evaluate binary expressions', () async {
       final source = '''
 OPENQASM 3.0;
 int a = 5;
@@ -76,39 +76,39 @@ int product = a * b;
 bool comparison = a > b;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['sum'], equals(8));
       expect(result.classicalVariables['product'], equals(15));
       expect(result.classicalVariables['comparison'], equals(true));
     });
 
-    test('should evaluate mathematical constants', () {
+    test('should evaluate mathematical constants', () async {
       final source = '''
 OPENQASM 3.0;
 float pi_val = pi;
 float tau_val = tau;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['pi_val'], closeTo(3.14159, 0.0001));
       expect(result.classicalVariables['tau_val'], closeTo(6.28318, 0.0001));
     });
 
-    test('should declare constants', () {
+    test('should declare constants', () async {
       final source = '''
 OPENQASM 3.0;
 const int N = 5;
 int doubled = N * 2;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['doubled'], equals(10));
     });
 
-    test('should handle bitwise operations', () {
+    test('should handle bitwise operations', () async {
       final source = '''
 OPENQASM 3.0;
 int a = 12;
@@ -120,7 +120,7 @@ int shift_left = a << 1;
 int shift_right = a >> 1;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.classicalVariables['and_result'], equals(12 & 5));
       expect(result.classicalVariables['or_result'], equals(12 | 5));

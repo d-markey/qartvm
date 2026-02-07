@@ -1,7 +1,5 @@
+import 'package:qartvm/qartvm.dart';
 import 'package:test/expect.dart';
-
-import 'package:qartvm/src/math/complex_matrix.dart';
-import 'package:qartvm/src/math/complex.dart';
 
 Matcher complexEquals(Complex expected, {double precision = 0}) =>
     _ComplexEqualsMatcher(expected, precision);

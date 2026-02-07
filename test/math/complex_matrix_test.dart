@@ -1,10 +1,7 @@
 import 'dart:math';
 
+import 'package:qartvm/qartvm.dart';
 import 'package:test/test.dart';
-
-import 'package:qartvm/src/exceptions.dart';
-import 'package:qartvm/src/math/complex_matrix.dart';
-import 'package:qartvm/src/math/complex.dart';
 
 import 'complex_matcher.dart';
 
@@ -261,10 +258,7 @@ void main() {
         );
         final d = matrix.det.modulus;
         if (d == 0) {
-          expect(
-            () => matrix.inverse(),
-            throwsA(isA<InvalidOperationException>()),
-          );
+          expect(matrix.inverse, throwsA(isA<InvalidOperationException>()));
         } else {
           final inv = matrix.inverse();
           final prod = matrix * inv;

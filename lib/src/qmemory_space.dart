@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'exceptions.dart';
-import 'math/complex.dart';
 import 'math/_complex_array.dart';
+import 'math/complex.dart';
 import 'math/complex_matrix.dart';
 import 'math/complex_vector.dart';
 import 'qbit.dart';

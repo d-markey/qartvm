@@ -1,25 +1,34 @@
 import '../qmemory_space.dart';
-import 'parser/ast_nodes.dart';
 import 'interpreter/_execution_context.dart';
-import 'interpreter/interpreter_result.dart';
 import 'interpreter/_expression_evaluator.dart';
-import 'interpreter/_gate_mapper.dart';
-import 'interpreter/_qbit_resolver.dart';
 import 'interpreter/_flow_exceptions.dart';
+import 'interpreter/_gate_mapper.dart';
 import 'interpreter/_program_scanner.dart';
+import 'interpreter/_qbit_resolver.dart';
 import 'interpreter/_range_result.dart';
+import 'interpreter/_standard_gate_executors.dart';
 import 'interpreter/exceptions.dart';
+import 'interpreter/interpreter_result.dart';
+import 'interpreter/openqasm_include_provider.dart';
+import 'openqasm_parser.dart';
+import 'parser/ast_nodes.dart';
 
 /// OpenQASM 3.0 interpreter that executes parsed programs.
 class OpenQASMInterpreter {
-  OpenQASMInterpreter();
+  OpenQASMInterpreter({OpenQASMIncludeProvider? includeProvider})
+    : _includeProvider = includeProvider;
+
+  final OpenQASMIncludeProvider? _includeProvider;
 
   late ExpressionEvaluator _evaluator;
   late GateMapper _gateMapper;
   late QbitResolver _qbitResolver;
 
   /// Executes the given [program] and returns the result.
-  InterpreterResult execute(Program program) {
+  ///
+  /// The [includeProvider] passed to the constructor is used to load
+  /// any files referenced by `include` statements.
+  Future<InterpreterResult> execute(Program program) async {
     // Create execution context
     final context = ExecutionContext();
     _evaluator = ExpressionEvaluator(context, (statements) {
@@ -27,7 +36,15 @@ class OpenQASMInterpreter {
         _executeStatement(statement, context);
       }
     });
-    _gateMapper = GateMapper(context, _evaluator);
+    _gateMapper = GateMapper(
+      context,
+      _evaluator,
+      statementExecutor: (statements, ctx) {
+        for (final statement in statements) {
+          _executeStatement(statement, ctx);
+        }
+      },
+    );
     _qbitResolver = QbitResolver(context, _evaluator.evaluate);
 
     // Process version if specified
@@ -49,8 +66,12 @@ class OpenQASMInterpreter {
 
     // 2. Actual execution
     // Execute all statements in order
-    for (final statement in program.statements) {
-      _executeStatement(statement, context);
+    try {
+      for (final statement in program.statements) {
+        await _executeStatementAsync(statement, context);
+      }
+    } on EndException {
+      // end of program decided by user, swallow the exception
     }
 
     // Collect results
@@ -67,62 +88,81 @@ class OpenQASMInterpreter {
 
   /// Checks that the OpenQASM version is supported.
   void _checkVersion(Version version) {
-    if (!version.version.startsWith('3.')) {
+    final ver = version.version;
+    if (ver != '3' && !ver.startsWith('3.')) {
       throw InterpreterException(
-        'Unsupported OpenQASM version: ${version.version}. '
-        'Only version 3.x is supported.',
+        'Unsupported OpenQASM version: $ver. Only version 3.x is supported.',
       );
+    }
+  }
+
+  /// Executes a single statement asynchronously.
+  /// Handles include statements which require async file loading.
+  Future<void> _executeStatementAsync(
+    Statement statement,
+    ExecutionContext context,
+  ) async {
+    if (statement is IncludeStatement) {
+      await _executeInclude(statement, context);
+    } else {
+      _executeStatement(statement, context);
     }
   }
 
   /// Executes a single statement.
   void _executeStatement(Statement statement, ExecutionContext context) {
     switch (statement) {
-      case QubitDeclaration e:
-        _executeQubitDeclaration(e, context);
-      case ClassicalDeclaration e:
-        _executeClassicalDeclaration(e, context);
-      case GateCallStatement e:
-        _executeGateCall(e, context);
-      case MeasurementStatement e:
-        _executeMeasurement(e, context);
-      case ResetStatement e:
-        _executeReset(e, context);
-      case BarrierStatement e:
-        _executeBarrier(e, context);
-      case AssignmentStatement e:
-        _executeAssignment(e, context);
-      case IfStatement e:
-        _executeIf(e, context);
-      case ForStatement e:
-        _executeFor(e, context);
-      case WhileStatement e:
-        _executeWhile(e, context);
+      case QubitDeclaration():
+        _executeQubitDeclaration(statement, context);
+      case ClassicalDeclaration():
+        _executeClassicalDeclaration(statement, context);
+      case GateCallStatement():
+        _executeGateCall(statement, context);
+      case MeasurementStatement():
+        _executeMeasurement(statement, context);
+      case ResetStatement():
+        _executeReset(statement, context);
+      case BarrierStatement():
+        _executeBarrier(statement, context);
+      case AssignmentStatement():
+        _executeAssignment(statement, context);
+      case IfStatement():
+        _executeIf(statement, context);
+      case ForStatement():
+        _executeFor(statement, context);
+      case WhileStatement():
+        _executeWhile(statement, context);
       case BreakStatement():
         throw BreakException();
       case ContinueStatement():
         throw ContinueException();
-      case ReturnStatement e:
-        throw ReturnException(_evaluator.evaluate(e.expression));
-      case GateStatement e:
-        _executeGateDefinition(e, context);
-      case SubroutineDefinition e:
-        _executeSubroutineDefinition(e, context);
-      case IncludeStatement e:
-        _executeInclude(e, context);
-      case AliasStatement e:
-        _executeAlias(e, context);
-      case ConstantDeclaration e:
-        _executeConstant(e, context);
-      case IOStatement e:
-        _executeIO(e, context);
-      case ExternStatement e:
-        _executeExtern(e, context);
-      case ExpressionStatement e:
-        _executeExpressionStatement(e, context);
+      case EndStatement():
+        throw EndException();
+      case ReturnStatement():
+        throw ReturnException(_evaluator.evaluate(statement.expression));
+      case GateStatement():
+        _executeGateDefinition(statement, context);
+      case SubroutineDefinition():
+        _executeSubroutineDefinition(statement, context);
+      case IncludeStatement():
+        throw IncludeException(
+          'Include statements must be executed asynchronously. '
+          'Use executeAsync() instead of execute().',
+          filename: statement.filename,
+        );
+      case AliasStatement():
+        _executeAlias(statement, context);
+      case ConstantDeclaration():
+        _executeConstant(statement, context);
+      case IOStatement():
+        _executeIO(statement, context);
+      case ExternStatement():
+        _executeExtern(statement, context);
+      case ExpressionStatement():
+        _executeExpressionStatement(statement, context);
       default:
         throw InterpreterException(
-          'Unknown statement type: ${statement.runtimeType}',
+          'Unsupported statement type: ${statement.runtimeType}',
         );
     }
   }
@@ -145,9 +185,25 @@ class OpenQASMInterpreter {
     ClassicalDeclaration stmt,
     ExecutionContext context,
   ) {
-    final value = stmt.initializer != null
+    var value = stmt.initializer != null
         ? _evaluator.evaluate(stmt.initializer)
         : null;
+
+    // If the type is a ScalarTypeNode with a designator, initialize as an array
+    if (stmt.type is ScalarTypeNode) {
+      final scalarType = stmt.type as ScalarTypeNode;
+      if (scalarType.designator != null && value == null) {
+        // Evaluate the designator to get the array size
+        final sizeValue = _evaluator.evaluate(scalarType.designator!);
+        if (sizeValue is num) {
+          final size = sizeValue.toInt();
+          // Initialize array with size, filled with 0s for now
+          value = List<int>.filled(size, 0);
+        } else {
+          value = [];
+        }
+      }
+    }
 
     context.declareClassicalVariable(stmt.name, stmt.type, value);
   }
@@ -213,8 +269,70 @@ class OpenQASMInterpreter {
         context.updateVariable(name, newValue);
       }
     } else if (target is IndexExpression) {
-      // TODO: Handle indexed assignment (e.g., arr[0] = 5)
-      throw UnimplementedError('Indexed assignment not yet supported');
+      // Handle indexed assignment (e.g., arr[0] = 5, arr[i][j] += 1)
+      final indices = <int>[];
+
+      // Extract all indices from the IndexExpression
+      for (final indexExpr in target.indices) {
+        indices.add(_evaluator.evaluate(indexExpr) as int);
+      }
+
+      // Get variable name from the base expression
+      final baseExpr = target.expression;
+      if (baseExpr is! IdentifierExpression) {
+        throw InterpreterException(
+          'Invalid assignment target: must be array access',
+        );
+      }
+      final varName = baseExpr.name;
+
+      // Get the array/container
+      var container = context.getVariable(varName);
+
+      // Handle multi-dimensional arrays - navigate to the target element
+      for (int i = 0; i < indices.length - 1; i++) {
+        if (container is! List<dynamic>) {
+          throw InterpreterException(
+            'Cannot index into non-array value at dimension $i',
+          );
+        }
+        final list = container;
+        final idx = indices[i];
+
+        // Ensure the list is large enough
+        while (list.length <= idx) {
+          list.add(null);
+        }
+        container = list[idx];
+      }
+
+      final lastIndex = indices.last;
+
+      // The final container should be a list
+      if (container is! List<dynamic>) {
+        throw InterpreterException(
+          'Cannot index into non-array value. Expected List but got ${container.runtimeType}',
+        );
+      }
+
+      final list = container;
+
+      // Ensure the list is large enough for the assignment
+      while (list.length <= lastIndex) {
+        list.add(null);
+      }
+
+      if (stmt.operator == '=') {
+        list[lastIndex] = value;
+      } else {
+        final currentValue = list[lastIndex];
+        final newValue = _applyCompoundOperator(
+          stmt.operator,
+          currentValue,
+          value,
+        );
+        list[lastIndex] = newValue;
+      }
     }
   }
 
@@ -268,11 +386,10 @@ class OpenQASMInterpreter {
         stmt.body,
         context,
         onScopeEnter: () {
-          context.declareClassicalVariable(
-            stmt.loopVariable,
-            stmt.variableType,
-            val,
-          );
+          final varType = stmt.variableType;
+          if (varType != null) {
+            context.declareClassicalVariable(stmt.loopVariable, varType, val);
+          }
         },
       );
       if (shouldBreak) break;
@@ -294,21 +411,16 @@ class OpenQASMInterpreter {
     void Function()? onScopeEnter,
   }) {
     context.pushScope();
-    if (onScopeEnter != null) onScopeEnter();
+    onScopeEnter?.call();
     try {
-      try {
-        for (final statement in body) {
-          _executeStatement(statement, context);
-        }
-      } catch (e) {
-        if (e is BreakException) {
-          return true; // Signal to break the loop
-        } else if (e is ContinueException) {
-          return false; // Signal to continue (not break)
-        }
-        rethrow;
+      for (final statement in body) {
+        _executeStatement(statement, context);
       }
       return false; // Normal completion
+    } on BreakException {
+      return true; // Signal to break the loop
+    } on ContinueException {
+      return false; // Signal to continue (not break)
     } finally {
       context.popScope();
     }
@@ -330,8 +442,107 @@ class OpenQASMInterpreter {
     context.symbols.declareSubroutine(stmt.name, stmt);
   }
 
-  void _executeInclude(IncludeStatement stmt, ExecutionContext context) {
-    throw UnimplementedError('IncludeStatement not yet implemented');
+  /// Executes an include statement by loading the file and parsing/executing its contents.
+  Future<void> _executeInclude(
+    IncludeStatement stmt,
+    ExecutionContext context,
+  ) async {
+    // Special case for standard gates: register built-in gates without loading from a provider
+    if (stmt.filename == 'stdgates.inc') {
+      _registerStandardGates(context);
+      return;
+    }
+
+    if (_includeProvider == null) {
+      throw IncludeException(
+        'Missing provider to include file',
+        filename: stmt.filename,
+      );
+    }
+
+    try {
+      // Load the include file using the provider
+      final fileContents = await _includeProvider.loadIncludeFile(
+        stmt.filename,
+      );
+
+      // Parse the included file
+      final includedProgram = OpenQASMParser.parse(fileContents);
+
+      // Execute the included program's statements in the current context
+      for (final statement in includedProgram.statements) {
+        await _executeStatementAsync(statement, context);
+      }
+    } on IncludeException {
+      rethrow;
+    } catch (e) {
+      throw IncludeException(
+        'Error loading include file: $e',
+        filename: stmt.filename,
+      );
+    }
+  }
+
+  /// Registers standard OpenQASM gates as executors.
+  /// This is called when `include "stdgates.inc"` is processed.
+  /// At this point, quantum memory has been initialized with the correct size.
+  void _registerStandardGates(ExecutionContext context) {
+    final qmem = context.quantumMemory;
+    if (qmem == null) {
+      throw InterpreterException(
+        'Cannot register standard gates: quantum memory not initialized',
+      );
+    }
+
+    // Single-qubit gates
+    context.symbols.registerGateExecutor('id', IdGateExecutor(qmem));
+    context.symbols.registerGateExecutor('h', HGateExecutor(qmem));
+    context.symbols.registerGateExecutor('x', XGateExecutor(qmem));
+    context.symbols.registerGateExecutor('y', YGateExecutor(qmem));
+    context.symbols.registerGateExecutor('z', ZGateExecutor(qmem));
+    context.symbols.registerGateExecutor('s', SGateExecutor(qmem));
+    context.symbols.registerGateExecutor('t', TGateExecutor(qmem));
+    context.symbols.registerGateExecutor('sdg', SdgGateExecutor(qmem));
+    context.symbols.registerGateExecutor('tdg', TdgGateExecutor(qmem));
+    context.symbols.registerGateExecutor('sx', SXGateExecutor(qmem));
+
+    // Parameterized single-qubit gates
+    context.symbols.registerGateExecutor('rx', RXGateExecutor(qmem));
+    context.symbols.registerGateExecutor('ry', RYGateExecutor(qmem));
+    context.symbols.registerGateExecutor('rz', RZGateExecutor(qmem));
+    context.symbols.registerGateExecutor('p', PGateExecutor(qmem));
+    context.symbols.registerGateExecutor(
+      'phase',
+      PhaseGateExecutor(qmem),
+    ); // alias for p
+    context.symbols.registerGateExecutor('u1', U1GateExecutor(qmem));
+    context.symbols.registerGateExecutor('u2', U2GateExecutor(qmem));
+    context.symbols.registerGateExecutor('u3', U3GateExecutor(qmem));
+
+    // Two-qubit gates
+    context.symbols.registerGateExecutor('cx', CXGateExecutor(qmem));
+    context.symbols.registerGateExecutor(
+      'CX',
+      CXGateExecutor(qmem),
+    ); // alias for cx
+    context.symbols.registerGateExecutor('cnot', CNOTGateExecutor(qmem));
+    context.symbols.registerGateExecutor('cy', CYGateExecutor(qmem));
+    context.symbols.registerGateExecutor('cz', CZGateExecutor(qmem));
+    context.symbols.registerGateExecutor('cp', CPGateExecutor(qmem));
+    context.symbols.registerGateExecutor(
+      'cphase',
+      CPhaseGateExecutor(qmem),
+    ); // alias for cp
+    context.symbols.registerGateExecutor('crx', CRXGateExecutor(qmem));
+    context.symbols.registerGateExecutor('cry', CRYGateExecutor(qmem));
+    context.symbols.registerGateExecutor('crz', CRZGateExecutor(qmem));
+    context.symbols.registerGateExecutor('ch', CHGateExecutor(qmem));
+    context.symbols.registerGateExecutor('cu', CUGateExecutor(qmem));
+    context.symbols.registerGateExecutor('swap', SWAPGateExecutor(qmem));
+
+    // Three-qubit gates
+    context.symbols.registerGateExecutor('ccx', CCXGateExecutor(qmem));
+    context.symbols.registerGateExecutor('cswap', CSWAPGateExecutor(qmem));
   }
 
   void _executeAlias(AliasStatement stmt, ExecutionContext context) {

@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:qartvm/qartvm.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('OpenQASMParser', () {
@@ -74,7 +74,7 @@ while (count < 10) {
 
       final forStmt = program.statements[1] as ForStatement;
       expect(forStmt.loopVariable, 'i');
-      expect(forStmt.variableType.name, 'int');
+      expect(forStmt.variableType!.name, 'int');
       expect(forStmt.range, isA<RangeExpression>());
 
       final whileStmt = program.statements[2] as WhileStatement;

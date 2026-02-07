@@ -1,10 +1,11 @@
 import 'dart:math' as math;
+
 import '../parser/ast_nodes.dart';
-import '_execution_context.dart';
 import '_builtin_library.dart';
+import '_execution_context.dart';
+import '_flow_exceptions.dart';
 import '_qbit_resolver.dart';
 import '_range_result.dart';
-import '_flow_exceptions.dart';
 import 'exceptions.dart';
 
 /// Evaluates OpenQASM expressions to runtime values.
@@ -173,8 +174,8 @@ class ExpressionEvaluator {
 
   dynamic _evaluateIndex(IndexExpression expr) {
     // If it's an identifier, check if it's a qubit register FIRST
-    if (expr.expression is IdentifierExpression) {
-      final name = (expr.expression as IdentifierExpression).name;
+    if (expr.expression case IdentifierExpression identifier) {
+      final name = identifier.name;
       final register = context.symbols.lookupQubit(name);
 
       if (register != null) {

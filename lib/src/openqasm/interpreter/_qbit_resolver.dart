@@ -1,5 +1,6 @@
 import '../parser/ast_nodes.dart';
 import '_execution_context.dart';
+import 'exceptions.dart';
 
 /// Resolves OpenQASM expressions to qubit addresses.
 class QbitResolver {
@@ -40,13 +41,4 @@ class QbitResolver {
   List<int> resolveAll(Iterable<Expression> exprs) {
     return exprs.expand(resolve).toList();
   }
-}
-
-/// Exception thrown during qubit resolution.
-class QbitResolutionException implements Exception {
-  QbitResolutionException(this.message);
-  final String message;
-
-  @override
-  String toString() => 'QbitResolutionException: $message';
 }

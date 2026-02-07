@@ -231,8 +231,8 @@ class QCircuitGate {
 
   String _format(String key) {
     var v = _params?[key];
-    if (key == 'angle' && v is double) {
-      v /= math.pi;
+    if (key == 'angle' && v is num) {
+      v = v.toDouble() / math.pi;
       v = '$v pi';
     }
     return v?.toString() ?? 'NULL';

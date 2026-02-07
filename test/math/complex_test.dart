@@ -1,8 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:qartvm/qartvm.dart';
 import 'package:test/test.dart';
-
-import 'package:qartvm/src/math/complex.dart';
 
 import 'complex_matcher.dart';
 

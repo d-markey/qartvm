@@ -11,6 +11,12 @@ void describe(QCircuit circuit) {
 String z2(int n) => n.toString().padLeft(2, '0');
 String z4(int n) => n.toString().padLeft(4, '0');
 
+String yyyymmdd(DateTime date) =>
+    '${z4(date.year)}${z2(date.month)}${z2(date.day)}';
+
+String hhmmss(DateTime date) =>
+    '${z2(date.hour)}${z2(date.minute)}${z2(date.second)}';
+
 Future draw(QCircuit circuit, {QMemorySpace? qmem, String? filePrefix}) async {
   IOSink? writer;
   try {
@@ -18,9 +24,7 @@ Future draw(QCircuit circuit, {QMemorySpace? qmem, String? filePrefix}) async {
     var log = (String t) => print(t);
     if (filePrefix != null) {
       final now = DateTime.now();
-      final file = File(
-        './$filePrefix-${z4(now.year)}${z2(now.month)}${z2(now.day)}-${z2(now.hour)}${z2(now.minute)}${z2(now.second)}.txt',
-      );
+      final file = File('./$filePrefix-${yyyymmdd(now)}-${hhmmss(now)}.txt');
       writer = file.openWrite();
       log = writer.writeln;
     }

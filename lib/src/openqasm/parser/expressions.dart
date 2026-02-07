@@ -84,3 +84,9 @@ class MeasureExpression extends Expression {
 
   MeasureExpression(this.qubit) : super._();
 }
+
+class ArrayLiteralExpression extends Expression {
+  final List<dynamic> elements; // Can be Expression or ArrayLiteralExpression
+
+  ArrayLiteralExpression(this.elements) : super._();
+}

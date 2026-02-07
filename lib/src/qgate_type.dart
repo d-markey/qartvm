@@ -113,7 +113,7 @@ class QGateType {
       String _param(String key) {
         var v = params.singleWhere((p) => p.key == key).value;
         if (key == 'angle' && v is num) {
-          v /= math.pi;
+          v = v.toDouble() / math.pi;
           v = '$v pi';
         }
         return v?.toString() ?? 'NULL';

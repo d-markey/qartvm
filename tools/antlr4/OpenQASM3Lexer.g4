@@ -1,5 +1,9 @@
 lexer grammar OpenQASM3Lexer;
 
+@lexer::header {
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names, unnecessary_new, file_names, prefer_function_declarations_over_variables
+}
+
 /* Naming conventions in this lexer grammar
  *
  * - Keywords and exact symbols that have only one possible value are written in

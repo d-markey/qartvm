@@ -1,19 +1,20 @@
-import '../../qmemory_space.dart';
-import '../../qcircuit.dart';
-import '../../qgate_builder.dart';
+import '../../qregister.dart';
 import '../parser/ast_nodes.dart';
 import '_execution_context.dart';
 import '_expression_evaluator.dart';
+import '_gate_executor.dart';
 import '_qbit_resolver.dart';
+import 'exceptions.dart';
 
 /// Maps OpenQASM gate names to QCircuit operations.
 class GateMapper {
-  GateMapper(this.context, this.evaluator) {
+  GateMapper(this.context, this.evaluator, {required this.statementExecutor}) {
     _qbitResolver = QbitResolver(context, evaluator.evaluate);
   }
 
   final ExecutionContext context;
   final ExpressionEvaluator evaluator;
+  final void Function(List<Statement>, ExecutionContext) statementExecutor;
   late final QbitResolver _qbitResolver;
 
   /// Executes a gate call statement.
@@ -44,183 +45,287 @@ class GateMapper {
       );
     }
 
-    switch (gateName.toLowerCase()) {
-      // Single-qubit gates
-      case 'h':
-        _applySingleQubitGate(
-          qmem,
-          qubits,
-          (circuit, q) => circuit.hadamard(q),
-        );
-      case 'x':
-        _applySingleQubitGate(qmem, qubits, (circuit, q) => circuit.pauliX(q));
-      case 'y':
-        _applySingleQubitGate(qmem, qubits, (circuit, q) => circuit.pauliY(q));
-      case 'z':
-        _applySingleQubitGate(qmem, qubits, (circuit, q) => circuit.pauliZ(q));
-      case 's':
-        _applySingleQubitGate(qmem, qubits, (circuit, q) => circuit.phaseS(q));
-      case 't':
-        _applySingleQubitGate(qmem, qubits, (circuit, q) => circuit.phaseT(q));
+    // Extract control information, power factor, and inverse flag from modifiers
+    final controlInfo = _extractControlInfo(modifiers);
+    final powerFactor = _extractPowerFactor(modifiers);
+    final isInverse = _extractInverseFlag(modifiers);
 
-      // Parameterized single-qubit gates
-      case 'rx':
-        final angle = _getParam(params, 0, 'RX').toDouble();
-        _applySingleQubitGate(
-          qmem,
+    // Apply control qubits if needed
+    if (controlInfo != null) {
+      // Apply controlled gate multiple times based on power factor
+      for (int i = 0; i < powerFactor; i++) {
+        _applyControlledGate(
+          gateName,
           qubits,
-          (circuit, q) => circuit.rotationX(angle, q),
+          params,
+          controlInfo,
+          isInverse: isInverse,
         );
-      case 'ry':
-        final angle = _getParam(params, 0, 'RY').toDouble();
-        _applySingleQubitGate(
-          qmem,
-          qubits,
-          (circuit, q) => circuit.rotationY(angle, q),
-        );
-      case 'rz':
-        final angle = _getParam(params, 0, 'RZ').toDouble();
-        _applySingleQubitGate(
-          qmem,
-          qubits,
-          (circuit, q) => circuit.rotationZ(angle, q),
-        );
-      case 'phase':
-      case 'p':
-        final angle = _getParam(params, 0, 'Phase').toDouble();
-        _applySingleQubitGate(
-          qmem,
-          qubits,
-          (circuit, q) => circuit.phase(angle, q),
-        );
-
-      // Two-qubit gates
-      case 'cx':
-      case 'cnot':
-        _checkQubitCount(qubits, 2, 'CX');
-        _applyTwoQubitGate(
-          qmem,
-          qubits[0],
-          qubits[1],
-          (circuit, ctrl, tgt) => circuit.pauliX(tgt, controls: {ctrl}),
-        );
-      case 'cy':
-        _checkQubitCount(qubits, 2, 'CY');
-        _applyTwoQubitGate(
-          qmem,
-          qubits[0],
-          qubits[1],
-          (circuit, ctrl, tgt) => circuit.pauliY(tgt, controls: {ctrl}),
-        );
-      case 'cz':
-        _checkQubitCount(qubits, 2, 'CZ');
-        _applyTwoQubitGate(
-          qmem,
-          qubits[0],
-          qubits[1],
-          (circuit, ctrl, tgt) => circuit.pauliZ(tgt, controls: {ctrl}),
-        );
-      case 'swap':
-        _checkQubitCount(qubits, 2, 'SWAP');
-        _applySwapGate(qmem, qubits[0], qubits[1]);
-
-      // Three-qubit gates
-      case 'ccx':
-      case 'toffoli':
-        _checkQubitCount(qubits, 3, 'CCX');
-        _applyToffoliGate(qmem, qubits[0], qubits[1], qubits[2]);
-
-      default:
-        // Try to find custom gate definition
-        final gateDef = context.symbols.lookupGate(gateName);
-        if (gateDef != null) {
-          throw GateExecutionException(
-            'Custom gate execution not yet implemented: $gateName',
-          );
-        }
-        throw GateExecutionException('Unknown gate: $gateName');
+      }
+      return;
     }
 
-    // TODO: Handle gate modifiers (inv, ctrl, pow)
-    if (modifiers != null && modifiers.isNotEmpty) {
-      throw GateExecutionException('Gate modifiers not yet supported');
+    // Apply gate multiple times based on power factor
+    for (int i = 0; i < powerFactor; i++) {
+      _applySingleGateExecution(gateName, qubits, params, isInverse: isInverse);
     }
   }
 
-  num _getParam(List<num>? params, int index, String gate) {
-    if (params == null || params.length <= index) {
-      throw GateExecutionException(
-        '$gate gate requires parameter at index $index',
-      );
-    }
-    return params[index];
-  }
-
-  void _checkQubitCount(List<int> qubits, int expected, String gate) {
-    if (qubits.length != expected) {
-      throw GateExecutionException(
-        '$gate gate requires exactly $expected qubits, got ${qubits.length}',
-      );
-    }
-  }
-
-  /// Applies a single-qubit gate to one or more qubits.
-  void _applySingleQubitGate(
-    QMemorySpace qmem,
+  /// Executes a single application of a gate (called potentially multiple times by pow modifier).
+  /// Looks up the gate executor (built-in or custom) from the symbol table and executes it.
+  void _applySingleGateExecution(
+    String gateName,
     List<int> qubits,
-    void Function(QCircuit, int) applyFn,
-  ) {
-    if (qubits.isEmpty) return;
-
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
-
-    for (final qubit in qubits) {
-      applyFn(circuit, qubit);
+    List<num>? processedParams, {
+    bool isInverse = false,
+  }) {
+    // Handle inverse gate mapping for non-parameterized gates
+    String actualGateName = gateName;
+    if (isInverse) {
+      final inverseMappings = {'s': 'sdg', 'sdg': 's', 't': 'tdg', 'tdg': 't'};
+      final lowerName = gateName.toLowerCase();
+      if (inverseMappings.containsKey(lowerName)) {
+        actualGateName = inverseMappings[lowerName]!;
+      }
     }
-    circuit.execute(qmem);
+
+    // Try to find the gate executor in the symbol table
+    var executor = context.symbols.lookupGateExecutor(actualGateName);
+
+    if (executor != null) {
+      // Found a registered executor (built-in or custom)
+      final finalParams = isInverse && !_hasInverseMapping(gateName)
+          ? _invertParams(actualGateName, processedParams)
+          : processedParams;
+      executor.execute(qubits, finalParams);
+      return;
+    }
+
+    // Fall back to custom gate definitions (for gates not yet converted to executors)
+    final gateDef = context.symbols.lookupGate(gateName);
+    if (gateDef != null) {
+      _executeCustomGate(gateDef, qubits, processedParams);
+      return;
+    }
+
+    throw GateExecutionException('Unknown gate: $gateName');
   }
 
-  /// Applies a two-qubit gate.
-  void _applyTwoQubitGate(
-    QMemorySpace qmem,
-    int control,
-    int target,
-    void Function(QCircuit, int, int) applyFn,
+  /// Checks if a gate has a dedicated inverse mapping (like s → sdg).
+  bool _hasInverseMapping(String gateName) {
+    final lowerName = gateName.toLowerCase();
+    return lowerName == 's' ||
+        lowerName == 'sdg' ||
+        lowerName == 't' ||
+        lowerName == 'tdg';
+  }
+
+  /// Inverts parameters for inverse gates.
+  /// For rotation gates, negates the angle. For other gates, returns params unchanged.
+  List<num>? _invertParams(String gateName, List<num>? params) {
+    if (params == null || params.isEmpty) return params;
+
+    final name = gateName.toLowerCase();
+
+    // Gates with angles that should be negated for inverse
+    if (name == 'rx' ||
+        name == 'ry' ||
+        name == 'rz' ||
+        name == 'phase' ||
+        name == 'p' ||
+        name == 'u1' ||
+        name == 'xx' ||
+        name == 'yy' ||
+        name == 'zz') {
+      return [-(params[0]), ...params.skip(1)];
+    }
+
+    // For other parameterized gates, return unchanged
+    return params;
+  }
+
+  /// Executes a custom gate definition with the given qubits and parameters.
+  void _executeCustomGate(
+    GateStatement gateDef,
+    List<int> qubits,
+    List<num>? params,
   ) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
-    applyFn(circuit, control, target);
-    circuit.execute(qmem);
+    // Validate qubit count matches gate definition
+    if (gateDef.qubits.length != qubits.length) {
+      throw GateExecutionException(
+        'Gate "${gateDef.name}" expects ${gateDef.qubits.length} qubit(s), '
+        'but ${qubits.length} were provided',
+      );
+    }
+
+    // Validate parameter count matches gate definition
+    final expectedParamCount = gateDef.parameters?.length ?? 0;
+    final actualParamCount = params?.length ?? 0;
+    if (expectedParamCount != actualParamCount) {
+      throw GateExecutionException(
+        'Gate "${gateDef.name}" expects $expectedParamCount parameter(s), '
+        'but $actualParamCount were provided',
+      );
+    }
+
+    // Create a new scope for the gate execution
+    context.symbols.pushScope();
+
+    try {
+      // Bind gate parameters to evaluated values
+      if (gateDef.parameters != null && params != null) {
+        for (int i = 0; i < gateDef.parameters!.length; i++) {
+          final paramName = gateDef.parameters![i];
+          final paramValue = params[i];
+          context.symbols.declareVariable(paramName, paramValue);
+        }
+      }
+
+      // Bind gate qubits to the provided qubit addresses
+      for (int i = 0; i < gateDef.qubits.length; i++) {
+        final qubitName = gateDef.qubits[i];
+        final qubitAddress = qubits[i];
+        // Create a single-qubit register for the parameter
+        final register = QRegisterImpl.ctor(qubitName, context.quantumMemory!, [
+          qubitAddress,
+        ]);
+        context.symbols.declareQubit(qubitName, register);
+      }
+
+      // Execute the gate body statements
+      statementExecutor(gateDef.body, context);
+    } finally {
+      // Pop the gate scope
+      context.symbols.popScope();
+    }
   }
 
-  /// Applies a swap gate.
-  void _applySwapGate(QMemorySpace qmem, int qubit1, int qubit2) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
-    circuit.swap({qubit1, qubit2});
-    circuit.execute(qmem);
+  /// Extracts control information from gate modifiers.
+  ///
+  /// Returns a ControlInfo object if ctrl or negctrl modifiers are present,
+  /// null otherwise.
+  ControlInfo? _extractControlInfo(List<GateModifier>? modifiers) {
+    if (modifiers == null) return null;
+
+    for (final modifier in modifiers) {
+      if (modifier.type == 'ctrl' || modifier.type == 'negctrl') {
+        final isNegated = modifier.type == 'negctrl';
+
+        // Default control count is 1
+        int controlCount = 1;
+        if (modifier.expression != null) {
+          controlCount = (evaluator.evaluate(modifier.expression) as num)
+              .toInt();
+        }
+
+        return ControlInfo(controlCount: controlCount, isNegated: isNegated);
+      }
+    }
+
+    return null;
   }
 
-  /// Applies a Toffoli gate.
-  void _applyToffoliGate(
-    QMemorySpace qmem,
-    int control1,
-    int control2,
-    int target,
-  ) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
-    circuit.toffoli(target, controls: {control1, control2});
-    circuit.execute(qmem);
+  /// Extracts the power factor from gate modifiers.
+  ///
+  /// Returns the power value (how many times to apply the gate).
+  /// Default is 1 if no pow modifier is present.
+  int _extractPowerFactor(List<GateModifier>? modifiers) {
+    if (modifiers == null) return 1;
+
+    for (final modifier in modifiers) {
+      if (modifier.type == 'pow') {
+        if (modifier.expression != null) {
+          return (evaluator.evaluate(modifier.expression) as num).toInt();
+        }
+      }
+    }
+
+    return 1;
+  }
+
+  /// Extracts the inverse flag from gate modifiers.
+  ///
+  /// Returns true if an inv modifier is present, false otherwise.
+  bool _extractInverseFlag(List<GateModifier>? modifiers) {
+    if (modifiers == null) return false;
+
+    for (final modifier in modifiers) {
+      if (modifier.type == 'inv') {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Applies a gate with control modifiers.
+  ///
+  /// In OpenQASM, ctrl @ gate_name q0, q1, q2 means:
+  /// - q0 is the control qubit
+  /// - q1, q2, ... are the target qubits
+  /// For multiple controls: ctrl(n) @ gate_name c0, c1, ..., cn, t0, t1, ...
+  /// where c0...cn are control qubits and t0...tn are target qubits
+  void _applyControlledGate(
+    String gateName,
+    List<int> allQubits,
+    List<num>? params,
+    ControlInfo controlInfo, {
+    bool isInverse = false,
+  }) {
+    if (allQubits.length <= controlInfo.controlCount) {
+      throw GateExecutionException(
+        'ctrl modifier requires at least ${controlInfo.controlCount} control qubit(s) '
+        'and 1 target qubit, but got ${allQubits.length} qubit(s)',
+      );
+    }
+
+    final qmem = context.quantumMemory!;
+
+    // Split qubits into controls and targets
+    final controlQubits = allQubits.sublist(0, controlInfo.controlCount);
+    final targetQubits = allQubits.sublist(controlInfo.controlCount);
+
+    // Handle inverse gate mapping for non-parameterized gates
+    String actualGateName = gateName;
+    if (isInverse) {
+      final inverseMappings = {'s': 'sdg', 'sdg': 's', 't': 'tdg', 'tdg': 't'};
+      final lowerName = gateName.toLowerCase();
+      if (inverseMappings.containsKey(lowerName)) {
+        actualGateName = inverseMappings[lowerName]!;
+      }
+    }
+
+    // Look up the gate executor
+    final executor = context.symbols.lookupGateExecutor(actualGateName);
+    if (executor == null) {
+      throw GateExecutionException('Unknown gate: $actualGateName');
+    }
+
+    // Wrap executor with control modifier
+    // ControlledGateExecutor handles both single and multiple controls,
+    // as well as negated controls via X-flipping
+    final controlledExecutor = ControlledGateExecutor(
+      innerExecutor: executor,
+      controlQubits: controlQubits,
+      isNegated: controlInfo.isNegated,
+      qmem: qmem,
+      controlCount: controlInfo.controlCount,
+    );
+
+    // Handle inverse if needed (only for parameterized gates)
+    final finalParams = isInverse && !_hasInverseMapping(gateName)
+        ? _invertParams(actualGateName, params)
+        : params;
+
+    // Execute with control
+    controlledExecutor.execute(targetQubits, finalParams);
   }
 }
 
-/// Exception thrown during gate execution.
-class GateExecutionException implements Exception {
-  GateExecutionException(this.message);
-  final String message;
+/// Information about control modifiers for a gate.
+class ControlInfo {
+  final int controlCount;
+  final bool isNegated;
 
-  @override
-  String toString() => 'GateExecutionException: $message';
+  ControlInfo({required this.controlCount, required this.isNegated});
 }

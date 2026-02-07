@@ -1,14 +1,9 @@
-// Generated from C:\_Projects\github\qartvm\tools\antlr4\\OpenQASM3Parser.g4 by ANTLR 4.12.0
+// Generated from c:/_Projects/github/qartvm/tools/antlr4/OpenQASM3Parser.g4 by ANTLR 4.13.1
 // ignore_for_file: unused_import, unused_local_variable, prefer_single_quotes
 import 'package:antlr4/antlr4.dart';
 
-import 'OpenQASM3ParserListener.dart';
-import 'OpenQASM3ParserBaseListener.dart';
 import 'OpenQASM3ParserVisitor.dart';
 import 'OpenQASM3ParserBaseVisitor.dart';
-
-// ignore_for_file: non_constant_identifier_names, constant_identifier_names, unnecessary_new, file_names, prefer_function_declarations_over_variables
-
 const int RULE_program = 0, RULE_version = 1, RULE_statement = 2, RULE_annotation = 3, 
           RULE_scope = 4, RULE_pragma = 5, RULE_statementOrScope = 6, RULE_calibrationGrammarStatement = 7, 
           RULE_includeStatement = 8, RULE_breakStatement = 9, RULE_continueStatement = 10, 
@@ -33,7 +28,7 @@ const int RULE_program = 0, RULE_version = 1, RULE_statement = 2, RULE_annotatio
           RULE_defcalOperandList = 59, RULE_expressionList = 60, RULE_identifierList = 61, 
           RULE_gateOperandList = 62, RULE_externArgumentList = 63;
 class OpenQASM3Parser extends Parser {
-  static final checkVersion = () => RuntimeMetaData.checkVersion('4.12.0', RuntimeMetaData.VERSION);
+  static final checkVersion = () => RuntimeMetaData.checkVersion('4.13.1', RuntimeMetaData.VERSION);
   static const int TOKEN_EOF = IntStream.EOF;
 
   static final List<DFA> _decisionToDFA = List.generate(
@@ -3652,14 +3647,6 @@ class ProgramContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_program;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterProgram(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitProgram(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitProgram(this);
@@ -3676,14 +3663,6 @@ class VersionContext extends ParserRuleContext {
   VersionContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_version;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterVersion(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitVersion(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -3730,14 +3709,6 @@ class StatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_statement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitStatement(this);
@@ -3753,14 +3724,6 @@ class AnnotationContext extends ParserRuleContext {
   AnnotationContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_annotation;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterAnnotation(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitAnnotation(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -3780,14 +3743,6 @@ class ScopeContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_scope;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterScope(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitScope(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitScope(this);
@@ -3804,14 +3759,6 @@ class PragmaContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_pragma;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterPragma(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitPragma(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitPragma(this);
@@ -3827,14 +3774,6 @@ class StatementOrScopeContext extends ParserRuleContext {
   StatementOrScopeContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_statementOrScope;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterStatementOrScope(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitStatementOrScope(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -3853,14 +3792,6 @@ class CalibrationGrammarStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_calibrationGrammarStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterCalibrationGrammarStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitCalibrationGrammarStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitCalibrationGrammarStatement(this);
@@ -3878,14 +3809,6 @@ class IncludeStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_includeStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIncludeStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIncludeStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitIncludeStatement(this);
@@ -3901,14 +3824,6 @@ class BreakStatementContext extends ParserRuleContext {
   BreakStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_breakStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBreakStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBreakStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -3926,14 +3841,6 @@ class ContinueStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_continueStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterContinueStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitContinueStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitContinueStatement(this);
@@ -3949,14 +3856,6 @@ class EndStatementContext extends ParserRuleContext {
   EndStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_endStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterEndStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitEndStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -3983,14 +3882,6 @@ class ForStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_forStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterForStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitForStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitForStatement(this);
@@ -4014,14 +3905,6 @@ class IfStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_ifStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIfStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIfStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitIfStatement(this);
@@ -4039,14 +3922,6 @@ class ReturnStatementContext extends ParserRuleContext {
   ReturnStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_returnStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterReturnStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitReturnStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4068,14 +3943,6 @@ class WhileStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_whileStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterWhileStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitWhileStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitWhileStatement(this);
@@ -4092,14 +3959,6 @@ class BarrierStatementContext extends ParserRuleContext {
   BarrierStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_barrierStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBarrierStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBarrierStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4118,14 +3977,6 @@ class BoxStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_boxStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBoxStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBoxStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitBoxStatement(this);
@@ -4143,14 +3994,6 @@ class DelayStatementContext extends ParserRuleContext {
   DelayStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_delayStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDelayStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDelayStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4176,14 +4019,6 @@ class GateCallStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_gateCallStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterGateCallStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitGateCallStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitGateCallStatement(this);
@@ -4202,14 +4037,6 @@ class MeasureArrowAssignmentStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_measureArrowAssignmentStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterMeasureArrowAssignmentStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitMeasureArrowAssignmentStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitMeasureArrowAssignmentStatement(this);
@@ -4226,14 +4053,6 @@ class ResetStatementContext extends ParserRuleContext {
   ResetStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_resetStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterResetStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitResetStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4253,14 +4072,6 @@ class AliasDeclarationStatementContext extends ParserRuleContext {
   AliasDeclarationStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_aliasDeclarationStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterAliasDeclarationStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitAliasDeclarationStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4282,14 +4093,6 @@ class ClassicalDeclarationStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_classicalDeclarationStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterClassicalDeclarationStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitClassicalDeclarationStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitClassicalDeclarationStatement(this);
@@ -4309,14 +4112,6 @@ class ConstDeclarationStatementContext extends ParserRuleContext {
   ConstDeclarationStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_constDeclarationStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterConstDeclarationStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitConstDeclarationStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4338,14 +4133,6 @@ class IoDeclarationStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_ioDeclarationStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIoDeclarationStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIoDeclarationStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitIoDeclarationStatement(this);
@@ -4365,14 +4152,6 @@ class OldStyleDeclarationStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_oldStyleDeclarationStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterOldStyleDeclarationStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitOldStyleDeclarationStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitOldStyleDeclarationStatement(this);
@@ -4389,14 +4168,6 @@ class QuantumDeclarationStatementContext extends ParserRuleContext {
   QuantumDeclarationStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_quantumDeclarationStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterQuantumDeclarationStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitQuantumDeclarationStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4419,14 +4190,6 @@ class DefStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_defStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitDefStatement(this);
@@ -4447,14 +4210,6 @@ class ExternStatementContext extends ParserRuleContext {
   ExternStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_externStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterExternStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitExternStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4479,14 +4234,6 @@ class GateStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_gateStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterGateStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitGateStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitGateStatement(this);
@@ -4508,14 +4255,6 @@ class AssignmentStatementContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_assignmentStatement;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterAssignmentStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitAssignmentStatement(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitAssignmentStatement(this);
@@ -4531,14 +4270,6 @@ class ExpressionStatementContext extends ParserRuleContext {
   ExpressionStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_expressionStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterExpressionStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitExpressionStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4557,14 +4288,6 @@ class CalStatementContext extends ParserRuleContext {
   CalStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_calStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterCalStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitCalStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4589,14 +4312,6 @@ class DefcalStatementContext extends ParserRuleContext {
   DefcalStatementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_defcalStatement;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefcalStatement(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefcalStatement(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4627,14 +4342,6 @@ class AliasExpressionContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_aliasExpression;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterAliasExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitAliasExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitAliasExpression(this);
@@ -4652,14 +4359,6 @@ class DeclarationExpressionContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_declarationExpression;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDeclarationExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDeclarationExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitDeclarationExpression(this);
@@ -4675,14 +4374,6 @@ class MeasureExpressionContext extends ParserRuleContext {
   MeasureExpressionContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_measureExpression;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterMeasureExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitMeasureExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4705,14 +4396,6 @@ class RangeExpressionContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_rangeExpression;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterRangeExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitRangeExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitRangeExpression(this);
@@ -4732,14 +4415,6 @@ class SetExpressionContext extends ParserRuleContext {
   SetExpressionContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_setExpression;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterSetExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitSetExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4762,14 +4437,6 @@ class ArrayLiteralContext extends ParserRuleContext {
   ArrayLiteralContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_arrayLiteral;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterArrayLiteral(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitArrayLiteral(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4794,14 +4461,6 @@ class IndexOperatorContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_indexOperator;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIndexOperator(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIndexOperator(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitIndexOperator(this);
@@ -4819,14 +4478,6 @@ class IndexedIdentifierContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_indexedIdentifier;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIndexedIdentifier(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIndexedIdentifier(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitIndexedIdentifier(this);
@@ -4842,14 +4493,6 @@ class ReturnSignatureContext extends ParserRuleContext {
   ReturnSignatureContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_returnSignature;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterReturnSignature(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitReturnSignature(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4872,14 +4515,6 @@ class GateModifierContext extends ParserRuleContext {
   GateModifierContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_gateModifier;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterGateModifier(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitGateModifier(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4909,14 +4544,6 @@ class ScalarTypeContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_scalarType;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterScalarType(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitScalarType(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitScalarType(this);
@@ -4932,14 +4559,6 @@ class QubitTypeContext extends ParserRuleContext {
   QubitTypeContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_qubitType;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterQubitType(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitQubitType(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4960,14 +4579,6 @@ class ArrayTypeContext extends ParserRuleContext {
   ArrayTypeContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_arrayType;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterArrayType(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitArrayType(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -4994,14 +4605,6 @@ class ArrayReferenceTypeContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_arrayReferenceType;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterArrayReferenceType(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitArrayReferenceType(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitArrayReferenceType(this);
@@ -5018,14 +4621,6 @@ class DesignatorContext extends ParserRuleContext {
   DesignatorContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_designator;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDesignator(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDesignator(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5045,14 +4640,6 @@ class DefcalTargetContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_defcalTarget;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefcalTarget(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefcalTarget(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitDefcalTarget(this);
@@ -5068,14 +4655,6 @@ class DefcalArgumentDefinitionContext extends ParserRuleContext {
   DefcalArgumentDefinitionContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_defcalArgumentDefinition;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefcalArgumentDefinition(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefcalArgumentDefinition(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5093,14 +4672,6 @@ class DefcalOperandContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_defcalOperand;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefcalOperand(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefcalOperand(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitDefcalOperand(this);
@@ -5116,14 +4687,6 @@ class GateOperandContext extends ParserRuleContext {
   GateOperandContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_gateOperand;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterGateOperand(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitGateOperand(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5142,14 +4705,6 @@ class ExternArgumentContext extends ParserRuleContext {
   ExternArgumentContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_externArgument;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterExternArgument(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitExternArgument(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5172,14 +4727,6 @@ class ArgumentDefinitionContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_argumentDefinition;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterArgumentDefinition(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitArgumentDefinition(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitArgumentDefinition(this);
@@ -5197,14 +4744,6 @@ class ArgumentDefinitionListContext extends ParserRuleContext {
   ArgumentDefinitionListContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_argumentDefinitionList;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterArgumentDefinitionList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitArgumentDefinitionList(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5224,14 +4763,6 @@ class DefcalArgumentDefinitionListContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_defcalArgumentDefinitionList;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefcalArgumentDefinitionList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefcalArgumentDefinitionList(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitDefcalArgumentDefinitionList(this);
@@ -5249,14 +4780,6 @@ class DefcalOperandListContext extends ParserRuleContext {
   DefcalOperandListContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_defcalOperandList;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDefcalOperandList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDefcalOperandList(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5276,14 +4799,6 @@ class ExpressionListContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_expressionList;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterExpressionList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitExpressionList(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitExpressionList(this);
@@ -5301,14 +4816,6 @@ class IdentifierListContext extends ParserRuleContext {
   IdentifierListContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
   @override
   int get ruleIndex => RULE_identifierList;
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIdentifierList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIdentifierList(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5328,14 +4835,6 @@ class GateOperandListContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_gateOperandList;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterGateOperandList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitGateOperandList(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitGateOperandList(this);
@@ -5354,14 +4853,6 @@ class ExternArgumentListContext extends ParserRuleContext {
   @override
   int get ruleIndex => RULE_externArgumentList;
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterExternArgumentList(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitExternArgumentList(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitExternArgumentList(this);
@@ -5377,14 +4868,6 @@ class BitwiseXorExpressionContext extends ExpressionContext {
   ExpressionContext? expression(int i) => getRuleContext<ExpressionContext>(i);
   TerminalNode? CARET() => getToken(OpenQASM3Parser.TOKEN_CARET, 0);
   BitwiseXorExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBitwiseXorExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBitwiseXorExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5403,14 +4886,6 @@ class AdditiveExpressionContext extends ExpressionContext {
   TerminalNode? MINUS() => getToken(OpenQASM3Parser.TOKEN_MINUS, 0);
   AdditiveExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterAdditiveExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitAdditiveExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitAdditiveExpression(this);
@@ -5427,14 +4902,6 @@ class DurationofExpressionContext extends ExpressionContext {
   TerminalNode? RPAREN() => getToken(OpenQASM3Parser.TOKEN_RPAREN, 0);
   DurationofExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterDurationofExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitDurationofExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitDurationofExpression(this);
@@ -5449,14 +4916,6 @@ class ParenthesisExpressionContext extends ExpressionContext {
   ExpressionContext? expression() => getRuleContext<ExpressionContext>(0);
   TerminalNode? RPAREN() => getToken(OpenQASM3Parser.TOKEN_RPAREN, 0);
   ParenthesisExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterParenthesisExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitParenthesisExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5473,14 +4932,6 @@ class ComparisonExpressionContext extends ExpressionContext {
   ExpressionContext? expression(int i) => getRuleContext<ExpressionContext>(i);
   TerminalNode? ComparisonOperator() => getToken(OpenQASM3Parser.TOKEN_ComparisonOperator, 0);
   ComparisonExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterComparisonExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitComparisonExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5500,14 +4951,6 @@ class MultiplicativeExpressionContext extends ExpressionContext {
   TerminalNode? PERCENT() => getToken(OpenQASM3Parser.TOKEN_PERCENT, 0);
   MultiplicativeExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterMultiplicativeExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitMultiplicativeExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitMultiplicativeExpression(this);
@@ -5523,14 +4966,6 @@ class LogicalOrExpressionContext extends ExpressionContext {
   ExpressionContext? expression(int i) => getRuleContext<ExpressionContext>(i);
   TerminalNode? DOUBLE_PIPE() => getToken(OpenQASM3Parser.TOKEN_DOUBLE_PIPE, 0);
   LogicalOrExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterLogicalOrExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitLogicalOrExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5549,14 +4984,6 @@ class CastExpressionContext extends ExpressionContext {
   ArrayTypeContext? arrayType() => getRuleContext<ArrayTypeContext>(0);
   CastExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterCastExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitCastExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitCastExpression(this);
@@ -5572,14 +4999,6 @@ class PowerExpressionContext extends ExpressionContext {
   ExpressionContext? expression(int i) => getRuleContext<ExpressionContext>(i);
   TerminalNode? DOUBLE_ASTERISK() => getToken(OpenQASM3Parser.TOKEN_DOUBLE_ASTERISK, 0);
   PowerExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterPowerExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitPowerExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5597,14 +5016,6 @@ class BitwiseOrExpressionContext extends ExpressionContext {
   TerminalNode? PIPE() => getToken(OpenQASM3Parser.TOKEN_PIPE, 0);
   BitwiseOrExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBitwiseOrExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBitwiseOrExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitBitwiseOrExpression(this);
@@ -5620,14 +5031,6 @@ class CallExpressionContext extends ExpressionContext {
   TerminalNode? RPAREN() => getToken(OpenQASM3Parser.TOKEN_RPAREN, 0);
   ExpressionListContext? expressionList() => getRuleContext<ExpressionListContext>(0);
   CallExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterCallExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitCallExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5645,14 +5048,6 @@ class BitshiftExpressionContext extends ExpressionContext {
   TerminalNode? BitshiftOperator() => getToken(OpenQASM3Parser.TOKEN_BitshiftOperator, 0);
   BitshiftExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBitshiftExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBitshiftExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitBitshiftExpression(this);
@@ -5668,14 +5063,6 @@ class BitwiseAndExpressionContext extends ExpressionContext {
   ExpressionContext? expression(int i) => getRuleContext<ExpressionContext>(i);
   TerminalNode? AMPERSAND() => getToken(OpenQASM3Parser.TOKEN_AMPERSAND, 0);
   BitwiseAndExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterBitwiseAndExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitBitwiseAndExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5693,14 +5080,6 @@ class EqualityExpressionContext extends ExpressionContext {
   TerminalNode? EqualityOperator() => getToken(OpenQASM3Parser.TOKEN_EqualityOperator, 0);
   EqualityExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterEqualityExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitEqualityExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitEqualityExpression(this);
@@ -5717,14 +5096,6 @@ class LogicalAndExpressionContext extends ExpressionContext {
   TerminalNode? DOUBLE_AMPERSAND() => getToken(OpenQASM3Parser.TOKEN_DOUBLE_AMPERSAND, 0);
   LogicalAndExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
   @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterLogicalAndExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitLogicalAndExpression(this);
-  }
-  @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
      return visitor.visitLogicalAndExpression(this);
@@ -5738,14 +5109,6 @@ class IndexExpressionContext extends ExpressionContext {
   ExpressionContext? expression() => getRuleContext<ExpressionContext>(0);
   IndexOperatorContext? indexOperator() => getRuleContext<IndexOperatorContext>(0);
   IndexExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterIndexExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitIndexExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5763,14 +5126,6 @@ class UnaryExpressionContext extends ExpressionContext {
   TerminalNode? EXCLAMATION_POINT() => getToken(OpenQASM3Parser.TOKEN_EXCLAMATION_POINT, 0);
   TerminalNode? MINUS() => getToken(OpenQASM3Parser.TOKEN_MINUS, 0);
   UnaryExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterUnaryExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitUnaryExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {
@@ -5795,14 +5150,6 @@ class LiteralExpressionContext extends ExpressionContext {
   TerminalNode? TimingLiteral() => getToken(OpenQASM3Parser.TOKEN_TimingLiteral, 0);
   TerminalNode? HardwareQubit() => getToken(OpenQASM3Parser.TOKEN_HardwareQubit, 0);
   LiteralExpressionContext(ExpressionContext ctx) { copyFrom(ctx); }
-  @override
-  void enterRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.enterLiteralExpression(this);
-  }
-  @override
-  void exitRule(ParseTreeListener listener) {
-    if (listener is OpenQASM3ParserListener) listener.exitLiteralExpression(this);
-  }
   @override
   T? accept<T>(ParseTreeVisitor<T> visitor) {
     if (visitor is OpenQASM3ParserVisitor<T>) {

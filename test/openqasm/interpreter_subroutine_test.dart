@@ -1,6 +1,5 @@
+import 'package:qartvm/qartvm.dart';
 import 'package:test/test.dart';
-import 'package:qartvm/src/openqasm/openqasm_interpreter.dart';
-import 'package:qartvm/src/openqasm/openqasm_parser.dart';
 
 void main() {
   group('Subroutine Execution', () {
@@ -10,7 +9,7 @@ void main() {
       interpreter = OpenQASMInterpreter();
     });
 
-    test('Void subroutine side effects', () {
+    test('Void subroutine side effects', () async {
       final source = '''
       OPENQASM 3.0;
       int[32] g = 0;
@@ -19,11 +18,11 @@ void main() {
       }
       set_g();
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['g'], 1);
     });
 
-    test('Subroutine with return value', () {
+    test('Subroutine with return value', () async {
       final source = '''
       OPENQASM 3.0;
       def get_val() -> int[32] {
@@ -31,11 +30,11 @@ void main() {
       }
       int[32] x = get_val();
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['x'], 42);
     });
 
-    test('Subroutine with arguments', () {
+    test('Subroutine with arguments', () async {
       final source = '''
       OPENQASM 3.0;
       def add(int[32] a, int[32] b) -> int[32] {
@@ -43,11 +42,11 @@ void main() {
       }
       int[32] result = add(10, 20);
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['result'], 30);
     });
 
-    test('Variable shadowing', () {
+    test('Variable shadowing', () async {
       final source = '''
       OPENQASM 3.0;
       int[32] x = 10;
@@ -56,11 +55,11 @@ void main() {
       }
       modify_local();
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['x'], 10);
     });
 
-    test('Early return', () {
+    test('Early return', () async {
       final source = '''
       OPENQASM 3.0;
       def my_abs(int[32] n) -> int[32] {
@@ -72,11 +71,11 @@ void main() {
       int[32] a = my_abs(-5);
       int[32] b = my_abs(5);
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['a'], 5);
       expect(result.classicalVariables['b'], 5);
     });
-    test('Return in for loop inside subroutine', () {
+    test('Return in for loop inside subroutine', () async {
       final source = '''
       OPENQASM 3.0;
       def loop_return() -> int[32] {
@@ -88,11 +87,11 @@ void main() {
       }
       int[32] x = loop_return();
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['x'], 42);
     });
 
-    test('Return in while loop inside subroutine', () {
+    test('Return in while loop inside subroutine', () async {
       final source = '''
       OPENQASM 3.0;
       def loop_return() -> int[32] {
@@ -104,7 +103,7 @@ void main() {
       }
       int[32] x = loop_return();
       ''';
-      final result = interpreter.execute(OpenQASMParser.parse(source));
+      final result = await interpreter.execute(OpenQASMParser.parse(source));
       expect(result.classicalVariables['x'], 99);
     });
   });

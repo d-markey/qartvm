@@ -254,12 +254,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       return visitMeasureExpression(ctx.measureExpression()!) as Expression;
     }
     if (ctx.arrayLiteral() != null) {
-      final exprs = ctx
-          .arrayLiteral()!
-          .expressions()
-          .map((e) => visit(e) as Expression)
-          .toList();
-      return SetExpression(exprs); // Reuse SetExpression or create ArrayLiteral
+      return visitArrayLiteral(ctx.arrayLiteral()!) as Expression;
     }
     return null;
   }
@@ -409,7 +404,10 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitForStatement(ForStatementContext ctx) {
     final loopVar = ctx.Identifier()?.text ?? '';
-    final varType = visitScalarType(ctx.scalarType()!) as ScalarTypeNode;
+    final scalarType = ctx.scalarType();
+    final varType = (scalarType == null)
+        ? null
+        : visitScalarType(scalarType) as ScalarTypeNode;
     Expression range;
     if (ctx.setExpression() != null) {
       range = visitSetExpression(ctx.setExpression()!) as SetExpression;
@@ -625,6 +623,8 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       type = visitScalarType(ctx.scalarType()!) as TypeNode;
     } else if (ctx.qubitType() != null) {
       type = visitQubitType(ctx.qubitType()!) as TypeNode;
+    } else if (ctx.arrayReferenceType() != null) {
+      type = visitArrayReferenceType(ctx.arrayReferenceType()!) as TypeNode;
     } else if (ctx.CREG() != null) {
       type = ScalarTypeNode(
         'creg',
@@ -639,9 +639,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
             : null,
       );
     } else {
-      type = ScalarTypeNode(
-        'readonly',
-      ); // TODO: handle arrayReferenceType properly
+      type = ScalarTypeNode('unknown');
     }
     final name = ctx.Identifier()?.text ?? '';
     return Argument(type, name);
@@ -752,5 +750,56 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .map((e) => visit(e) as Expression)
         .toList();
     return ArrayTypeNode(baseType, dims);
+  }
+
+  @override
+  OpenQASMNode? visitArrayLiteral(ArrayLiteralContext ctx) {
+    final elements = <dynamic>[];
+
+    // Parse each element - can be expression or nested arrayLiteral
+    if (ctx.children != null) {
+      for (final element in ctx.children!) {
+        if (element is ExpressionContext) {
+          elements.add(visit(element) as Expression);
+        } else if (element is ArrayLiteralContext) {
+          elements.add(visitArrayLiteral(element) as ArrayLiteralExpression);
+        }
+      }
+    }
+
+    return ArrayLiteralExpression(elements);
+  }
+
+  @override
+  OpenQASMNode? visitArrayReferenceType(ArrayReferenceTypeContext ctx) {
+    final modifier = ctx.READONLY() != null ? 'readonly' : 'mutable';
+    final baseType = visitScalarType(ctx.scalarType()!) as ScalarTypeNode;
+
+    final dimensions = <Expression>[];
+    final Expression? dimEquals;
+
+    if (ctx.DIM() != null) {
+      // DIM = expression syntax
+      dimEquals = ctx.expression() != null
+          ? visit(ctx.expression()!) as Expression
+          : null;
+    } else {
+      // expressionList syntax
+      dimensions.addAll(
+        ctx
+            .expressionList()!
+            .expressions()
+            .map((e) => visit(e) as Expression)
+            .toList(),
+      );
+      dimEquals = null;
+    }
+
+    return ArrayReferenceType(
+      modifier,
+      baseType,
+      dimensions,
+      dimEquals: dimEquals,
+    );
   }
 }

@@ -1,7 +1,11 @@
 parser grammar OpenQASM3Parser;
 
+@parser::header {
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names, unnecessary_new, file_names, prefer_function_declarations_over_variables
+}
+
 options {
-    tokenVocab = OpenQASM3Lexer;
+	tokenVocab= OpenQASM3Lexer;
 }
 
 program: version? statement* EOF;
@@ -13,45 +17,43 @@ version: OPENQASM VersionSpecifier SEMICOLON;
 // parsing; we leave semantic analysis and rejection of invalid scopes for
 // compiler implementations.
 statement:
-    pragma
-    // All the actual statements of the language.
-    | annotation* (
-        aliasDeclarationStatement
-        | assignmentStatement
-        | barrierStatement
-        | boxStatement
-        | breakStatement
-        | calStatement
-        | calibrationGrammarStatement
-        | classicalDeclarationStatement
-        | constDeclarationStatement
-        | continueStatement
-        | defStatement
-        | defcalStatement
-        | delayStatement
-        | endStatement
-        | expressionStatement
-        | externStatement
-        | forStatement
-        | gateCallStatement
-        | gateStatement
-        | ifStatement
-        | includeStatement
-        | ioDeclarationStatement
-        | measureArrowAssignmentStatement
-        | oldStyleDeclarationStatement
-        | quantumDeclarationStatement
-        | resetStatement
-        | returnStatement
-        | whileStatement
-    )
-;
+	pragma
+	// All the actual statements of the language.
+	| annotation* (
+		aliasDeclarationStatement
+		| assignmentStatement
+		| barrierStatement
+		| boxStatement
+		| breakStatement
+		| calStatement
+		| calibrationGrammarStatement
+		| classicalDeclarationStatement
+		| constDeclarationStatement
+		| continueStatement
+		| defStatement
+		| defcalStatement
+		| delayStatement
+		| endStatement
+		| expressionStatement
+		| externStatement
+		| forStatement
+		| gateCallStatement
+		| gateStatement
+		| ifStatement
+		| includeStatement
+		| ioDeclarationStatement
+		| measureArrowAssignmentStatement
+		| oldStyleDeclarationStatement
+		| quantumDeclarationStatement
+		| resetStatement
+		| returnStatement
+		| whileStatement
+	);
 annotation: AnnotationKeyword RemainingLineContent?;
 scope: LBRACE statement* RBRACE;
 pragma: PRAGMA RemainingLineContent;
 
 statementOrScope: statement | scope;
-
 
 /* Start top-level statement definitions. */
 
@@ -63,8 +65,10 @@ includeStatement: INCLUDE StringLiteral SEMICOLON;
 breakStatement: BREAK SEMICOLON;
 continueStatement: CONTINUE SEMICOLON;
 endStatement: END SEMICOLON;
-forStatement: FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope;
-ifStatement: IF LPAREN expression RPAREN if_body=statementOrScope (ELSE else_body=statementOrScope)?;
+forStatement:
+	FOR scalarType? Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope;
+ifStatement:
+	IF LPAREN expression RPAREN if_body=statementOrScope (ELSE else_body=statementOrScope)?;
 returnStatement: RETURN (expression | measureExpression)? SEMICOLON;
 whileStatement: WHILE LPAREN expression RPAREN body=statementOrScope;
 
@@ -81,9 +85,8 @@ delayStatement: DELAY designator gateOperandList? SEMICOLON;
  * separate token, ANTLR can disambiguate the statements by the definition
  * order, but this is more robust. */
 gateCallStatement:
-    gateModifier* Identifier (LPAREN expressionList? RPAREN)? designator? gateOperandList SEMICOLON
-    | gateModifier* GPHASE (LPAREN expressionList? RPAREN)? designator? gateOperandList? SEMICOLON
-;
+	gateModifier* Identifier (LPAREN expressionList? RPAREN)? designator? gateOperandList SEMICOLON
+	| gateModifier* GPHASE (LPAREN expressionList? RPAREN)? designator? gateOperandList? SEMICOLON;
 // measureArrowAssignmentStatement also permits the case of not assigning the
 // result to any classical value too.
 measureArrowAssignmentStatement: measureExpression (ARROW indexedIdentifier)? SEMICOLON;
@@ -103,54 +106,53 @@ externStatement: EXTERN Identifier LPAREN externArgumentList? RPAREN returnSigna
 gateStatement: GATE Identifier (LPAREN params=identifierList? RPAREN)? qubits=identifierList scope;
 
 // Non-declaration assignments and calculations.
-assignmentStatement: indexedIdentifier op=(EQUALS | CompoundAssignmentOperator) (expression | measureExpression) SEMICOLON;
+assignmentStatement:
+	indexedIdentifier op=(EQUALS | CompoundAssignmentOperator) (expression | measureExpression) SEMICOLON;
 expressionStatement: expression SEMICOLON;
 
 // Statements where the bulk is in the calibration language.
 calStatement: CAL LBRACE CalibrationBlock? RBRACE;
-defcalStatement: DEFCAL defcalTarget (LPAREN defcalArgumentDefinitionList? RPAREN)? defcalOperandList returnSignature? LBRACE CalibrationBlock? RBRACE;
-
+defcalStatement:
+	DEFCAL defcalTarget (LPAREN defcalArgumentDefinitionList? RPAREN)? defcalOperandList returnSignature? LBRACE CalibrationBlock? RBRACE;
 
 /* End top-level statement definitions. */
 /* Start expression definitions. */
-
 
 // ANTLR4 can handle direct left-recursive rules, and ambiguities are guaranteed
 // to resolve in the order of definition.  This means that the order of rules
 // here defines the precedence table, from most tightly binding to least.
 expression:
-    LPAREN expression RPAREN                                  # parenthesisExpression
-    | expression indexOperator                                # indexExpression
-    | <assoc=right> expression op=DOUBLE_ASTERISK expression  # powerExpression
-    | op=(TILDE | EXCLAMATION_POINT | MINUS) expression       # unaryExpression
-    | expression op=(ASTERISK | SLASH | PERCENT) expression   # multiplicativeExpression
-    | expression op=(PLUS | MINUS) expression                 # additiveExpression
-    | expression op=BitshiftOperator expression               # bitshiftExpression
-    | expression op=ComparisonOperator expression             # comparisonExpression
-    | expression op=EqualityOperator expression               # equalityExpression
-    | expression op=AMPERSAND expression                      # bitwiseAndExpression
-    | expression op=CARET expression                          # bitwiseXorExpression
-    | expression op=PIPE expression                           # bitwiseOrExpression
-    | expression op=DOUBLE_AMPERSAND expression               # logicalAndExpression
-    | expression op=DOUBLE_PIPE expression                    # logicalOrExpression
-    | (scalarType | arrayType) LPAREN expression RPAREN       # castExpression
-    | DURATIONOF LPAREN scope RPAREN                          # durationofExpression
-    | Identifier LPAREN expressionList? RPAREN                # callExpression
-    | (
-        Identifier
-        | BinaryIntegerLiteral
-        | OctalIntegerLiteral
-        | DecimalIntegerLiteral
-        | HexIntegerLiteral
-        | FloatLiteral
-        | ImaginaryLiteral
-        | BooleanLiteral
-        | BitstringLiteral
-        | StringLiteral
-        | TimingLiteral
-        | HardwareQubit
-      )                                                       # literalExpression
-;
+	LPAREN expression RPAREN									# parenthesisExpression
+	| expression indexOperator									# indexExpression
+	| <assoc=right> expression op=DOUBLE_ASTERISK expression	# powerExpression
+	| op=(TILDE | EXCLAMATION_POINT | MINUS) expression			# unaryExpression
+	| expression op=(ASTERISK | SLASH | PERCENT) expression		# multiplicativeExpression
+	| expression op=(PLUS | MINUS) expression					# additiveExpression
+	| expression op=BitshiftOperator expression					# bitshiftExpression
+	| expression op=ComparisonOperator expression				# comparisonExpression
+	| expression op=EqualityOperator expression					# equalityExpression
+	| expression op=AMPERSAND expression						# bitwiseAndExpression
+	| expression op=CARET expression							# bitwiseXorExpression
+	| expression op=PIPE expression								# bitwiseOrExpression
+	| expression op=DOUBLE_AMPERSAND expression					# logicalAndExpression
+	| expression op=DOUBLE_PIPE expression						# logicalOrExpression
+	| (scalarType | arrayType) LPAREN expression RPAREN			# castExpression
+	| DURATIONOF LPAREN scope RPAREN							# durationofExpression
+	| Identifier LPAREN expressionList? RPAREN					# callExpression
+	| (
+		Identifier
+		| BinaryIntegerLiteral
+		| OctalIntegerLiteral
+		| DecimalIntegerLiteral
+		| HexIntegerLiteral
+		| FloatLiteral
+		| ImaginaryLiteral
+		| BooleanLiteral
+		| BitstringLiteral
+		| StringLiteral
+		| TimingLiteral
+		| HardwareQubit
+	) # literalExpression;
 
 // Special-case expressions that are only valid in certain contexts.  These are
 // not in the expression tree, but can contain elements that are within it.
@@ -165,12 +167,10 @@ arrayLiteral: LBRACE (expression | arrayLiteral) (COMMA (expression | arrayLiter
 // `setExpression` is only valid when being used as a single index: registers
 // can support it for creating aliases, but arrays cannot.
 indexOperator:
-    LBRACKET
-    (
-        setExpression
-        | (expression | rangeExpression) (COMMA (expression | rangeExpression))* COMMA?
-    )
-    RBRACKET;
+	LBRACKET (
+		setExpression
+		| (expression | rangeExpression) (COMMA (expression | rangeExpression))* COMMA?
+	) RBRACKET;
 // Alternative form to `indexExpression` for cases where an obvious l-value is
 // better grammatically than a generic expression.  Some current uses of this
 // rule may be better as `expression`, leaving the semantic analysis to later
@@ -181,27 +181,25 @@ indexedIdentifier: Identifier indexOperator*;
 /* Start type definitions. */
 
 returnSignature: ARROW scalarType;
-gateModifier: (
-    INV
-    | POW LPAREN expression RPAREN
-    | (CTRL | NEGCTRL) (LPAREN expression RPAREN)?
-) AT;
+gateModifier: ( INV | POW LPAREN expression RPAREN | (CTRL | NEGCTRL) (LPAREN expression RPAREN)?) AT;
 
 scalarType:
-    BIT designator?
-    | INT designator?
-    | UINT designator?
-    | FLOAT designator?
-    | ANGLE designator?
-    | BOOL
-    | DURATION
-    | STRETCH
-    | COMPLEX (LBRACKET scalarType RBRACKET)?
-    | STRING
-;
+	BIT designator?
+	| INT designator?
+	| UINT designator?
+	| FLOAT designator?
+	| ANGLE designator?
+	| BOOL
+	| DURATION
+	| STRETCH
+	| COMPLEX (LBRACKET scalarType RBRACKET)?
+	| STRING;
 qubitType: QUBIT designator?;
 arrayType: ARRAY LBRACKET scalarType COMMA expressionList RBRACKET;
-arrayReferenceType: (READONLY | MUTABLE) ARRAY LBRACKET scalarType COMMA (expressionList | DIM EQUALS expression) RBRACKET;
+arrayReferenceType: (READONLY | MUTABLE) ARRAY LBRACKET scalarType COMMA (
+		expressionList
+		| DIM EQUALS expression
+	) RBRACKET;
 
 designator: LBRACKET expression RBRACKET;
 
@@ -211,11 +209,10 @@ defcalOperand: HardwareQubit | Identifier;
 gateOperand: indexedIdentifier | HardwareQubit;
 externArgument: scalarType | arrayReferenceType | CREG designator?;
 argumentDefinition:
-    scalarType Identifier
-    | qubitType Identifier
-    | (CREG | QREG) Identifier designator?
-    | arrayReferenceType Identifier
-;
+	scalarType Identifier
+	| qubitType Identifier
+	| (CREG | QREG) Identifier designator?
+	| arrayReferenceType Identifier;
 
 argumentDefinitionList: argumentDefinition (COMMA argumentDefinition)* COMMA?;
 defcalArgumentDefinitionList: defcalArgumentDefinition (COMMA defcalArgumentDefinition)* COMMA?;

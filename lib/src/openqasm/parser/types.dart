@@ -29,3 +29,17 @@ class ArrayTypeNode extends TypeNode {
 
   ArrayTypeNode(this.baseType, this.dimensions) : super._();
 }
+
+class ArrayReferenceType extends TypeNode {
+  final String modifier; // 'readonly' or 'mutable'
+  final ScalarTypeNode baseType;
+  final List<Expression> dimensions;
+  final Expression? dimEquals; // For DIM = expression syntax
+
+  ArrayReferenceType(
+    this.modifier,
+    this.baseType,
+    this.dimensions, {
+    this.dimEquals,
+  }) : super._();
+}

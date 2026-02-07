@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:qartvm/qartvm.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('OpenQASM Interpreter - Loops', () {
@@ -9,7 +9,7 @@ void main() {
       interpreter = OpenQASMInterpreter();
     });
 
-    test('For Loop (Range)', () {
+    test('For Loop (Range)', () async {
       final source = '''
         OPENQASM 3.0;
         int result = 0;
@@ -18,13 +18,13 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       // 1 + 2 + 3 + 4 = 10
       expect(result.classicalVariables['result'], equals(10));
     });
 
-    test('For Loop (Nested)', () {
+    test('For Loop (Nested)', () async {
       final source = '''
         OPENQASM 3.0;
         int result = 0;
@@ -35,13 +35,13 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       // 2 * 3 = 6
       expect(result.classicalVariables['result'], equals(6));
     });
 
-    test('While Loop', () {
+    test('While Loop', () async {
       final source = '''
         OPENQASM 3.0;
         int i = 0;
@@ -52,14 +52,14 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       // 0 + 1 + 2 + 3 + 4 = 10
       expect(result.classicalVariables['result'], equals(10));
       expect(result.classicalVariables['i'], equals(5));
     });
 
-    test('Loop with Break', () {
+    test('Loop with Break', () async {
       final source = '''
         OPENQASM 3.0;
         int result = 0;
@@ -71,13 +71,13 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       // 1 + 2 + 3 + 4 = 10
       expect(result.classicalVariables['result'], equals(10));
     });
 
-    test('Loop with Continue', () {
+    test('Loop with Continue', () async {
       final source = '''
         OPENQASM 3.0;
         int result = 0;
@@ -89,22 +89,23 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       // 1 + 2 + 4 + 5 = 12
       expect(result.classicalVariables['result'], equals(12));
     });
 
-    test('Quantum Operations in Loop', () {
+    test('Quantum Operations in Loop', () async {
       final source = '''
         OPENQASM 3.0;
+        include "stdgates.inc";
         qubit[5] q;
         for int i in [0:5] {
           h q[i];
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(5));
@@ -119,10 +120,11 @@ void main() {
       }
     });
 
-    test('Pre-scan with nested blocks', () {
+    test('Pre-scan with nested blocks', () async {
       // Test that pre-scan correctly finds qubits declared inside blocks
       final source = '''
         OPENQASM 3.0;
+        include "stdgates.inc";
         int cond = 1;
         if (cond == 0) {
           qubit q1;
@@ -135,7 +137,7 @@ void main() {
       ''';
       // Total qubits: 1 (q1) + 2 (q2) = 3
       final program = OpenQASMParser.parse(source);
-      final result = interpreter.execute(program);
+      final result = await interpreter.execute(program);
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(3));
