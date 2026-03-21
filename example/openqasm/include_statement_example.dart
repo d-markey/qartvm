@@ -9,13 +9,13 @@ void main() async {
   print('Example 1: Using StandardGatesProvider (default)');
   await example1();
 
-  print('\n' + '=' * 60 + '\n');
+  print('\n${'=' * 60}\n');
 
   // Example 2: Using a custom in-memory provider
   print('Example 2: Using MemoryIncludeProvider');
   await example2();
 
-  print('\n' + '=' * 60 + '\n');
+  print('\n${'=' * 60}\n');
 }
 
 /// Example 1: Default behavior with StandardGatesProvider

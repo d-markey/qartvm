@@ -22,8 +22,10 @@ include: package:lints/recommended.yaml
 analyzer:
   errors:
     file_names: ignore
+    no_leading_underscores_for_library_prefixes: ignore
   exclude:
     - tools/antlr4/**
+    - lib/src/openqasm/antlr4/parser/**
 # For more information about the core and recommended set of lints, see
 # https://dart.dev/go/core-lints
 

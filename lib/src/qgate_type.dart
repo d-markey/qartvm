@@ -110,7 +110,7 @@ class QGateType {
 
   String _format(String text, Iterable<MapEntry<String, dynamic>>? params) {
     if (params != null) {
-      String _param(String key) {
+      String $param(String key) {
         var v = params.singleWhere((p) => p.key == key).value;
         if (key == 'angle' && v is num) {
           v = v.toDouble() / math.pi;
@@ -122,7 +122,7 @@ class QGateType {
       final keys = params.map((p) => p.key).toList();
       keys.sort((a, b) => b.length - a.length);
       for (var k in keys) {
-        text = text.replaceAll('[$k]', _param(k));
+        text = text.replaceAll('[$k]', $param(k));
       }
     }
     return text;

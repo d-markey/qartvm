@@ -1,3 +1,20 @@
+## 0.9.0
+
+Added OpenQASM 3.0 support:
+- `OpenQASMParser`: provides an ANTLR4-based parser for OpenQASM 3.0 source code.
+- `OpenQASMInterpreter`: an asynchronous interpreter to execute OpenQASM 3.0 programs.
+    - support for quantum and classical memory spaces.
+    - support for complex control flow: `if/else`, `for` loops, `while` loops, `break` and `continue`.
+    - support for `gate` and `def` (subroutines) declarations.
+    - included standard gate library (`stdgates.inc`) with native optimizations for most common gates.
+    - supports program observers for step-by-step execution monitoring.
+    - extensible `IncludeProvider` for loading external files.
+
+Other changes:
+- `QCircuit`: Added ASCII drawer support via `QCircuitAsciiDrawer`.
+- `ComplexMatrix`: Performance optimizations for matrix operations.
+- Improved exception handling for quantum circuit operations.
+
 ## 0.0.5
 
 `qgate_builder.dart` (was `qgates.dart`)

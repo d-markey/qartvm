@@ -1,5 +1,5 @@
 OPENQASM 3;
-// include "stdgates.inc";
+include "stdgates.inc";
 
 qubit[2] q;
 bit[2] result;

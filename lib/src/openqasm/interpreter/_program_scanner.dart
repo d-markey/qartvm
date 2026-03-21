@@ -14,7 +14,7 @@ class ProgramScanner {
   Future<int> scan(Program program) async {
     int totalQubits = 0;
 
-    Future<void> _scanStatements(List<Statement> stmts) async {
+    Future<void> $scanStatements(List<Statement> stmts) async {
       for (final statement in stmts) {
         if (statement is QubitDeclaration) {
           final sizeExpr = statement.type.designator;
@@ -26,19 +26,19 @@ class ProgramScanner {
           final value = await evaluator.evaluate(statement.value);
           context.symbols.declareConstant(statement.name, value);
         } else if (statement is IfStatement) {
-          await _scanStatements(statement.ifBody);
+          await $scanStatements(statement.ifBody);
           if (statement.elseBody != null) {
-            await _scanStatements(statement.elseBody!);
+            await $scanStatements(statement.elseBody!);
           }
         } else if (statement is WhileStatement) {
-          await _scanStatements(statement.body);
+          await $scanStatements(statement.body);
         } else if (statement is ForStatement) {
-          await _scanStatements(statement.body);
+          await $scanStatements(statement.body);
         }
       }
     }
 
-    await _scanStatements(program.statements);
+    await $scanStatements(program.statements);
     return totalQubits;
   }
 }

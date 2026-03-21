@@ -179,14 +179,14 @@ class QMemorySpace implements QMemorySpaceView {
     List<String> states,
     ComplexArray amplitudes,
   ) {
-    Iterable<MapEntry<String, Complex>> _kronecker([int idx = 0]) sync* {
+    Iterable<MapEntry<String, Complex>> $kronecker([int idx = 0]) sync* {
       final value = values[idx];
       if (idx == values.length - 1) {
         yield MapEntry('0', value.ket0);
         yield MapEntry('1', value.ket1);
       } else {
         // the loop order is important to have states & amplitudes in the same order as the tensor
-        final k = _kronecker(idx + 1).toList();
+        final k = $kronecker(idx + 1).toList();
         for (var e in k) {
           yield MapEntry('0${e.key}', value.ket0 * e.value);
         }
@@ -197,7 +197,7 @@ class QMemorySpace implements QMemorySpaceView {
     }
 
     var idx = 0;
-    for (var e in _kronecker()) {
+    for (var e in $kronecker()) {
       states[idx] = e.key;
       amplitudes.set(idx, e.value);
       idx++;
@@ -346,48 +346,48 @@ class QMemorySpace implements QMemorySpaceView {
   // Measurement
   //
 
+  void _collapse() {
+    // collapse amplitudes of qubits with non-null state
+    var changed = false;
+    for (var qubit in _qstates.where((q) => q.state != null)) {
+      final qid = qubit.id;
+      final qstate = qubit.state!;
+      // check states
+      for (var i = 0; i < _states.length; i++) {
+        final state = _states[i];
+        if (state[qid] != qstate && !_amplitudes.isZero(i)) {
+          // collapse
+          _amplitudes.set(i, Complex.zero);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      // normalize amplitudes
+      // multiple iterations (max 5) to try and obtain a sum of 1
+      var sum = 0.0;
+      for (var i = 0; i < _amplitudes.length; i++) {
+        sum += _amplitudes.modulus2(i);
+      }
+      var prevsum = 0.0;
+      var maxIterations = 5;
+      while (sum != 1 && sum != prevsum && maxIterations > 0) {
+        _amplitudes.unscale(math.sqrt(sum));
+        maxIterations--;
+        prevsum = sum;
+        sum = 0.0;
+        for (var i = 0; i < _amplitudes.length; i++) {
+          sum += _amplitudes.modulus2(i);
+        }
+      }
+    }
+  }
+
   /// Measures a set of [qubits].
   /// If some of the [qubits] have already been measured, no action is taken. For [qubits] that have not been measured yet,
   /// the qubit's state is forced to |0> or |1> depending on the current probabilities. If a measurement has been made,
   /// the states are collapsed accordingly and amplitudes are scaled so that total probablities amount to 100%.
   void measure({Set<int>? qubits}) {
-    void _collapse() {
-      // collapse amplitudes of qubits with non-null state
-      var changed = false;
-      for (var qubit in _qstates.where((q) => q.state != null)) {
-        final qid = qubit.id;
-        final qstate = qubit.state!;
-        // check states
-        for (var i = 0; i < _states.length; i++) {
-          final state = _states[i];
-          if (state[qid] != qstate && !_amplitudes.isZero(i)) {
-            // collapse
-            _amplitudes.set(i, Complex.zero);
-            changed = true;
-          }
-        }
-      }
-      if (changed) {
-        // normalize amplitudes
-        // multiple iterations (max 5) to try and obtain a sum of 1
-        var sum = 0.0;
-        for (var i = 0; i < _amplitudes.length; i++) {
-          sum += _amplitudes.modulus2(i);
-        }
-        var prevsum = 0.0;
-        var maxIterations = 5;
-        while (sum != 1 && sum != prevsum && maxIterations > 0) {
-          _amplitudes.unscale(math.sqrt(sum));
-          maxIterations--;
-          prevsum = sum;
-          sum = 0.0;
-          for (var i = 0; i < _amplitudes.length; i++) {
-            sum += _amplitudes.modulus2(i);
-          }
-        }
-      }
-    }
-
     // measure all qubits by default
     qubits ??= <int>{};
     if (qubits.isEmpty) qubits.addAll(Iterable<int>.generate(size));

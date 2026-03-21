@@ -1,5 +1,5 @@
 OPENQASM 3.0;
-// include "stdgates.inc";
+include "stdgates.inc";
 
 // --- Main Program ---
 qubit[3] my_qubits;

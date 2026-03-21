@@ -458,7 +458,7 @@ class QCircuit {
     final qubits = <int>{};
     final controls = <int>{};
 
-    void _addCompiledGate() {
+    void $addCompiledGate() {
       if (nbGates > 0) {
         if (nbGates == 1) {
           // only one gate to compile: keep as is
@@ -497,7 +497,7 @@ class QCircuit {
         // skip separator gate
       } else if (gate.type == QGateType.measure) {
         // measurement gate, keep as is for now
-        _addCompiledGate();
+        $addCompiledGate();
         compiledGates.insert(0, gate);
       } else {
         if (nbGates == 0) {
@@ -514,7 +514,7 @@ class QCircuit {
         controls.addAll(gate.controls);
         if (i == 0) {
           // last gate
-          _addCompiledGate();
+          $addCompiledGate();
           break;
         }
       }

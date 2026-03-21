@@ -1,5 +1,3 @@
-library qartvm;
-
 export 'src/exceptions.dart';
 export 'src/math/complex.dart';
 export 'src/math/complex_matrix.dart';

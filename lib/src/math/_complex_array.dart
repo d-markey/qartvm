@@ -220,12 +220,12 @@ class ComplexArray {
 
   @override
   String toString() =>
-      '[' +
+      r'[' +
       Iterable.generate(
         length,
         (i) => '${_values[i].x.normalize()} + ${_values[i].y.normalize()} i',
       ).join(', ') +
-      ']';
+      r']';
 
   List serialize() => _values.expand((f) => [f.x, f.y]).toList();
 
