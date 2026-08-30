@@ -30,7 +30,7 @@ void main() {
   final alice = qmem.createRegister('Alice', at: 0);
   final bob = qmem.createRegister('Bob', at: 2);
 
-  final gateBuilder = QGateBuilder.get(qmem.size);
+  final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
 
   final circuit = QCircuit(gateBuilder);
   circuit.hadamard(1);

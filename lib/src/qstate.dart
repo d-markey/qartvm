@@ -28,15 +28,10 @@ class QState {
   String? _state;
 
   // Measures the qubit (unless a measurement was already made) and returns the result
-  String _read() {
-    if (_state != null) {
-      return _state!;
-    } else {
-      if (zero >= 0.5) {
-        return (_state = (_rnd.nextDouble() <= zero) ? '0' : '1');
-      } else {
-        return (_state = (_rnd.nextDouble() > zero) ? '1' : '0');
-      }
+  void _read() {
+    if (_state == null) {
+      final pz = zero, m = _rnd.nextDouble();
+      _state = (pz >= 0.5) ? ((m <= pz) ? '0' : '1') : ((m >= pz) ? '1' : '0');
     }
   }
 

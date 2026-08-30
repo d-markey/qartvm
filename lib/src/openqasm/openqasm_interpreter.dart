@@ -57,10 +57,21 @@ class OpenQASMInterpreter {
   ///
   /// The [includeProvider] passed to the constructor is used to load
   /// any files referenced by `include` statements.
-  Future<InterpreterResult> execute(Program program) async {
+  ///
+  /// Use [executionContext] or [initialVariables] to provide classical values
+  /// that are available at runtime without hardcoding them into the QASM source.
+  Future<InterpreterResult> execute(
+    Program program, {
+    ExecutionContext? executionContext,
+    Map<String, dynamic>? initialVariables,
+  }) async {
     _stepCount = 0;
-    // Create execution context
-    final context = ExecutionContext();
+    final context = executionContext ?? ExecutionContext();
+    if (initialVariables != null) {
+      for (final entry in initialVariables.entries) {
+        context.setRuntimeVariable(entry.key, entry.value);
+      }
+    }
     _evaluator = ExpressionEvaluator(context, (statements) async {
       for (final statement in statements) {
         await _executeStatement(statement, context);
@@ -123,6 +134,7 @@ class OpenQASMInterpreter {
     if (ver != '3' && !ver.startsWith('3.')) {
       throw InterpreterException(
         'Unsupported OpenQASM version: $ver. Only version 3.x is supported.',
+        version,
       );
     }
   }
@@ -236,6 +248,7 @@ class OpenQASMInterpreter {
       default:
         throw InterpreterException(
           'Unsupported statement type: ${statement.runtimeType}',
+          statement,
         );
     }
   }
@@ -353,6 +366,7 @@ class OpenQASMInterpreter {
       if (baseExpr is! IdentifierExpression) {
         throw InterpreterException(
           'Invalid assignment target: must be array access',
+          baseExpr,
         );
       }
       final varName = baseExpr.name;
@@ -365,6 +379,7 @@ class OpenQASMInterpreter {
         if (container is! List<dynamic>) {
           throw InterpreterException(
             'Cannot index into non-array value at dimension $i',
+            baseExpr,
           );
         }
         final list = container;
@@ -383,6 +398,7 @@ class OpenQASMInterpreter {
       if (container is! List<dynamic>) {
         throw InterpreterException(
           'Cannot index into non-array value. Expected List but got ${container.runtimeType}',
+          baseExpr,
         );
       }
 
@@ -452,6 +468,7 @@ class OpenQASMInterpreter {
       Iterable r => r,
       _ => throw InterpreterException(
         'For loop range must be an iterable or range, got $rangeValue',
+        stmt.range,
       ),
     };
 
@@ -559,6 +576,7 @@ class OpenQASMInterpreter {
       throw IncludeException(
         'Error loading include file: $e',
         filename: stmt.filename,
+        node: stmt,
       );
     }
   }

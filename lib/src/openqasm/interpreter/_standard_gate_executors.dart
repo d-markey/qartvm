@@ -379,10 +379,12 @@ abstract class _QG {
     // do nothing
   }
 
+  static QGateBuilder _gateBuilder(QMemorySpace qmem) =>
+      QGateBuilder.get(qmem.size, withCache: false);
+
   /// Hadamard gate - creates equal superposition of |0⟩ and |1⟩ states.
   static void h(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.hadamard(q);
     }
@@ -391,8 +393,7 @@ abstract class _QG {
 
   /// Pauli X gate (NOT gate) - flips |0⟩ to |1⟩ and vice versa.
   static void x(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.pauliX(q);
     }
@@ -401,8 +402,7 @@ abstract class _QG {
 
   /// Pauli Y gate - applies phase rotation combined with bit flip.
   static void y(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.pauliY(q);
     }
@@ -411,8 +411,7 @@ abstract class _QG {
 
   /// Pauli Z gate - applies π phase to |1⟩ state.
   static void z(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.pauliZ(q);
     }
@@ -421,8 +420,7 @@ abstract class _QG {
 
   /// S phase gate - applies π/2 phase to |1⟩ state.
   static void s(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.phaseS(q);
     }
@@ -431,8 +429,7 @@ abstract class _QG {
 
   /// S-dagger gate (S†) - inverse of S, applies -π/2 phase to |1⟩ state.
   static void sdg(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     final angle = -math.pi / 2;
     for (final q in qbits) {
       circuit.phase(angle, q);
@@ -442,8 +439,7 @@ abstract class _QG {
 
   /// T phase gate - applies π/4 phase to |1⟩ state.
   static void t(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.phaseT(q);
     }
@@ -452,8 +448,7 @@ abstract class _QG {
 
   /// T-dagger gate (T†) - inverse of T, applies -π/4 phase to |1⟩ state.
   static void tdg(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     final angle = -math.pi / 4;
     for (final q in qbits) {
       circuit.phase(angle, q);
@@ -463,8 +458,7 @@ abstract class _QG {
 
   /// SX gate (√X) - square root of X gate, π/2 rotation around X axis.
   static void sx(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     final angle = math.pi / 2;
     for (final q in qbits) {
       circuit.rotationX(angle, q);
@@ -474,8 +468,7 @@ abstract class _QG {
 
   /// SX-dagger gate (SX†) - inverse of SX, -π/2 rotation around X axis.
   static void sxdg(QMemorySpace qmem, List<int> qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     final angle = -math.pi / 2;
     for (final q in qbits) {
       circuit.rotationX(angle, q);
@@ -485,8 +478,7 @@ abstract class _QG {
 
   /// RX gate - rotation around the X axis by angle θ.
   static void rx(QMemorySpace qmem, List<int> qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.rotationX(angle, q);
     }
@@ -495,8 +487,7 @@ abstract class _QG {
 
   /// RY gate - rotation around the Y axis by angle θ.
   static void ry(QMemorySpace qmem, List<int> qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.rotationY(angle, q);
     }
@@ -505,8 +496,7 @@ abstract class _QG {
 
   /// RZ gate - rotation around the Z axis by angle θ (differs from P gate by global phase).
   static void rz(QMemorySpace qmem, List<int> qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.rotationZ(angle, q);
     }
@@ -515,8 +505,7 @@ abstract class _QG {
 
   /// Phase gate (P) - applies phase λ to |1⟩ state. Equivalent to controlled global phase.
   static void p(QMemorySpace qmem, List<int> qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.phase(angle, q);
     }
@@ -531,8 +520,7 @@ abstract class _QG {
   /// Decomposes as: RZ(φ) RY(θ) RZ(λ).
   static void u3(QMemorySpace qmem, List<int> qbits, ThreeParams params) {
     final theta = params.$1, phi = params.$2, lambda = params.$3;
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     for (final q in qbits) {
       circuit.rotationZ(phi, q);
       circuit.rotationY(theta, q);
@@ -543,88 +531,77 @@ abstract class _QG {
 
   /// CX gate (CNOT) - controlled X gate. Applies X to target when control is |1⟩.
   static void cx(QMemorySpace qmem, TwoQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.pauliX(qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// CY gate - controlled Y gate. Applies Y to target when control is |1⟩.
   static void cy(QMemorySpace qmem, TwoQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.pauliY(qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// CZ gate - controlled Z gate. Applies Z to target when control is |1⟩.
   static void cz(QMemorySpace qmem, TwoQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.pauliZ(qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// SWAP gate - exchanges quantum states of two qubits.
   static void swap(QMemorySpace qmem, TwoQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.swap({qbits.$1, qbits.$2});
     circuit.execute(qmem);
   }
 
   /// CCX gate (Toffoli) - doubly-controlled X gate. Applies X when both controls are |1⟩.
   static void ccx(QMemorySpace qmem, ThreeQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.toffoli(qbits.$3, controls: {qbits.$1, qbits.$2});
     circuit.execute(qmem);
   }
 
   /// CSWAP gate (Fredkin) - controlled SWAP gate. Swaps two qubits when control is |1⟩.
   static void cswap(QMemorySpace qmem, ThreeQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.fredkin({qbits.$2, qbits.$3}, control: qbits.$1);
     circuit.execute(qmem);
   }
 
   /// CP gate - controlled phase gate. Applies phase λ to target when control is |1⟩.
   static void cp(QMemorySpace qmem, TwoQbits qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.phase(angle, qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// CRX gate - controlled RX gate. Applies X rotation by θ when control is |1⟩.
   static void crx(QMemorySpace qmem, TwoQbits qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.rotationX(angle, qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// CRY gate - controlled RY gate. Applies Y rotation by θ when control is |1⟩.
   static void cry(QMemorySpace qmem, TwoQbits qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.rotationY(angle, qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// CRZ gate - controlled RZ gate. Applies Z rotation by θ when control is |1⟩.
   static void crz(QMemorySpace qmem, TwoQbits qbits, double angle) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.rotationZ(angle, qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
 
   /// CH gate - controlled Hadamard gate. Applies H when control is |1⟩.
   static void ch(QMemorySpace qmem, TwoQbits qbits, void params) {
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     circuit.hadamard(qbits.$2, controls: {qbits.$1});
     circuit.execute(qmem);
   }
@@ -636,8 +613,7 @@ abstract class _QG {
         phi = params.$2,
         lambda = params.$3,
         gamma = params.$4;
-    final gateBuilder = QGateBuilder.get(qmem.size);
-    final circuit = QCircuit(gateBuilder);
+    final circuit = QCircuit(_gateBuilder(qmem));
     // CU decomposed as: RZ(φ) RY(θ) RZ(λ) with global phase γ
     circuit.rotationZ(phi, qbits.$2, controls: {qbits.$1});
     circuit.rotationY(theta, qbits.$2, controls: {qbits.$1});

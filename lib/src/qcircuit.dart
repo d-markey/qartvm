@@ -1,8 +1,9 @@
-import 'math/complex_matrix.dart';
 import 'exceptions.dart';
+import 'math/complex_matrix.dart';
+import 'math/complex_sparse_matrix.dart';
 import 'qcircuit_gate.dart';
-import 'qgate_type.dart';
 import 'qgate_builder.dart';
+import 'qgate_type.dart';
 import 'qmemory_space.dart';
 import 'qregister.dart';
 
@@ -131,7 +132,7 @@ class QCircuit {
     Map<String, dynamic>? params,
     String? label,
   ) {
-    if (!matrix.square || matrix.rows != (1 << size)) {
+    if (!matrix.isSquare || matrix.rows != (1 << size)) {
       throw InvalidOperationException(
         'Invalid gate ${matrix.rows}x${matrix.columns} for $qubits-qubit circuit',
       );
@@ -452,8 +453,8 @@ class QCircuit {
 
     QCircuitGate? lastGate;
     var nbGates = 0;
-    final identity = ComplexMatrix.identity(1 << size);
-    var matrix = ComplexMatrix.zero(identity.rows, identity.columns);
+    final identity = ComplexSparseMatrix.identity(1 << size);
+    var matrix = ComplexSparseMatrix.zero(identity.rows, identity.columns);
     final labels = <String>[];
     final qubits = <int>{};
     final controls = <int>{};
@@ -475,7 +476,7 @@ class QCircuit {
             label: labels.join(' followed by '),
           );
           compiledGates.insert(0, compiledGate);
-          matrix = ComplexMatrix.identity(1 << size);
+          matrix = ComplexSparseMatrix.identity(1 << size);
           labels.clear();
           qubits.clear();
           controls.clear();

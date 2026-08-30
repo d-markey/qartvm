@@ -12,7 +12,7 @@ void main() {
   //                  --------
   //  2 ------ X ----| CC-NOT |---- X ------
   //                  --------
-  final gateBuilder = QGateBuilder.get(3);
+  final gateBuilder = QGateBuilder.get(3, withCache: false);
 
   print('');
   print('USING STANDARD GATES');

@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'exceptions.dart';
 import 'math/complex.dart';
+import 'math/complex_dense_matrix.dart';
 import 'math/complex_matrix.dart';
+import 'math/complex_sparse_matrix.dart';
 
 // ignore: non_constant_identifier_names
 Complex get _0 => Complex.zero;
@@ -14,7 +16,9 @@ Complex get _i => Complex.i;
 String _key(Iterable<int> qubits) => (qubits.toList()..sort()).join('-');
 
 class _Operators {
-  static final I = ComplexMatrix([
+  static final identity = ComplexSparseMatrix.identity;
+
+  static final I = ComplexSparseMatrix([
     [_1, _0],
     [_0, _1],
   ]);
@@ -22,84 +26,81 @@ class _Operators {
   // PROJECTORS
 
   static final p1 =
-      ComplexMatrix([
+      ComplexSparseMatrix([
         [_0],
         [_1],
       ]) *
-      ComplexMatrix([
+      ComplexSparseMatrix([
         [_0, _1],
       ]);
 
   // HADAMARD
 
-  static final H = ComplexMatrix([
+  static final H = ComplexDenseMatrix([
     [_1, _1],
     [_1, -_1],
   ]).mul(math.sqrt1_2);
 
   // PAULI
 
-  static final X = ComplexMatrix([
+  static final X = ComplexSparseMatrix([
     [_0, _1],
     [_1, _0],
   ]);
 
-  static final Y = ComplexMatrix([
+  static final Y = ComplexSparseMatrix([
     [_0, -_i],
     [_i, _0],
   ]);
 
-  static final Z = ComplexMatrix([
+  static final Z = ComplexSparseMatrix([
     [_1, _0],
     [_0, -_1],
   ]);
 
   // ignore: non_constant_identifier_names
-  static final SqrtX = ComplexMatrix([
+  static final SqrtX = ComplexDenseMatrix([
     [_1 + _i, _1 - _i],
     [_1 - _i, _1 + _i],
   ]).div(2);
 
   // PHASE
 
-  static ComplexMatrix phase(double radians) => ComplexMatrix([
+  static ComplexMatrix phase(double radians) => ComplexSparseMatrix([
     [_1, _0],
     [_0, Complex(re: math.cos(radians), im: math.sin(radians))],
   ]);
 
-  static final S = ComplexMatrix([
+  static final S = ComplexSparseMatrix([
     [_1, _0],
     [_0, _i],
   ]);
 
-  static final T = ComplexMatrix([
+  static final T = ComplexSparseMatrix([
     [_1, _0],
     [_0, (_1 + _i) * math.sqrt1_2],
   ]);
 
   // ROTATION
 
-  static ComplexMatrix rotationX(double radians) => ComplexMatrix([
+  static ComplexMatrix rotationX(double radians) => ComplexSparseMatrix([
     [_1 * math.cos(radians / 2), -_i * math.sin(radians / 2)],
     [-_i * math.sin(radians / 2), _1 * math.cos(radians / 2)],
   ]);
 
-  static ComplexMatrix rotationY(double radians) => ComplexMatrix([
+  static ComplexMatrix rotationY(double radians) => ComplexSparseMatrix([
     [_1 * math.cos(radians / 2), -_1 * math.sin(radians / 2)],
     [_1 * math.sin(radians / 2), _1 * math.cos(radians / 2)],
   ]);
 
-  static ComplexMatrix rotationZ(double radians) => ComplexMatrix([
+  static ComplexMatrix rotationZ(double radians) => ComplexSparseMatrix([
     [Complex.polar(radius: 1, angle: -radians / 2), _0],
     [_0, Complex.polar(radius: 1, angle: radians / 2)],
   ]);
 }
 
-class _DisengageableCache {
-  _DisengageableCache({bool enabled = true})
-    : _cache = enabled ? <String, ComplexMatrix>{} : null;
-
-  final Map<String, ComplexMatrix>? _cache;
+extension type _DisengageableCache._(Map<String, ComplexMatrix>? _cache) {
+  _DisengageableCache({bool enabled = true}) : _cache = enabled ? {} : null;
 
   bool get enabled => _cache != null;
 
@@ -111,11 +112,15 @@ class _DisengageableCache {
 
 /// Class used to build [QCircuitGate] matrices for [QCircuit] of size [size]
 class ParallelGateBuilder {
-  ParallelGateBuilder._(this.size, {bool withCache = false})
-    : _cache = _DisengageableCache(enabled: withCache);
+  ParallelGateBuilder._(
+    this.size, {
+    bool withCache = false,
+    // required this.matrixType,
+  }) : _cache = _DisengageableCache(enabled: withCache);
 
   /// Size of the [QCircuit] for which this builder can build matrices
   final int size;
+  // final ComplexMatrixType matrixType;
 
   final _DisengageableCache _cache;
 
@@ -128,10 +133,7 @@ class ParallelGateBuilder {
     if (gate.rows == 2 && gate.columns == 2) {
       var fullGate = qubits.contains(0) ? gate : _Operators.I;
       for (var i = 1; i < size; i++) {
-        fullGate = ComplexMatrix.tensor(
-          fullGate,
-          qubits.contains(i) ? gate : _Operators.I,
-        );
+        fullGate = _tensor(fullGate, qubits.contains(i) ? gate : _Operators.I);
       }
       return fullGate;
     } else {
@@ -143,6 +145,14 @@ class ParallelGateBuilder {
       }
       return gate;
     }
+  }
+
+  ComplexMatrix _tensor(ComplexMatrix a, ComplexMatrix b) {
+    final result = ComplexMatrix.tensor(a, b);
+    // return matrixType == ComplexMatrixType.sparse
+    //     ? ComplexSparseMatrix.fromMatrix(result)
+    //     : result;
+    return ComplexSparseMatrix.fromMatrix(result);
   }
 
   /// Builds a Hadamard matrix operating on supplied [qubits].
@@ -258,15 +268,12 @@ class ControlledGateBuilder {
     var p1 = _p1cache.putIfAbsent(_key(controls), () {
       var p = controls.contains(0) ? _Operators.p1 : _Operators.I;
       for (var i = 1; i < size; i++) {
-        p = ComplexMatrix.tensor(
-          p,
-          controls.contains(i) ? _Operators.p1 : _Operators.I,
-        );
+        p = _tensor(p, controls.contains(i) ? _Operators.p1 : _Operators.I);
       }
       return p;
     });
     // projector for other cases
-    final p0 = ComplexMatrix.identity(p1.rows).sub(p1);
+    final p0 = _Operators.identity(p1.rows).sub(p1);
 
     // compute transformation
     ComplexMatrix m1;
@@ -279,6 +286,7 @@ class ControlledGateBuilder {
       m1 = QGateBuilder.get(
         size,
         withCache: _cache.enabled,
+        // matrixType: matrixType,
       ).parallel.build(qubits, gate);
     } else {
       if (gate.rows != p1.rows || gate.columns != p1.columns) {
@@ -291,6 +299,14 @@ class ControlledGateBuilder {
 
     // compose transformation with projectors
     return p1.clone().mul(m1).add(p0);
+  }
+
+  ComplexMatrix _tensor(ComplexMatrix a, ComplexMatrix b) {
+    final result = ComplexMatrix.tensor(a, b);
+    // return matrixType == .sparse
+    //     ? ComplexSparseMatrix.fromMatrix(result)
+    //     : result;
+    return ComplexSparseMatrix.fromMatrix(result);
   }
 
   /// Builds a Hadamard matrix operating on supplied [qubits] and controlled by [controls].
@@ -389,8 +405,11 @@ class ControlledGateBuilder {
 
 /// Class used to build high-level gate matrices for [QCircuit] of size [size]
 class HighLevelGateBuilder {
-  HighLevelGateBuilder._(this.size, {bool withCache = false})
-    : _cache = _DisengageableCache(enabled: withCache);
+  HighLevelGateBuilder._(
+    this.size, {
+    bool withCache = false,
+    // required this.matrixType,
+  }) : _cache = _DisengageableCache(enabled: withCache);
 
   /// Size of the [QCircuit] for which this builder can build matrices
   final int size;
@@ -406,7 +425,11 @@ class HighLevelGateBuilder {
             'Toffoli gate requires 2 control qubits',
           );
         }
-        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
+        final builder = QGateBuilder.get(
+          size,
+          withCache: _cache.enabled,
+          // matrixType: matrixType,
+        );
         return builder.controlled.build(
           {qubit},
           builder.parallel.not({qubit}),
@@ -432,7 +455,11 @@ class HighLevelGateBuilder {
         }
         final qb1 = {qubits.first};
         final qb2 = {qubits.last};
-        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
+        final builder = QGateBuilder.get(
+          size,
+          withCache: _cache.enabled,
+          // matrixType: matrixType,
+        );
         final not12 = builder.controlled.pauliX(qb2, controls: qb1);
         final not21 = builder.controlled.pauliX(qb1, controls: qb2);
         return not12.clone().mul(not21).mul(not12);
@@ -445,7 +472,11 @@ class HighLevelGateBuilder {
         if (qubits.length != 2) {
           throw InvalidOperationException('Fredkin gates operate on 2 qubits');
         }
-        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
+        final builder = QGateBuilder.get(
+          size,
+          withCache: _cache.enabled,
+          // matrixType: matrixType,
+        );
         return builder.controlled.build(
           qubits,
           swap(qubits),
@@ -468,8 +499,12 @@ class HighLevelGateBuilder {
           n + 1,
           (i) => _Operators.phase(2 * math.pi / (1 << i)),
         );
-        final builder = QGateBuilder.get(size, withCache: _cache.enabled);
-        final res = ComplexMatrix.identity(1 << size);
+        final builder = QGateBuilder.get(
+          size,
+          withCache: _cache.enabled,
+          // matrixType: matrixType,
+        );
+        final res = _Operators.identity(1 << size);
         for (var i = n; i >= 1; i--) {
           final qb = {qubits[i - 1]};
           final m = builder.parallel.hadamard(qb);
@@ -508,16 +543,21 @@ class HighLevelGateBuilder {
 
 /// Builder class used to compute [QCircuitGate] matrices
 class QGateBuilder {
-  QGateBuilder._(this.size, this.withCache);
+  QGateBuilder._(this.size, this.withCache /*, this.matrixType*/);
 
   final int size;
   final bool withCache;
+  // final ComplexMatrixType matrixType;
 
   static final List<QGateBuilder> _builders = <QGateBuilder>[];
 
-  static QGateBuilder get(int size, {bool withCache = false}) {
+  static QGateBuilder get(
+    int size, {
+    required bool withCache,
+    // required ComplexMatrixType matrixType,
+  }) {
     var instance = _builders.cast<QGateBuilder?>().firstWhere(
-      (b) => b!.withCache == withCache && b.size == size,
+      (b) => b != null && b.withCache == withCache && b.size == size,
       orElse: () => null,
     );
     if (instance == null) {
@@ -527,9 +567,21 @@ class QGateBuilder {
     return instance;
   }
 
-  late final parallel = ParallelGateBuilder._(size, withCache: withCache);
+  late final parallel = ParallelGateBuilder._(
+    size,
+    withCache: withCache,
+    // matrixType: matrixType,
+  );
 
-  late final controlled = ControlledGateBuilder._(size, withCache: withCache);
+  late final controlled = ControlledGateBuilder._(
+    size,
+    withCache: withCache,
+    // matrixType: matrixType,
+  );
 
-  late final highLevel = HighLevelGateBuilder._(size, withCache: withCache);
+  late final highLevel = HighLevelGateBuilder._(
+    size,
+    withCache: withCache,
+    // matrixType: matrixType,
+  );
 }

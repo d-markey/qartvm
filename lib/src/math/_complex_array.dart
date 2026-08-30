@@ -6,7 +6,7 @@ import '../extensions.dart';
 import 'complex.dart';
 
 /// Class holding a list of [Complex] values
-class ComplexArray {
+extension type ComplexArray._(Float64x2List _values) {
   /// Builds a list from [values]
   ComplexArray._clone(List<Float64x2> values)
     : _values = Float64x2List.fromList(values);
@@ -14,14 +14,14 @@ class ComplexArray {
   /// Builds a list of [length] elements initialized to [Complex.zero]
   ComplexArray.zero(int length) : _values = Float64x2List(length);
 
+  int get memoryFootprint => _values.lengthInBytes;
+
   /// Number of elements in the list
   int get length => _values.length;
 
   /// Obtains the value stored at index [idx]
   Complex operator [](int idx) =>
       Complex(re: _values[idx].x, im: _values[idx].y);
-
-  final Float64x2List _values;
 
   /// Obtains the real part of the value stored at index [idx]
   double re(int idx) => _values[idx].x;
@@ -196,10 +196,6 @@ class ComplexArray {
   }
 
   /// Returns true if [other] is a [ComplexArray] of same [length] with same values
-  @override
-  bool operator ==(Object other) => other is ComplexArray && equals(other);
-
-  /// Returns true if [other] is a [ComplexArray] of same [length] with same values
   /// down to a precision of [precision]
   bool equals(ComplexArray other, {double precision = 0}) {
     final len = _values.length;
@@ -215,11 +211,7 @@ class ComplexArray {
     return true;
   }
 
-  @override
-  int get hashCode => length.hashCode;
-
-  @override
-  String toString() =>
+  String toDisplayString() =>
       r'[' +
       Iterable.generate(
         length,

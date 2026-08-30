@@ -161,6 +161,7 @@ void main() {
         final nqubits = 7;
         final qft = QGateBuilder.get(
           nqubits,
+          withCache: false,
         ).highLevel.qft(Iterable<int>.generate(nqubits).toList());
 
         final tc = qft.transpose().conjugate();
@@ -168,19 +169,20 @@ void main() {
         expect(
           p,
           complexMatrixEquals(
-            ComplexMatrix.identity(1 << nqubits),
+            ComplexSparseMatrix.identity(1 << nqubits),
             precision: 1e-9,
           ),
         );
 
         final inv = QGateBuilder.get(
           nqubits,
+          withCache: false,
         ).highLevel.invqft(Iterable<int>.generate(nqubits).toList());
         p = qft * inv;
         expect(
           p,
           complexMatrixEquals(
-            ComplexMatrix.identity(1 << nqubits),
+            ComplexSparseMatrix.identity(1 << nqubits),
             precision: 1e-9,
           ),
         );

@@ -35,7 +35,7 @@ void main() {
   final qa = qmem.createRegister('a', addresses: [2, 1, 0]);
   final qb = qmem.createRegister('b', addresses: [4, 3]);
 
-  final gateBuilder = QGateBuilder.get(qmem.size);
+  final gateBuilder = QGateBuilder.get(qmem.size, withCache: true);
 
   final circuit = QCircuit(gateBuilder);
 

@@ -12,12 +12,12 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .statements()
         .map((s) => visitStatement(s) as Statement)
         .toList();
-    return Program(version, statements);
+    return Program(Source.fromContext(ctx), version, statements);
   }
 
   @override
   OpenQASMNode? visitVersion(VersionContext ctx) {
-    return Version(ctx.VersionSpecifier()?.text ?? '');
+    return Version(Source.fromContext(ctx), ctx.VersionSpecifier()?.text ?? '');
   }
 
   @override
@@ -77,7 +77,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitIncludeStatement(IncludeStatementContext ctx) {
     final filename = ctx.StringLiteral()?.text?.replaceAll('"', '') ?? '';
-    return IncludeStatement(filename);
+    return IncludeStatement(Source.fromContext(ctx), filename);
   }
 
   @override
@@ -86,7 +86,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   ) {
     final name = ctx.Identifier()?.text ?? '';
     final qubitType = visitQubitType(ctx.qubitType()!) as QubitTypeNode;
-    return QubitDeclaration(name, qubitType);
+    return QubitDeclaration(Source.fromContext(ctx), name, qubitType);
   }
 
   @override
@@ -105,7 +105,12 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     final initializer = initializerCtx != null
         ? visitDeclarationExpression(initializerCtx) as Expression
         : null;
-    return ClassicalDeclaration(type, name, initializer: initializer);
+    return ClassicalDeclaration(
+      Source.fromContext(ctx),
+      type,
+      name,
+      initializer: initializer,
+    );
   }
 
   @override
@@ -118,7 +123,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .statements()
         .map((s) => visitStatement(s) as Statement)
         .toList();
-    return GateStatement(name, params, qubits, body);
+    return GateStatement(Source.fromContext(ctx), name, params, qubits, body);
   }
 
   @override
@@ -141,6 +146,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .map((m) => visitGateModifier(m) as GateModifier)
         .toList();
     return GateCallStatement(
+      Source.fromContext(ctx),
       name,
       arguments,
       qubits,
@@ -166,7 +172,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     final expression = ctx.expression() != null
         ? visit(ctx.expression()!) as Expression
         : null;
-    return GateModifier(type, expression);
+    return GateModifier(Source.fromContext(ctx), type, expression);
   }
 
   @override
@@ -176,19 +182,19 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     final measureExpr =
         visitMeasureExpression(ctx.measureExpression()!) as Expression;
     final target = ctx.indexedIdentifier()?.Identifier()?.text;
-    return MeasurementStatement(measureExpr, target);
+    return MeasurementStatement(Source.fromContext(ctx), measureExpr, target);
   }
 
   @override
   OpenQASMNode? visitMeasureExpression(MeasureExpressionContext ctx) {
     final qubit = visitGateOperand(ctx.gateOperand()!) as Expression;
-    return MeasureExpression(qubit);
+    return MeasureExpression(Source.fromContext(ctx), qubit);
   }
 
   @override
   OpenQASMNode? visitResetStatement(ResetStatementContext ctx) {
     final qubit = visitGateOperand(ctx.gateOperand()!) as Expression;
-    return ResetStatement(qubit);
+    return ResetStatement(Source.fromContext(ctx), qubit);
   }
 
   @override
@@ -198,7 +204,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         ?.gateOperands()
         .map((o) => visitGateOperand(o) as Expression)
         .toList();
-    return BarrierStatement(qubits);
+    return BarrierStatement(Source.fromContext(ctx), qubits);
   }
 
   @override
@@ -208,18 +214,24 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     }
     if (ctx.HardwareQubit() != null) {
       final text = ctx.HardwareQubit()!.text!;
-      return HardwareQubitExpression(int.parse(text.substring(1)));
+      return HardwareQubitExpression(
+        Source.fromContext(ctx),
+        int.parse(text.substring(1)),
+      );
     }
-    return IdentifierExpression(ctx.text);
+    return IdentifierExpression(Source.fromContext(ctx), ctx.text);
   }
 
   @override
   OpenQASMNode? visitIndexedIdentifier(IndexedIdentifierContext ctx) {
-    Expression expr = IdentifierExpression(ctx.Identifier()!.text!);
+    Expression expr = IdentifierExpression(
+      Source.fromContext(ctx),
+      ctx.Identifier()!.text!,
+    );
     final operators = ctx.indexOperators();
     for (final op in operators) {
       final indices = _visitIndexOperator(op);
-      expr = IndexExpression(expr, indices);
+      expr = IndexExpression(Source.fromContext(ctx), expr, indices);
     }
     return expr;
   }
@@ -268,10 +280,14 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitLiteralExpression(LiteralExpressionContext ctx) {
     if (ctx.Identifier() != null) {
-      return IdentifierExpression(ctx.Identifier()!.text ?? '');
+      return IdentifierExpression(
+        Source.fromContext(ctx),
+        ctx.Identifier()!.text ?? '',
+      );
     }
     if (ctx.DecimalIntegerLiteral() != null) {
       return LiteralExpression(
+        Source.fromContext(ctx),
         int.parse(ctx.DecimalIntegerLiteral()!.text!.replaceAll('_', '')),
         'int',
       );
@@ -279,6 +295,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     if (ctx.BinaryIntegerLiteral() != null) {
       final text = ctx.BinaryIntegerLiteral()!.text!;
       return LiteralExpression(
+        Source.fromContext(ctx),
         int.parse(text.substring(2).replaceAll('_', ''), radix: 2),
         'int',
       );
@@ -286,6 +303,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     if (ctx.OctalIntegerLiteral() != null) {
       final text = ctx.OctalIntegerLiteral()!.text!;
       return LiteralExpression(
+        Source.fromContext(ctx),
         int.parse(text.substring(2).replaceAll('_', ''), radix: 8),
         'int',
       );
@@ -293,21 +311,28 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     if (ctx.HexIntegerLiteral() != null) {
       final text = ctx.HexIntegerLiteral()!.text!;
       return LiteralExpression(
+        Source.fromContext(ctx),
         int.parse(text.substring(2).replaceAll('_', ''), radix: 16),
         'int',
       );
     }
     if (ctx.FloatLiteral() != null) {
       return LiteralExpression(
+        Source.fromContext(ctx),
         double.parse(ctx.FloatLiteral()!.text!.replaceAll('_', '')),
         'float',
       );
     }
     if (ctx.BooleanLiteral() != null) {
-      return LiteralExpression(ctx.BooleanLiteral()!.text == 'true', 'bool');
+      return LiteralExpression(
+        Source.fromContext(ctx),
+        ctx.BooleanLiteral()!.text == 'true',
+        'bool',
+      );
     }
     if (ctx.StringLiteral() != null) {
       return LiteralExpression(
+        Source.fromContext(ctx),
         ctx.StringLiteral()!.text!.replaceAll('"', '').replaceAll('\'', ''),
         'string',
       );
@@ -315,25 +340,37 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     if (ctx.ImaginaryLiteral() != null) {
       final text = ctx.ImaginaryLiteral()!.text!.trim();
       final val = double.parse(text.substring(0, text.length - 2).trim());
-      return LiteralExpression(val, 'imaginary');
+      return LiteralExpression(Source.fromContext(ctx), val, 'imaginary');
     }
     if (ctx.TimingLiteral() != null) {
-      return LiteralExpression(ctx.TimingLiteral()!.text, 'timing');
+      return LiteralExpression(
+        Source.fromContext(ctx),
+        ctx.TimingLiteral()!.text,
+        'timing',
+      );
     }
     if (ctx.BitstringLiteral() != null) {
       final text = ctx.BitstringLiteral()!.text!;
-      return LiteralExpression(text.replaceAll('"', ''), 'bitstring');
+      return LiteralExpression(
+        Source.fromContext(ctx),
+        text.replaceAll('"', ''),
+        'bitstring',
+      );
     }
     if (ctx.HardwareQubit() != null) {
       final text = ctx.HardwareQubit()!.text!;
-      return HardwareQubitExpression(int.parse(text.substring(1)));
+      return HardwareQubitExpression(
+        Source.fromContext(ctx),
+        int.parse(text.substring(1)),
+      );
     }
-    return LiteralExpression(ctx.text, 'literal');
+    return LiteralExpression(Source.fromContext(ctx), ctx.text, 'literal');
   }
 
   @override
   OpenQASMNode? visitAdditiveExpression(AdditiveExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -345,6 +382,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     MultiplicativeExpressionContext ctx,
   ) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -354,6 +392,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitUnaryExpression(UnaryExpressionContext ctx) {
     return UnaryExpression(
+      Source.fromContext(ctx),
       ctx.op!.text!,
       visit(ctx.expression()!) as Expression,
     );
@@ -369,7 +408,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
             .map((e) => visit(e) as Expression)
             .toList() ??
         [];
-    return CallExpression(name, args);
+    return CallExpression(Source.fromContext(ctx), name, args);
   }
 
   @override
@@ -382,13 +421,18 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
 
     final opText = ctx.EQUALS()?.text ?? ctx.CompoundAssignmentOperator()?.text;
 
-    return AssignmentStatement(target, value, operator: opText ?? '=');
+    return AssignmentStatement(
+      Source.fromContext(ctx),
+      target,
+      value,
+      operator: opText ?? '=',
+    );
   }
 
   @override
   OpenQASMNode? visitExpressionStatement(ExpressionStatementContext ctx) {
     final expr = visit(ctx.expression()!) as Expression;
-    return ExpressionStatement(expr);
+    return ExpressionStatement(Source.fromContext(ctx), expr);
   }
 
   @override
@@ -398,7 +442,12 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     final elseBody = ctx.else_body != null
         ? _visitStatementOrScope(ctx.else_body!)
         : null;
-    return IfStatement(condition, ifBody, elseBody: elseBody);
+    return IfStatement(
+      Source.fromContext(ctx),
+      condition,
+      ifBody,
+      elseBody: elseBody,
+    );
   }
 
   @override
@@ -417,24 +466,24 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       range = visit(ctx.expression()!) as Expression;
     }
     final body = _visitStatementOrScope(ctx.body!);
-    return ForStatement(loopVar, varType, range, body);
+    return ForStatement(Source.fromContext(ctx), loopVar, varType, range, body);
   }
 
   @override
   OpenQASMNode? visitWhileStatement(WhileStatementContext ctx) {
     final condition = visit(ctx.expression()!) as Expression;
     final body = _visitStatementOrScope(ctx.body!);
-    return WhileStatement(condition, body);
+    return WhileStatement(Source.fromContext(ctx), condition, body);
   }
 
   @override
   OpenQASMNode? visitBreakStatement(BreakStatementContext ctx) {
-    return const BreakStatement();
+    return BreakStatement(Source.fromContext(ctx));
   }
 
   @override
   OpenQASMNode? visitContinueStatement(ContinueStatementContext ctx) {
-    return const ContinueStatement();
+    return ContinueStatement(Source.fromContext(ctx));
   }
 
   @override
@@ -445,7 +494,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     } else if (ctx.measureExpression() != null) {
       expr = visitMeasureExpression(ctx.measureExpression()!) as Expression;
     }
-    return ReturnStatement(expr);
+    return ReturnStatement(Source.fromContext(ctx), expr);
   }
 
   @override
@@ -459,7 +508,12 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     final stop = ctx.stopExpr != null
         ? visit(ctx.stopExpr!) as Expression
         : null;
-    return RangeExpression(start: start, step: step, stop: stop);
+    return RangeExpression(
+      Source.fromContext(ctx),
+      start: start,
+      step: step,
+      stop: stop,
+    );
   }
 
   @override
@@ -468,7 +522,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .expressions()
         .map((e) => visit(e) as Expression)
         .toList();
-    return SetExpression(expressions);
+    return SetExpression(Source.fromContext(ctx), expressions);
   }
 
   List<Statement> _visitStatementOrScope(StatementOrScopeContext ctx) {
@@ -487,6 +541,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitBitwiseXorExpression(BitwiseXorExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -496,6 +551,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitBitwiseOrExpression(BitwiseOrExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -505,6 +561,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitBitwiseAndExpression(BitwiseAndExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -514,6 +571,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitLogicalOrExpression(LogicalOrExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -523,6 +581,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitLogicalAndExpression(LogicalAndExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -532,6 +591,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitEqualityExpression(EqualityExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -541,6 +601,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitComparisonExpression(ComparisonExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -550,6 +611,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitBitshiftExpression(BitshiftExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -559,6 +621,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   @override
   OpenQASMNode? visitPowerExpression(PowerExpressionContext ctx) {
     return BinaryExpression(
+      Source.fromContext(ctx),
       visit(ctx.expression(0)!) as Expression,
       ctx.op!.text!,
       visit(ctx.expression(1)!) as Expression,
@@ -571,7 +634,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         ? visitScalarType(ctx.scalarType()!) as TypeNode
         : visitArrayType(ctx.arrayType()!) as TypeNode;
     final expr = visit(ctx.expression()!) as Expression;
-    return CastExpression(type, expr);
+    return CastExpression(Source.fromContext(ctx), type, expr);
   }
 
   @override
@@ -583,16 +646,20 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
             .map((s) => visitStatement(s) as Statement)
             .toList() ??
         [];
-    return DurationOfExpression(body);
+    return DurationOfExpression(Source.fromContext(ctx), body);
   }
 
   @override
   OpenQASMNode? visitIndexExpression(IndexExpressionContext ctx) {
     final expr = visit(ctx.expression()!) as Expression;
     final op = ctx.indexOperator();
-    if (op == null) return IndexExpression(expr, []);
+    if (op == null) return IndexExpression(Source.fromContext(ctx), expr, []);
 
-    return IndexExpression(expr, _visitIndexOperator(op));
+    return IndexExpression(
+      Source.fromContext(ctx),
+      expr,
+      _visitIndexOperator(op),
+    );
   }
 
   @override
@@ -613,7 +680,13 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
             .map((s) => visitStatement(s) as Statement)
             .toList() ??
         [];
-    return SubroutineDefinition(name, args, returnType, body);
+    return SubroutineDefinition(
+      Source.fromContext(ctx),
+      name,
+      args,
+      returnType,
+      body,
+    );
   }
 
   @override
@@ -627,6 +700,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       type = visitArrayReferenceType(ctx.arrayReferenceType()!) as TypeNode;
     } else if (ctx.CREG() != null) {
       type = ScalarTypeNode(
+        Source.fromContext(ctx),
         'creg',
         designator: ctx.designator() != null
             ? visitDesignator(ctx.designator()!) as Expression
@@ -634,15 +708,16 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       );
     } else if (ctx.QREG() != null) {
       type = QubitTypeNode(
+        Source.fromContext(ctx),
         designator: ctx.designator() != null
             ? visitDesignator(ctx.designator()!) as Expression
             : null,
       );
     } else {
-      type = ScalarTypeNode('unknown');
+      type = ScalarTypeNode(Source.fromContext(ctx), 'unknown');
     }
     final name = ctx.Identifier()?.text ?? '';
-    return Argument(type, name);
+    return Argument(Source.fromContext(ctx), type, name);
   }
 
   @override
@@ -654,19 +729,28 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
             return visitScalarType(a.scalarType()!) as TypeNode;
           } else if (a.CREG() != null) {
             return ScalarTypeNode(
+              Source.fromContext(ctx),
               'creg',
               designator: a.designator() != null
                   ? visitDesignator(a.designator()!) as Expression
                   : null,
             );
           }
-          return ScalarTypeNode('readonly'); // TODO: handle arrayReferenceType
+          return ScalarTypeNode(
+            Source.fromContext(ctx),
+            'readonly',
+          ); // TODO: handle arrayReferenceType
         }).toList() ??
         [];
     final returnType = ctx.returnSignature() != null
         ? visitScalarType(ctx.returnSignature()!.scalarType()!) as TypeNode
         : null;
-    return ExternStatement(name, types, returnType: returnType);
+    return ExternStatement(
+      Source.fromContext(ctx),
+      name,
+      types,
+      returnType: returnType,
+    );
   }
 
   @override
@@ -683,9 +767,9 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .toList();
     Expression value = exprs[0];
     for (int i = 1; i < exprs.length; i++) {
-      value = BinaryExpression(value, '++', exprs[i]);
+      value = BinaryExpression(Source.fromContext(ctx), value, '++', exprs[i]);
     }
-    return AliasStatement(name, value);
+    return AliasStatement(Source.fromContext(ctx), name, value);
   }
 
   @override
@@ -694,9 +778,11 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
   ) {
     final type = visitScalarType(ctx.scalarType()!) as TypeNode;
     final name = ctx.Identifier()?.text ?? '';
-    final value =
-        visitDeclarationExpression(ctx.declarationExpression()!) as Expression;
-    return ConstantDeclaration(type, name, value);
+    final valueCtx = ctx.declarationExpression();
+    final value = (valueCtx == null)
+        ? null
+        : visitDeclarationExpression(valueCtx) as Expression;
+    return ConstantDeclaration(Source.fromContext(ctx), type, name, value);
   }
 
   @override
@@ -706,7 +792,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         ? visitScalarType(ctx.scalarType()!) as TypeNode
         : visitArrayType(ctx.arrayType()!) as TypeNode;
     final name = ctx.Identifier()?.text ?? '';
-    return IOStatement(direction, type, name);
+    return IOStatement(Source.fromContext(ctx), direction, type, name);
   }
 
   @override
@@ -725,12 +811,16 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       final base = ctx.scalarType() != null
           ? visitScalarType(ctx.scalarType()!) as ScalarTypeNode
           : null;
-      return ComplexTypeNode(base);
+      return ComplexTypeNode(Source.fromContext(ctx), base);
     }
     final designator = ctx.designator() != null
         ? visitDesignator(ctx.designator()!) as Expression
         : null;
-    return ScalarTypeNode(name, designator: designator);
+    return ScalarTypeNode(
+      Source.fromContext(ctx),
+      name,
+      designator: designator,
+    );
   }
 
   @override
@@ -738,7 +828,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     final designator = ctx.designator() != null
         ? visitDesignator(ctx.designator()!) as Expression
         : null;
-    return QubitTypeNode(designator: designator);
+    return QubitTypeNode(Source.fromContext(ctx), designator: designator);
   }
 
   @override
@@ -749,7 +839,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
         .expressions()
         .map((e) => visit(e) as Expression)
         .toList();
-    return ArrayTypeNode(baseType, dims);
+    return ArrayTypeNode(Source.fromContext(ctx), baseType, dims);
   }
 
   @override
@@ -767,7 +857,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       }
     }
 
-    return ArrayLiteralExpression(elements);
+    return ArrayLiteralExpression(Source.fromContext(ctx), elements);
   }
 
   @override
@@ -796,6 +886,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
     }
 
     return ArrayReferenceType(
+      Source.fromContext(ctx),
       modifier,
       baseType,
       dimensions,

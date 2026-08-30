@@ -17,10 +17,14 @@ class ExecutionContext {
   ExecutionContext({this.quantumMemory, this.circuit})
     : symbols = SymbolTable(),
       _qubitCounter = 0,
-      _measurements = {};
+      _measurements = {},
+      _runtimeVariables = {};
 
   /// Symbol table tracking all declared entities.
   final SymbolTable symbols;
+
+  /// Runtime-supplied classical variables that are not declared in the QASM source.
+  final Map<String, dynamic> _runtimeVariables;
 
   /// Measurement results (last value for each qubit/register key).
   final Map<String, int> _measurements;
@@ -56,14 +60,23 @@ class ExecutionContext {
 
   /// Declares a classical variable with the given [name], [type], and optional [value].
   void declareClassicalVariable(String name, TypeNode type, [dynamic value]) {
-    // Initialize with default value if not provided
-    value ??= _getDefaultValue(type);
+    // Allow execution-context values to seed undeclared/runtime variables.
+    value ??= _runtimeVariables[name] ?? _getDefaultValue(type);
     symbols.declareVariable(name, value);
   }
 
   /// Updates a classical variable's value.
   void updateVariable(String name, dynamic value) {
+    // try {
     symbols.updateVariable(name, value);
+    // } on SymbolTableException {
+    //   _runtimeVariables[name] = value;
+    // }
+  }
+
+  /// Injects a runtime-supplied classical variable value.
+  void setRuntimeVariable(String name, dynamic value) {
+    _runtimeVariables[name] = value;
   }
 
   /// Records a measurement result.
@@ -88,13 +101,16 @@ class ExecutionContext {
   /// Throws if not found.
   dynamic getVariable(String name) {
     final value = symbols.lookupVariable(name);
-    if (value == null) {
-      // Check if it's a constant
-      final constValue = symbols.lookupConstant(name);
-      if (constValue != null) return constValue;
-      throw ExecutionException('Variable "$name" not found');
+    if (value != null) return value;
+
+    final constValue = symbols.lookupConstant(name);
+    if (constValue != null) return constValue;
+
+    if (_runtimeVariables.containsKey(name)) {
+      return _runtimeVariables[name];
     }
-    return value;
+
+    throw ExecutionException('Variable "$name" not found');
   }
 
   /// Enters a new scope (for blocks, loops, functions).
@@ -133,7 +149,7 @@ class ExecutionContext {
     if (_qubitCounter == 0) {
       throw ExecutionException('No qubits declared yet');
     }
-    return QCircuit(QGateBuilder.get(_qubitCounter));
+    return QCircuit(QGateBuilder.get(_qubitCounter, withCache: false));
   }
 
   /// Gets default value for a given type.
@@ -175,7 +191,11 @@ class ExecutionContext {
 
   /// Returns all classical variables.
   Map<String, dynamic> getAllVariables() {
-    return symbols.getAllVariables();
+    final variables = Map<String, dynamic>.from(symbols.getAllVariables());
+    for (final entry in _runtimeVariables.entries) {
+      variables[entry.key] = entry.value;
+    }
+    return variables;
   }
 
   /// Returns all quantum registers.

@@ -20,7 +20,7 @@ void main() {
   final qa = qmem.createRegister('a', at: 0);
   final qb = qmem.createRegister('b', at: 1);
   final qc = qmem.createRegister('c', at: 2);
-  final gateBuilder = QGateBuilder.get(qmem.size);
+  final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
   final circuit = QCircuit(gateBuilder);
   circuit.hadamard({0, 2});
 

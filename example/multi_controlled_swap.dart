@@ -5,7 +5,7 @@ import 'utils.dart';
 void main() {
   var size = 6;
 
-  final gateBuilder = QGateBuilder.get(size);
+  final gateBuilder = QGateBuilder.get(size, withCache: false);
 
   // swap qubits 4 & 5 controlled by qubits 0, 1, 2 & 3
   final controls = {0, 1, 2, 3};

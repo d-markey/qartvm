@@ -6,7 +6,7 @@ import 'utils.dart';
 
 void main() {
   final rnd = math.Random.secure();
-  final N = 15;
+  final N = 27;
 
   final widthOfN = bitWidth(N);
 
@@ -41,7 +41,7 @@ void main() {
 }
 
 int quantumPart(int N, int a, int widthOfN) {
-  final gateBuilder = QGateBuilder.get(2 * widthOfN + 3);
+  final gateBuilder = QGateBuilder.get(2 * widthOfN + 3, withCache: true);
 
   final circuit = QCircuit(gateBuilder);
   circuit.hadamard(Iterable<int>.generate(widthOfN).toSet());

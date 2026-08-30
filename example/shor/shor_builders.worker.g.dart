@@ -4,7 +4,7 @@
 part of 'shor_builders.dart';
 
 // **************************************************************************
-// Generator: WorkerGenerator 9.0.0+2 (Squadron 7.4.0)
+// Generator: WorkerGenerator 9.3.2 (Squadron 7.4.3)
 // **************************************************************************
 
 // dart format width=80
@@ -191,6 +191,7 @@ WorkerService $ShorBuildersInitializer(WorkerRequest $req) {
 base class ShorBuildersWorker extends Worker
     with _$ShorBuilders$Invoker, _$ShorBuilders$Facade
     implements ShorBuilders {
+  // ignore: use_super_parameters
   ShorBuildersWorker(
     this.size, {
     PlatformThreadHook? threadHook,
@@ -202,6 +203,7 @@ base class ShorBuildersWorker extends Worker
          exceptionManager: exceptionManager,
        );
 
+  // ignore: use_super_parameters
   ShorBuildersWorker.vm(
     this.size, {
     PlatformThreadHook? threadHook,
@@ -226,6 +228,7 @@ base class ShorBuildersWorker extends Worker
 base class ShorBuildersWorkerPool extends WorkerPool<ShorBuildersWorker>
     with _$ShorBuilders$Facade
     implements ShorBuilders {
+  // ignore: use_super_parameters
   ShorBuildersWorkerPool(
     this.size, {
     PlatformThreadHook? threadHook,
@@ -241,6 +244,7 @@ base class ShorBuildersWorkerPool extends WorkerPool<ShorBuildersWorker>
          exceptionManager: exceptionManager,
        );
 
+  // ignore: use_super_parameters
   ShorBuildersWorkerPool.vm(
     this.size, {
     PlatformThreadHook? threadHook,

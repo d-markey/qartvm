@@ -1,6 +1,10 @@
 export 'src/exceptions.dart';
 export 'src/math/complex.dart';
+export 'src/math/complex_dense_matrix.dart';
 export 'src/math/complex_matrix.dart';
+export 'src/math/complex_sparse_matrix.dart';
+export 'src/math/complex_vector.dart';
+export 'src/openqasm/interpreter/_execution_context.dart';
 export 'src/openqasm/interpreter/exceptions.dart';
 export 'src/openqasm/interpreter/interpreter_result.dart';
 export 'src/openqasm/interpreter/openqasm_include_provider.dart';

@@ -108,6 +108,27 @@ int doubled = N * 2;
       expect(result.classicalVariables['doubled'], equals(10));
     });
 
+    test(
+      'should resolve runtime-provided variables without const declarations',
+      () async {
+        final source = '''
+OPENQASM 3.0;
+int N;
+int a;
+int result = N * a;
+''';
+        final program = OpenQASMParser.parse(source);
+        final result = await interpreter.execute(
+          program,
+          initialVariables: {'N': 5, 'a': 7},
+        );
+
+        expect(result.classicalVariables['N'], equals(5));
+        expect(result.classicalVariables['a'], equals(7));
+        expect(result.classicalVariables['result'], equals(35));
+      },
+    );
+
     test('should handle bitwise operations', () async {
       final source = '''
 OPENQASM 3.0;

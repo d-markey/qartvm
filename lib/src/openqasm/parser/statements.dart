@@ -3,33 +3,37 @@ part of 'ast_nodes.dart';
 abstract class Statement extends OpenQASMNode {
   final List<Annotation> annotations;
 
-  const Statement._({this.annotations = const []}) : super._();
+  const Statement._(super.source, {this.annotations = const []}) : super._();
 }
 
 class Annotation extends OpenQASMNode {
   final String name;
   final String? content;
 
-  Annotation(this.name, this.content) : super._();
+  Annotation(super.source, this.name, this.content) : super._();
 }
 
 class PragmaStatement extends Statement {
   final String content;
 
-  PragmaStatement(this.content) : super._();
+  PragmaStatement(super.source, this.content) : super._();
 }
 
 class CalibrationGrammarStatement extends Statement {
   final String grammar;
 
-  CalibrationGrammarStatement(this.grammar, {super.annotations = const []})
-    : super._();
+  CalibrationGrammarStatement(
+    super.source,
+    this.grammar, {
+    super.annotations = const [],
+  }) : super._();
 }
 
 class CalibrationStatement extends Statement {
   final String? body;
 
-  CalibrationStatement(this.body, {super.annotations = const []}) : super._();
+  CalibrationStatement(super.source, this.body, {super.annotations = const []})
+    : super._();
 }
 
 class DefCalStatement extends Statement {
@@ -40,6 +44,7 @@ class DefCalStatement extends Statement {
   final String? body;
 
   DefCalStatement(
+    super.source,
     this.name,
     this.operands,
     this.arguments,
@@ -53,20 +58,28 @@ class DelayStatement extends Statement {
   final Expression duration;
   final List<Expression> qubits;
 
-  DelayStatement(this.duration, this.qubits, {super.annotations = const []})
-    : super._();
+  DelayStatement(
+    super.source,
+    this.duration,
+    this.qubits, {
+    super.annotations = const [],
+  }) : super._();
 }
 
 class BoxStatement extends Statement {
   final Expression? duration;
   final List<Statement> body;
 
-  BoxStatement(this.body, {this.duration, super.annotations = const []})
-    : super._();
+  BoxStatement(
+    super.source,
+    this.body, {
+    this.duration,
+    super.annotations = const [],
+  }) : super._();
 }
 
 class EndStatement extends Statement {
-  EndStatement({super.annotations = const []}) : super._();
+  EndStatement(super.source, {super.annotations = const []}) : super._();
 }
 
 class OldStyleDeclarationStatement extends Statement {
@@ -75,6 +88,7 @@ class OldStyleDeclarationStatement extends Statement {
   final Expression? size;
 
   OldStyleDeclarationStatement(
+    super.source,
     this.type,
     this.name,
     this.size, {
@@ -89,6 +103,7 @@ class SubroutineDefinition extends Statement {
   final List<Statement> body;
 
   SubroutineDefinition(
+    super.source,
     this.name,
     this.arguments,
     this.returnType,
@@ -100,16 +115,23 @@ class SubroutineDefinition extends Statement {
 class IncludeStatement extends Statement {
   final String filename;
 
-  IncludeStatement(this.filename, {List<Annotation> annotations = const []})
-    : super._();
+  IncludeStatement(
+    super.source,
+    this.filename, {
+    List<Annotation> annotations = const [],
+  }) : super._();
 }
 
 class QubitDeclaration extends Statement {
   final String name;
   final QubitTypeNode type;
 
-  QubitDeclaration(this.name, this.type, {super.annotations = const []})
-    : super._();
+  QubitDeclaration(
+    super.source,
+    this.name,
+    this.type, {
+    super.annotations = const [],
+  }) : super._();
 }
 
 class ClassicalDeclaration extends Statement {
@@ -118,6 +140,7 @@ class ClassicalDeclaration extends Statement {
   final Expression? initializer;
 
   ClassicalDeclaration(
+    super.source,
     this.type,
     this.name, {
     this.initializer,
@@ -132,6 +155,7 @@ class GateStatement extends Statement {
   final List<Statement> body;
 
   GateStatement(
+    super.source,
     this.name,
     this.parameters,
     this.qubits,
@@ -147,6 +171,7 @@ class GateCallStatement extends Statement {
   final List<GateModifier>? modifiers;
 
   GateCallStatement(
+    super.source,
     this.name,
     this.arguments,
     this.qubits, {
@@ -161,6 +186,7 @@ class AssignmentStatement extends Statement {
   final String operator;
 
   AssignmentStatement(
+    super.source,
     this.target,
     this.value, {
     required this.operator,
@@ -171,8 +197,11 @@ class AssignmentStatement extends Statement {
 class ExpressionStatement extends Statement {
   final Expression expression;
 
-  ExpressionStatement(this.expression, {super.annotations = const []})
-    : super._();
+  ExpressionStatement(
+    super.source,
+    this.expression, {
+    super.annotations = const [],
+  }) : super._();
 }
 
 class MeasurementStatement extends Statement {
@@ -180,6 +209,7 @@ class MeasurementStatement extends Statement {
   final String? targetIdentifier;
 
   MeasurementStatement(
+    super.source,
     this.measureExpression,
     this.targetIdentifier, {
     super.annotations = const [],
@@ -189,23 +219,33 @@ class MeasurementStatement extends Statement {
 class ResetStatement extends Statement {
   final Expression qubit;
 
-  ResetStatement(this.qubit, {List<Annotation> annotations = const []})
-    : super._();
+  ResetStatement(
+    super.source,
+    this.qubit, {
+    List<Annotation> annotations = const [],
+  }) : super._();
 }
 
 class BarrierStatement extends Statement {
   final List<Expression>? qubits;
 
-  BarrierStatement(this.qubits, {List<Annotation> annotations = const []})
-    : super._();
+  BarrierStatement(
+    super.source,
+    this.qubits, {
+    List<Annotation> annotations = const [],
+  }) : super._();
 }
 
 class AliasStatement extends Statement {
   final String name;
   final Expression value;
 
-  AliasStatement(this.name, this.value, {super.annotations = const []})
-    : super._();
+  AliasStatement(
+    super.source,
+    this.name,
+    this.value, {
+    super.annotations = const [],
+  }) : super._();
 }
 
 class ExternStatement extends Statement {
@@ -214,6 +254,7 @@ class ExternStatement extends Statement {
   final TypeNode? returnType;
 
   ExternStatement(
+    super.source,
     this.name,
     this.argumentTypes, {
     this.returnType,
@@ -224,9 +265,10 @@ class ExternStatement extends Statement {
 class ConstantDeclaration extends Statement {
   final TypeNode type;
   final String name;
-  final Expression value;
+  final Expression? value;
 
   ConstantDeclaration(
+    super.source,
     this.type,
     this.name,
     this.value, {
@@ -240,6 +282,7 @@ class IOStatement extends Statement {
   final String name;
 
   IOStatement(
+    super.source,
     this.direction,
     this.type,
     this.name, {
@@ -248,7 +291,8 @@ class IOStatement extends Statement {
 }
 
 abstract class FlowStatement extends Statement {
-  FlowStatement._({List<Annotation> annotations = const []}) : super._();
+  FlowStatement._(super.source, {List<Annotation> annotations = const []})
+    : super._();
 
   List<Statement> get body;
 }
@@ -262,6 +306,7 @@ class IfStatement extends FlowStatement {
   List<Statement> get body => ifBody;
 
   IfStatement(
+    super.source,
     this.condition,
     this.ifBody, {
     this.elseBody,
@@ -278,6 +323,7 @@ class ForStatement extends FlowStatement {
   final List<Statement> body;
 
   ForStatement(
+    super.source,
     this.loopVariable,
     this.variableType,
     this.range,
@@ -292,22 +338,32 @@ class WhileStatement extends FlowStatement {
   @override
   final List<Statement> body;
 
-  WhileStatement(this.condition, this.body, {super.annotations = const []})
-    : super._();
+  WhileStatement(
+    super.source,
+    this.condition,
+    this.body, {
+    super.annotations = const [],
+  }) : super._();
 }
 
 class BreakStatement extends Statement {
-  const BreakStatement({List<Annotation> annotations = const []}) : super._();
+  const BreakStatement(super.source, {List<Annotation> annotations = const []})
+    : super._();
 }
 
 class ContinueStatement extends Statement {
-  const ContinueStatement({List<Annotation> annotations = const []})
-    : super._();
+  const ContinueStatement(
+    super.source, {
+    List<Annotation> annotations = const [],
+  }) : super._();
 }
 
 class ReturnStatement extends Statement {
   final Expression? expression;
 
-  ReturnStatement(this.expression, {List<Annotation> annotations = const []})
-    : super._();
+  ReturnStatement(
+    super.source,
+    this.expression, {
+    List<Annotation> annotations = const [],
+  }) : super._();
 }

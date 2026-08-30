@@ -16,7 +16,7 @@ void main() {
   //  3      ----| CC-NOT |-----------| CC-NOT |----------------------  --> (a+b)1 = carry
   //              --------             --------
 
-  final gateBuilder = QGateBuilder.get(4);
+  final gateBuilder = QGateBuilder.get(4, withCache: false);
 
   final circuit = QCircuit(gateBuilder);
   circuit.toffoli(3, controls: {0, 1});

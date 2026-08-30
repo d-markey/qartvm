@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:qartvm/qartvm.dart';
 import 'package:test/test.dart';
-import 'dart:math' as math;
+
+QCircuit _circuit(QMemorySpace qmem) =>
+    QCircuit(QGateBuilder.get(qmem.size, withCache: false));
 
 void main() {
   group('OpenQASM Interpreter - Gate Execution', () {
@@ -16,21 +20,17 @@ void main() {
       (
         description: '|1>',
         setup: (qubits) => 'x ${qubits[0]};',
-        apply: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).pauliX(q[0]).execute(qm),
+        apply: (qm, q) => _circuit(qm).pauliX(q[0]).execute(qm),
       ),
       (
         description: '|+>',
         setup: (qubits) => 'h ${qubits[0]};',
-        apply: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).hadamard(q[0]).execute(qm),
+        apply: (qm, q) => _circuit(qm).hadamard(q[0]).execute(qm),
       ),
       (
         description: '|->',
         setup: (qubits) => 'x ${qubits[0]}; h ${qubits[0]};',
-        apply: (qm, q) => QCircuit(
-          QGateBuilder.get(qm.size),
-        ).pauliX(q[0]).hadamard(q[0]).execute(qm),
+        apply: (qm, q) => _circuit(qm).pauliX(q[0]).hadamard(q[0]).execute(qm),
       ),
     ];
 
@@ -46,20 +46,18 @@ void main() {
       (
         description: '|10>',
         setup: (qubits) => 'x ${qubits[0]};',
-        apply: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).pauliX(q[0]).execute(qm),
+        apply: (qm, q) => _circuit(qm).pauliX(q[0]).execute(qm),
       ),
       (
         description: '|01>',
         setup: (qubits) => 'x ${qubits[1]};',
-        apply: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).pauliX(q[1]).execute(qm),
+        apply: (qm, q) => _circuit(qm).pauliX(q[1]).execute(qm),
       ),
       (
         description: '|11>',
         setup: (qubits) => 'x ${qubits[0]}; x ${qubits[1]};',
         apply: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliX(q[0]);
           circ.pauliX(q[1]);
           circ.execute(qm);
@@ -69,7 +67,7 @@ void main() {
         description: '|++>',
         setup: (qubits) => 'h ${qubits[0]}; h ${qubits[1]};',
         apply: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.hadamard(q[1]);
           circ.execute(qm);
@@ -146,8 +144,7 @@ void main() {
         body: 'h q[0];',
         qubitNames: ['q[0]'],
         qubitCount: 1,
-        expectedAction: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).hadamard(q[0]).execute(qm),
+        expectedAction: (qm, q) => _circuit(qm).hadamard(q[0]).execute(qm),
       );
     });
 
@@ -157,8 +154,7 @@ void main() {
         body: 'x q[0];',
         qubitNames: ['q[0]'],
         qubitCount: 1,
-        expectedAction: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).pauliX(q[0]).execute(qm),
+        expectedAction: (qm, q) => _circuit(qm).pauliX(q[0]).execute(qm),
       );
     });
 
@@ -168,9 +164,8 @@ void main() {
         body: 'rx(pi/2) q[0];',
         qubitNames: ['q[0]'],
         qubitCount: 1,
-        expectedAction: (qm, q) => QCircuit(
-          QGateBuilder.get(qm.size),
-        ).rotationX(3.141592653589793 / 2, q[0]).execute(qm),
+        expectedAction: (qm, q) =>
+            _circuit(qm).rotationX(math.pi / 2, q[0]).execute(qm),
       );
     });
 
@@ -182,7 +177,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliX(q[0]);
           circ.pauliX(q[1], controls: {q[0]});
           circ.execute(qm);
@@ -198,7 +193,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.pauliX(q[1], controls: {q[0]});
           circ.execute(qm);
@@ -213,7 +208,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.pauliZ(q[0]);
           circ.hadamard(q[0]);
@@ -231,9 +226,8 @@ void main() {
           ''',
         qubitNames: ['q[0]'],
         qubitCount: 1,
-        expectedAction: (qm, q) => QCircuit(
-          QGateBuilder.get(qm.size),
-        ).rotationX(3.141592653589793 / 2, q[0]).execute(qm),
+        expectedAction: (qm, q) =>
+            _circuit(qm).rotationX(math.pi / 2, q[0]).execute(qm),
       );
     });
 
@@ -251,7 +245,7 @@ void main() {
           description: '|111>',
           setup: (qubits) => 'x ${qubits[0]}; x ${qubits[1]}; x ${qubits[2]};',
           apply: (qm, q) {
-            final circ = QCircuit(QGateBuilder.get(qm.size));
+            final circ = _circuit(qm);
             circ.pauliX(q[0]);
             circ.pauliX(q[1]);
             circ.pauliX(q[2]);
@@ -267,7 +261,7 @@ void main() {
         qubitCount: 3,
         customStates: localStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.hadamard(q[2]);
           circ.execute(qm);
@@ -283,7 +277,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliY(q[0]);
           circ.pauliZ(q[1]);
           circ.execute(qm);
@@ -298,7 +292,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.phaseS(q[0]);
           circ.execute(qm);
@@ -317,8 +311,7 @@ void main() {
           ''',
         qubitNames: ['q[0]'],
         qubitCount: 1,
-        expectedAction: (qm, q) =>
-            QCircuit(QGateBuilder.get(qm.size)).hadamard(q[0]).execute(qm),
+        expectedAction: (qm, q) => _circuit(qm).hadamard(q[0]).execute(qm),
       );
     });
 
@@ -333,9 +326,8 @@ void main() {
           ''',
         qubitNames: ['q[0]'],
         qubitCount: 1,
-        expectedAction: (qm, q) => QCircuit(
-          QGateBuilder.get(qm.size),
-        ).rotationX(1.5707963267948966, q[0]).execute(qm),
+        expectedAction: (qm, q) =>
+            _circuit(qm).rotationX(math.pi / 2, q[0]).execute(qm),
       );
     });
 
@@ -353,7 +345,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliX(q[0]);
           circ.pauliX(q[1], controls: {q[0]});
           circ.execute(qm);
@@ -387,7 +379,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           // p then inv @ p -> Identity
           circ.execute(qm);
@@ -405,9 +397,9 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
-          circ.rotationX(3.141592653589793, q[0]); // 2 * pi/2 = pi
+          circ.rotationX(math.pi, q[0]); // 2 * pi/2 = pi
           circ.execute(qm);
         },
       );
@@ -424,7 +416,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.pauliX(q[1], controls: {q[0]});
           circ.execute(qm);
@@ -445,7 +437,7 @@ void main() {
         // Need 3-qubit states, using a local one plus checking
         // specific scenario from original test
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliX(q[0]);
           circ.pauliX(q[1]);
           circ.pauliX(q[2], controls: {q[0], q[1]});
@@ -465,7 +457,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           // simulate negctrl: X q0 -> CX q0,q1 -> X q0
           circ.pauliX(q[0]);
@@ -486,7 +478,7 @@ void main() {
         qubitNames: ['q[0]', 'q[1]', 'q[2]'],
         qubitCount: 3,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliX(q[1]);
 
           // negctrl(2) on q0, q1 -> target q2
@@ -515,7 +507,7 @@ void main() {
         qubitCount: 2,
         customStates: initialTwoQubitStates,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.pauliX(q[0]);
           circ.hadamard(q[1]);
           // inv @ ctrl @ X = ctrl @ X (since X is self-inverse)
@@ -537,7 +529,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.pauliZ(q[0]);
           circ.hadamard(q[0]);
@@ -559,7 +551,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           // pow(2) @ X = I
           circ.hadamard(q[0]);
@@ -578,7 +570,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           // pow(3) @ H = H
           circ.hadamard(q[0]);
@@ -599,7 +591,7 @@ void main() {
         qubitNames: ['q[0]'],
         qubitCount: 1,
         expectedAction: (qm, q) {
-          final circ = QCircuit(QGateBuilder.get(qm.size));
+          final circ = _circuit(qm);
           circ.hadamard(q[0]);
           circ.pauliX(q[0]);
           // inv @ X = X
@@ -624,7 +616,7 @@ void main() {
           qubitNames: ['q[0]'],
           qubitCount: 1,
           expectedAction: (qm, q) {
-            final circ = QCircuit(QGateBuilder.get(qm.size));
+            final circ = _circuit(qm);
             circ.hadamard(q[0]);
             circ.phaseS(q[0]);
             // inv @ S = S† (-pi/2)
@@ -650,7 +642,7 @@ void main() {
           qubitNames: ['q[0]'],
           qubitCount: 1,
           expectedAction: (qm, q) {
-            final circ = QCircuit(QGateBuilder.get(qm.size));
+            final circ = _circuit(qm);
             circ.hadamard(q[0]);
             circ.phaseT(q[0]);
             // inv @ T = T† (-pi/4)

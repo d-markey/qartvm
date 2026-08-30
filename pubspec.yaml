@@ -1,18 +1,18 @@
 name: qartvm
 description: qartvm (pronounced 'kar-toom') is a Quantum Computing Simulation package for Dart & Flutter
-version: 0.9.0
+version: 0.9.1
 repository: https://github.com/d-markey/qartvm
 
 environment:
-  sdk: '>=3.9.0 <4.0.0'
+  sdk: ">=3.10.0 <4.0.0"
 
-dependencies: 
+dependencies:
   squadron:
   antlr4: ^4.12.0
 
 dev_dependencies:
   path:
-  lints: 
-  test: 
+  lints:
+  test:
   squadron_builder:
   build_runner:

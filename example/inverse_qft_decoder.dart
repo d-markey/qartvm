@@ -54,7 +54,7 @@ QCircuit buildEncoder(int number) {
   if (nbQubits == 0) nbQubits = 1;
 
   // build encoder
-  final gateBuilder = QGateBuilder.get(nbQubits);
+  final gateBuilder = QGateBuilder.get(nbQubits, withCache: false);
   final encoder = QCircuit(gateBuilder);
   encoder.hadamard(Iterable<int>.generate(encoder.size));
   final twoPi = 2 * pi;

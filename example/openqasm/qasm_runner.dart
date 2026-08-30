@@ -5,8 +5,11 @@ import 'package:qartvm/qartvm.dart';
 
 void main(List<String> args) async {
   final path = args.singleOrNull;
+
   if (path == null) {
-    throw Exception('Missing path argument.');
+    throw Exception(
+      'Missing path argument. Usage: dart run example/openqasm/qasm_runner.dart <file.qasm> [--N 15] [--a 7]',
+    );
   }
 
   var file = File(path);
@@ -21,6 +24,7 @@ void main(List<String> args) async {
 
   final code = await file.readAsString();
   final program = OpenQASMParser.parse(code);
+
   final interpreter = OpenQASMInterpreter();
   final res = await interpreter.execute(program);
   print(res);

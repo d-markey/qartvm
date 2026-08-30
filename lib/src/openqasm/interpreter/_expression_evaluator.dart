@@ -38,6 +38,7 @@ class ExpressionEvaluator {
       MeasureExpression e => _evaluateMeasure(e),
       _ => throw EvaluationException(
         'Unknown expression type: ${expr.runtimeType}',
+        expr,
       ),
     };
   }
@@ -45,12 +46,12 @@ class ExpressionEvaluator {
   Future<dynamic> _evaluateMeasure(MeasureExpression expr) async {
     final qubits = await _qbitResolver.resolve(expr.qubit);
     if (qubits.isEmpty) {
-      throw EvaluationException('No qubits specified for measurement');
+      throw EvaluationException('No qubits specified for measurement', expr);
     }
 
     final qmem = context.quantumMemory;
     if (qmem == null) {
-      throw EvaluationException('Cannot measure: no quantum memory');
+      throw EvaluationException('Cannot measure: no quantum memory', expr);
     }
 
     final value = qmem.read(qubits: qubits);
@@ -94,7 +95,7 @@ class ExpressionEvaluator {
     try {
       return context.getVariable(expr.name);
     } catch (e) {
-      throw EvaluationException('Undefined identifier: ${expr.name}');
+      throw EvaluationException('Undefined identifier: ${expr.name}', expr);
     }
   }
 
@@ -132,6 +133,7 @@ class ExpressionEvaluator {
 
       _ => throw EvaluationException(
         'Unknown binary operator: ${expr.operator}',
+        expr,
       ),
     };
   }
@@ -145,6 +147,7 @@ class ExpressionEvaluator {
       '~' => ~(value as int),
       _ => throw EvaluationException(
         'Unknown unary operator: ${expr.operator}',
+        expr,
       ),
     };
   }
@@ -160,6 +163,7 @@ class ExpressionEvaluator {
       } catch (e) {
         throw EvaluationException(
           'Error calling built-in function ${expr.name}: $e',
+          expr,
         );
       }
     }
@@ -170,6 +174,7 @@ class ExpressionEvaluator {
       if (args.length != (subroutine.arguments?.length ?? 0)) {
         throw EvaluationException(
           'Function ${expr.name} expects ${subroutine.arguments?.length ?? 0} arguments, but got ${args.length}',
+          expr,
         );
       }
 
@@ -198,6 +203,7 @@ class ExpressionEvaluator {
 
     throw EvaluationException(
       'Unknown or unimplemented function: ${expr.name}',
+      expr,
     );
   }
 
@@ -214,7 +220,10 @@ class ExpressionEvaluator {
         if (result is int) return result;
         if (result is RangeResult) return result.values.toList();
         if (result is List) return result.cast<int>();
-        throw EvaluationException('Invalid qubit index: $result');
+        throw EvaluationException(
+          'Invalid qubit index: $result',
+          expr.indices[0],
+        );
       }
     }
 
@@ -235,7 +244,7 @@ class ExpressionEvaluator {
       }
     }
 
-    throw EvaluationException('Cannot index $array with $indices');
+    throw EvaluationException('Cannot index $array with $indices', expr);
   }
 
   Future<RangeResult> _evaluateRange(RangeExpression expr) async {

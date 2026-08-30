@@ -5,6 +5,7 @@ import 'package:antlr4/antlr4.dart';
 import 'OpenQASM3Parser.dart';
 import 'OpenQASM3ParserListener.dart';
 
+
 /// This class provides an empty implementation of [OpenQASM3ParserListener],
 /// which can be extended to create a listener which only needs to handle
 /// a subset of the available methods.
@@ -67,15 +68,11 @@ class OpenQASM3ParserBaseListener implements OpenQASM3ParserListener {
 
   /// The default implementation does nothing.
   @override
-  void enterCalibrationGrammarStatement(
-    CalibrationGrammarStatementContext ctx,
-  ) {}
+  void enterCalibrationGrammarStatement(CalibrationGrammarStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void exitCalibrationGrammarStatement(
-    CalibrationGrammarStatementContext ctx,
-  ) {}
+  void exitCalibrationGrammarStatement(CalibrationGrammarStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
@@ -175,15 +172,11 @@ class OpenQASM3ParserBaseListener implements OpenQASM3ParserListener {
 
   /// The default implementation does nothing.
   @override
-  void enterMeasureArrowAssignmentStatement(
-    MeasureArrowAssignmentStatementContext ctx,
-  ) {}
+  void enterMeasureArrowAssignmentStatement(MeasureArrowAssignmentStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void exitMeasureArrowAssignmentStatement(
-    MeasureArrowAssignmentStatementContext ctx,
-  ) {}
+  void exitMeasureArrowAssignmentStatement(MeasureArrowAssignmentStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
@@ -203,15 +196,11 @@ class OpenQASM3ParserBaseListener implements OpenQASM3ParserListener {
 
   /// The default implementation does nothing.
   @override
-  void enterClassicalDeclarationStatement(
-    ClassicalDeclarationStatementContext ctx,
-  ) {}
+  void enterClassicalDeclarationStatement(ClassicalDeclarationStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void exitClassicalDeclarationStatement(
-    ClassicalDeclarationStatementContext ctx,
-  ) {}
+  void exitClassicalDeclarationStatement(ClassicalDeclarationStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
@@ -231,27 +220,19 @@ class OpenQASM3ParserBaseListener implements OpenQASM3ParserListener {
 
   /// The default implementation does nothing.
   @override
-  void enterOldStyleDeclarationStatement(
-    OldStyleDeclarationStatementContext ctx,
-  ) {}
+  void enterOldStyleDeclarationStatement(OldStyleDeclarationStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void exitOldStyleDeclarationStatement(
-    OldStyleDeclarationStatementContext ctx,
-  ) {}
+  void exitOldStyleDeclarationStatement(OldStyleDeclarationStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void enterQuantumDeclarationStatement(
-    QuantumDeclarationStatementContext ctx,
-  ) {}
+  void enterQuantumDeclarationStatement(QuantumDeclarationStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void exitQuantumDeclarationStatement(
-    QuantumDeclarationStatementContext ctx,
-  ) {}
+  void exitQuantumDeclarationStatement(QuantumDeclarationStatementContext ctx) {}
 
   /// The default implementation does nothing.
   @override
@@ -631,15 +612,11 @@ class OpenQASM3ParserBaseListener implements OpenQASM3ParserListener {
 
   /// The default implementation does nothing.
   @override
-  void enterDefcalArgumentDefinitionList(
-    DefcalArgumentDefinitionListContext ctx,
-  ) {}
+  void enterDefcalArgumentDefinitionList(DefcalArgumentDefinitionListContext ctx) {}
 
   /// The default implementation does nothing.
   @override
-  void exitDefcalArgumentDefinitionList(
-    DefcalArgumentDefinitionListContext ctx,
-  ) {}
+  void exitDefcalArgumentDefinitionList(DefcalArgumentDefinitionListContext ctx) {}
 
   /// The default implementation does nothing.
   @override

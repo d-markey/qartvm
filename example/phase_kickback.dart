@@ -5,7 +5,7 @@ import 'package:qartvm/qartvm.dart';
 import 'utils.dart';
 
 void main() {
-  final circuitT = QCircuit(QGateBuilder.get(4));
+  final circuitT = QCircuit(QGateBuilder.get(4, withCache: false));
   circuitT.hadamard([0, 1, 2]);
   circuitT.not(3);
   circuitT.phaseT(3, controls: 0);
@@ -39,7 +39,7 @@ void main() {
     throw Exception('Unexpected t = $t');
   }
 
-  final circuitS = QCircuit(QGateBuilder.get(4));
+  final circuitS = QCircuit(QGateBuilder.get(4, withCache: false));
   circuitS.hadamard([0, 1, 2]);
   circuitS.not(3);
   circuitS.phaseS(3, controls: 0);
@@ -74,7 +74,7 @@ void main() {
   }
 
   for (var n = 0; n < 8; n++) {
-    final circuit = QCircuit(QGateBuilder.get(4));
+    final circuit = QCircuit(QGateBuilder.get(4, withCache: false));
     circuit.hadamard([0, 1, 2]);
     circuit.not(3);
     circuit.phase(n * 2 * math.pi / 8, 3, controls: 0);

@@ -1,7 +1,7 @@
 part of 'ast_nodes.dart';
 
 abstract class Expression extends OpenQASMNode {
-  const Expression._() : super._();
+  const Expression._(super.source) : super._();
 }
 
 class RangeExpression extends Expression {
@@ -9,32 +9,32 @@ class RangeExpression extends Expression {
   final Expression? step;
   final Expression? stop;
 
-  RangeExpression({this.start, this.step, this.stop}) : super._();
+  RangeExpression(super.source, {this.start, this.step, this.stop}) : super._();
 }
 
 class SetExpression extends Expression {
   final List<Expression> expressions;
 
-  SetExpression(this.expressions) : super._();
+  SetExpression(super.source, this.expressions) : super._();
 }
 
 class IdentifierExpression extends Expression {
   final String name;
 
-  IdentifierExpression(this.name) : super._();
+  IdentifierExpression(super.source, this.name) : super._();
 }
 
 class HardwareQubitExpression extends Expression {
   final int index;
 
-  HardwareQubitExpression(this.index) : super._();
+  HardwareQubitExpression(super.source, this.index) : super._();
 }
 
 class LiteralExpression extends Expression {
   final dynamic value;
   final String type;
 
-  LiteralExpression(this.value, this.type) : super._();
+  LiteralExpression(super.source, this.value, this.type) : super._();
 }
 
 class BinaryExpression extends Expression {
@@ -42,51 +42,52 @@ class BinaryExpression extends Expression {
   final String operator;
   final Expression right;
 
-  BinaryExpression(this.left, this.operator, this.right) : super._();
+  BinaryExpression(super.source, this.left, this.operator, this.right)
+    : super._();
 }
 
 class UnaryExpression extends Expression {
   final String operator;
   final Expression expression;
 
-  UnaryExpression(this.operator, this.expression) : super._();
+  UnaryExpression(super.source, this.operator, this.expression) : super._();
 }
 
 class CallExpression extends Expression {
   final String name;
   final List<Expression> arguments;
 
-  CallExpression(this.name, this.arguments) : super._();
+  CallExpression(super.source, this.name, this.arguments) : super._();
 }
 
 class IndexExpression extends Expression {
   final Expression expression;
   final List<Expression> indices;
 
-  IndexExpression(this.expression, this.indices) : super._();
+  IndexExpression(super.source, this.expression, this.indices) : super._();
 }
 
 class CastExpression extends Expression {
   final TypeNode type;
   final Expression expression;
 
-  CastExpression(this.type, this.expression) : super._();
+  CastExpression(super.source, this.type, this.expression) : super._();
 }
 
 class DurationOfExpression extends Expression {
   final List<Statement> statements;
 
-  DurationOfExpression(this.statements) : super._();
+  DurationOfExpression(super.source, this.statements) : super._();
 }
 
 class MeasureExpression extends Expression {
   final Expression qubit;
 
-  MeasureExpression(this.qubit) : super._();
+  MeasureExpression(super.source, this.qubit) : super._();
 }
 
 class ArrayLiteralExpression extends Expression {
   final List<dynamic> elements; // Can be Expression or ArrayLiteralExpression
 
-  ArrayLiteralExpression(this.elements) : super._();
+  ArrayLiteralExpression(super.source, this.elements) : super._();
 }

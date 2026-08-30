@@ -148,7 +148,7 @@ class ControlledGateExecutor implements GateExecutor {
       );
     }
 
-    final gateBuilder = QGateBuilder.get(qmem.size);
+    final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
     final circuit = QCircuit(gateBuilder);
 
     // For negated controls, flip the control qubits before and after

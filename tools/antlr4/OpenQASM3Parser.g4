@@ -95,7 +95,7 @@ resetStatement: RESET gateOperand SEMICOLON;
 // Primitive declaration statements.
 aliasDeclarationStatement: LET Identifier EQUALS aliasExpression SEMICOLON;
 classicalDeclarationStatement: (scalarType | arrayType) Identifier (EQUALS declarationExpression)? SEMICOLON;
-constDeclarationStatement: CONST scalarType Identifier EQUALS declarationExpression SEMICOLON;
+constDeclarationStatement: CONST scalarType Identifier (EQUALS declarationExpression)? SEMICOLON;
 ioDeclarationStatement: (INPUT | OUTPUT) (scalarType | arrayType) Identifier SEMICOLON;
 oldStyleDeclarationStatement: (CREG | QREG) Identifier designator? SEMICOLON;
 quantumDeclarationStatement: qubitType Identifier SEMICOLON;

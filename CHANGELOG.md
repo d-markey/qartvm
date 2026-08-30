@@ -1,3 +1,16 @@
+## 0.9.1
+
+Math optimizations:
+- Implement sparse matrices.
+
+OpenQASM update:
+- Add support for external constants (provided at runtime).
+
+Implement Shor algorithm (see `example\openqasm\shor_factorization.dart`):
+- Usage: `dart run shor_factorization.dart "13 * 3"`
+- The quantum part is implemented dynamically as a QASM program
+- The classical route is ignored to force quantum evaluation
+
 ## 0.9.0
 
 Added OpenQASM 3.0 support:

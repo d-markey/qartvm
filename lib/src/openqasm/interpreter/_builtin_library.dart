@@ -33,6 +33,8 @@ class BuiltinLibrary {
     'mod': (num x, num y) => x % y,
     'min': math.min,
     'max': math.max,
+    'gcd': (num a, num b) => (a as int).gcd(b as int),
+    'rnd': (num max) => math.Random.secure().nextInt(max as int),
   };
 
   /// Returns true if [name] is a built-in constant.

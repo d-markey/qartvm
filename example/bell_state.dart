@@ -12,7 +12,7 @@ void main() {
   //  1 -----------| NOT |----
   //                -----
 
-  final circuit = QCircuit(QGateBuilder.get(2));
+  final circuit = QCircuit(QGateBuilder.get(2, withCache: false));
   circuit.hadamard(0);
   circuit.not(1, controls: 0);
 

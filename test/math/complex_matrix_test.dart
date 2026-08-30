@@ -5,20 +5,108 @@ import 'package:test/test.dart';
 
 import 'complex_matcher.dart';
 
-ComplexMatrix _complexMatrix(List<List<num>> matrix) => ComplexMatrix(
+ComplexMatrix _complexMatrix(List<List<num>> matrix) => ComplexDenseMatrix(
   matrix
       .map((row) => row.map((v) => Complex(re: v.toDouble())).toList())
       .toList(),
 );
 
 void main() {
+  group('Sparse representation -', () {
+    test('stores zero and identity without zero entries', () {
+      final zero = ComplexSparseMatrix.zero(4, 4);
+      final identity = ComplexSparseMatrix.identity(4);
+
+      expect(zero.nonZeroCount, 0);
+      expect(identity.nonZeroCount, 4);
+      expect(identity.isIdentity, isTrue);
+    });
+
+    test('stores, mutates, compares, and serializes non-zero values', () {
+      final sparse = ComplexSparseMatrix.zero(2, 2);
+      sparse.set(0, 1, Complex.i);
+      expect(sparse.nonZeroCount, 1);
+      expect(sparse.get(0, 1), Complex.i);
+      sparse.set(0, 1, Complex.zero);
+      expect(sparse.nonZeroCount, 0);
+
+      final original = ComplexSparseMatrix([
+        [Complex.one, Complex.zero],
+        [Complex.zero, Complex.i],
+      ]);
+      final restored = ComplexMatrix.deserialize(original.serialize());
+      expect(restored, isA<ComplexSparseMatrix>());
+      expect(restored, complexMatrixEquals(original));
+    });
+
+    test('matches dense results for complex operations', () {
+      final dense = ComplexDenseMatrix([
+        [Complex.one, Complex.i, Complex.zero],
+        [Complex.zero, Complex(re: 2, im: -1), Complex.one],
+        [Complex.i, Complex.zero, Complex.one],
+      ]);
+      final sparse = ComplexSparseMatrix.fromMatrix(dense);
+
+      expect(sparse, complexMatrixEquals(dense));
+      expect(sparse.nonZeroCount, 6);
+      expect(
+        sparse + (-sparse),
+        complexMatrixEquals(ComplexSparseMatrix.zero(3, 3)),
+      );
+      expect(sparse.transpose(), complexMatrixEquals(dense.transpose()));
+      expect(sparse.conjugate(), complexMatrixEquals(dense.conjugate()));
+      expect(sparse.dagger(), complexMatrixEquals(dense.dagger()));
+      expect(sparse * dense, complexMatrixEquals(dense * dense));
+    });
+
+    test('keeps sparse tensor products sparse and numerically correct', () {
+      final a = ComplexSparseMatrix([
+        [Complex.one, Complex.zero],
+        [Complex.zero, Complex(re: 2)],
+      ]);
+      final b = ComplexSparseMatrix([
+        [Complex.zero, Complex.one],
+        [Complex.one, Complex.zero],
+      ]);
+
+      final tensor = ComplexMatrix.tensor(a, b);
+
+      expect(tensor, isA<ComplexSparseMatrix>());
+      expect(
+        tensor,
+        complexMatrixEquals(
+          ComplexDenseMatrix([
+            [Complex.zero, Complex.one, Complex.zero, Complex.zero],
+            [Complex.one, Complex.zero, Complex.zero, Complex.zero],
+            [Complex.zero, Complex.zero, Complex.zero, Complex(re: 2)],
+            [Complex.zero, Complex.zero, Complex(re: 2), Complex.zero],
+          ]),
+          precision: 1e-9,
+        ),
+      );
+    });
+
+    test('uses dense conversion for determinant and inverse', () {
+      final sparse = ComplexSparseMatrix([
+        [Complex.one, Complex.one],
+        [Complex.one, Complex.zero],
+      ]);
+
+      expect(sparse.det, complexEquals(Complex.minusOne));
+      expect(
+        sparse * sparse.inverse(),
+        complexMatrixEquals(ComplexDenseMatrix.identity(2), precision: 1e-9),
+      );
+    });
+  });
+
   group('1x1 -', () {
     group('Operators -', () {
       test('Addition', () {
-        final a = ComplexMatrix([
+        final a = ComplexDenseMatrix([
           [Complex(re: 1, im: 1)],
         ]);
-        final b = ComplexMatrix([
+        final b = ComplexDenseMatrix([
           [Complex(re: 2, im: -0.5)],
         ]);
         final c = a + b;
@@ -26,7 +114,7 @@ void main() {
         expect(
           a,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 1, im: 1)],
             ]),
           ),
@@ -34,7 +122,7 @@ void main() {
         expect(
           b,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 2, im: -0.5)],
             ]),
           ),
@@ -42,7 +130,7 @@ void main() {
         expect(
           c,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 3, im: 0.5)],
             ]),
           ),
@@ -50,10 +138,10 @@ void main() {
       });
 
       test('Substraction', () {
-        final a = ComplexMatrix([
+        final a = ComplexDenseMatrix([
           [Complex(re: 1, im: 1)],
         ]);
-        final b = ComplexMatrix([
+        final b = ComplexDenseMatrix([
           [Complex(re: 2, im: -0.5)],
         ]);
         final c = a - b;
@@ -61,7 +149,7 @@ void main() {
         expect(
           a,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 1, im: 1)],
             ]),
           ),
@@ -69,7 +157,7 @@ void main() {
         expect(
           b,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 2, im: -0.5)],
             ]),
           ),
@@ -77,7 +165,7 @@ void main() {
         expect(
           c,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: -1, im: 1.5)],
             ]),
           ),
@@ -87,10 +175,10 @@ void main() {
 
     group('In-memory operations -', () {
       test('Addition', () {
-        final a = ComplexMatrix([
+        final a = ComplexDenseMatrix([
           [Complex(re: 1, im: 1)],
         ]);
-        final b = ComplexMatrix([
+        final b = ComplexDenseMatrix([
           [Complex(re: 2, im: -0.5)],
         ]);
         final c = a.add(b);
@@ -98,7 +186,7 @@ void main() {
         expect(
           a,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 3, im: 0.5)],
             ]),
           ),
@@ -106,7 +194,7 @@ void main() {
         expect(
           b,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 2, im: -0.5)],
             ]),
           ),
@@ -114,7 +202,7 @@ void main() {
         expect(
           c,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 3, im: 0.5)],
             ]),
           ),
@@ -123,10 +211,10 @@ void main() {
       });
 
       test('Substraction', () {
-        final a = ComplexMatrix([
+        final a = ComplexDenseMatrix([
           [Complex(re: 1, im: 1)],
         ]);
-        final b = ComplexMatrix([
+        final b = ComplexDenseMatrix([
           [Complex(re: 2, im: -0.5)],
         ]);
         final c = a.sub(b);
@@ -134,7 +222,7 @@ void main() {
         expect(
           a,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: -1, im: 1.5)],
             ]),
           ),
@@ -142,7 +230,7 @@ void main() {
         expect(
           b,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: 2, im: -0.5)],
             ]),
           ),
@@ -150,7 +238,7 @@ void main() {
         expect(
           c,
           complexMatrixEquals(
-            ComplexMatrix([
+            ComplexDenseMatrix([
               [Complex(re: -1, im: 1.5)],
             ]),
           ),
@@ -161,14 +249,14 @@ void main() {
 
     group('Determinant -', () {
       test('Zero', () {
-        final a = ComplexMatrix([
+        final a = ComplexDenseMatrix([
           [Complex.zero],
         ]);
         expect(a.det, isZero);
       });
 
       test('Non-zero', () {
-        final a = ComplexMatrix([
+        final a = ComplexDenseMatrix([
           [Complex(re: 0.5, im: -1)],
         ]);
         expect(a.det, complexEquals(Complex.one));
@@ -212,11 +300,11 @@ void main() {
 
         expect(
           a * b,
-          complexMatrixEquals(ComplexMatrix.identity(4), precision: 1e-9),
+          complexMatrixEquals(ComplexDenseMatrix.identity(4), precision: 1e-9),
         );
         expect(
           b * a,
-          complexMatrixEquals(ComplexMatrix.identity(4), precision: 1e-9),
+          complexMatrixEquals(ComplexDenseMatrix.identity(4), precision: 1e-9),
         );
 
         expect(
@@ -251,7 +339,7 @@ void main() {
       final rnd = Random.secure();
       for (var i = 0; i < 100; i++) {
         final size = 2 + rnd.nextInt(30 + 1); // 2-32
-        final matrix = ComplexMatrix.generate(
+        final matrix = ComplexDenseMatrix.generate(
           size,
           size,
           (r, c) => Complex.random(),
@@ -264,7 +352,10 @@ void main() {
           final prod = matrix * inv;
           expect(
             prod,
-            complexMatrixEquals(ComplexMatrix.identity(size), precision: 1e-9),
+            complexMatrixEquals(
+              ComplexDenseMatrix.identity(size),
+              precision: 1e-9,
+            ),
           );
         }
       }

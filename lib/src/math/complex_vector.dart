@@ -1,9 +1,10 @@
 import '../exceptions.dart';
 import 'complex.dart';
+import 'complex_dense_matrix.dart';
 import 'complex_matrix.dart';
 
 /// Class representing a vector holding [length] [Complex] values
-class ComplexVector extends ComplexMatrix {
+class ComplexVector extends ComplexDenseMatrix {
   /// Builds a vector of [length] values obtained from [values]
   ComplexVector(List<Complex> values)
     : super.generate(values.length, 1, (row, column) => values[row]);
@@ -35,7 +36,7 @@ class ComplexVector extends ComplexMatrix {
   /// Multiplies the matrix [m] by this instance and stores results in this instance
   /// [m] must be a square matrix of size [length]x[length]
   ComplexVector transform(ComplexMatrix m) {
-    if (!m.square || m.rows != length) {
+    if (!m.isSquare || m.rows != length) {
       throw InvalidOperationException(
         'Cannot transform a vector($length) with a matrix(${m.rows}x${m.columns})',
       );
