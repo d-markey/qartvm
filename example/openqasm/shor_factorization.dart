@@ -110,6 +110,9 @@ String generateShorQasm(int N, int a, int nBits) {
     '',
   ];
 
+  // WARNING: SHOR REQUIRES MODULAR EXPONENTIATION, BUT THIS IS NOT...
+  // The algorithm may eventually work, but this is not Shor.
+  // Review is in progress...
   for (var controlBit = 0; controlBit < nBits; controlBit++) {
     final multiplier = _modPow(a, 1 << controlBit, N);
     lines.addAll(
