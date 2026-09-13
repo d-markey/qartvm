@@ -305,12 +305,10 @@ Future main() async {
   // | qctrl |  qvalue  |      qzeroext    | qflag |
   //     1    <- bits -> <--- bits + 1 --->    1
 
-  final $0 = QbitAddress(0), $1 = QbitAddress(1);
-
-  final qctrl = qmem.createRegister('CTRL', at: $0);
+  final qctrl = qmem.createRegister('CTRL', at: Hardware.$0);
   final qvalue = qmem.createRegister(
     'VALUE',
-    from: $1,
+    from: Hardware.$1,
     to: QbitAddress(bits),
   ); // LSB first
   final qzeroext = qmem.createRegister(

@@ -1,8 +1,21 @@
 import 'dart:math' as math;
 
+import 'package:meta/meta.dart';
+
 import 'qmemory_space.dart';
 
-extension type QbitAddress(int index) implements Object {}
+extension type const QbitAddress(int index) implements Object {}
+
+abstract class Hardware {
+  static const $0 = QbitAddress(0);
+  static const $1 = QbitAddress(1);
+  static const $2 = QbitAddress(2);
+  static const $3 = QbitAddress(3);
+  static const $4 = QbitAddress(4);
+  static const $5 = QbitAddress(5);
+  static const $6 = QbitAddress(6);
+  static const $7 = QbitAddress(7);
+}
 
 extension QbitAddressExtension on QbitAddress {
   int bigEndianMask(int size) => 1 << (size - 1 - index);
@@ -57,6 +70,7 @@ class QState {
 }
 
 // for internal use
+@internal
 extension QStateImpl on QState {
   static QState ctor(QMemorySpace qmem, QbitAddress id) => QState._(qmem, id);
 

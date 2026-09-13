@@ -25,13 +25,11 @@ void main() {
     'Matrix Multiplication (${1 << nQubits}x${1 << nQubits}): ${stopwatch.elapsedMilliseconds}ms',
   );
 
-  final $0 = QbitAddress(0);
-
   // Benchmark 3: Gate Application
   stopwatch.reset();
-  final hGate = gateBuilder.parallel.hadamard({$0});
+  final hGate = gateBuilder.parallel.hadamard({Hardware.$0});
   for (var i = 0; i < 10; i++) {
-    qmem.applyGate(hGate, {$0});
+    qmem.applyGate(hGate, {Hardware.$0});
   }
   print(
     'Single-qubit Gate Application (10 times): ${stopwatch.elapsedMilliseconds}ms',

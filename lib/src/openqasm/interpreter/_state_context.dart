@@ -84,6 +84,9 @@ class StateContext {
     _inputVariables[name] = value;
   }
 
+  /// Gets the value of an output variable.
+  dynamic getOutputVariable(String name) => _outputVariables[name];
+
   /// Records a measurement result.
   void recordMeasurement(String key, int value) {
     _measurements[key] = value;

@@ -384,7 +384,7 @@ void main() {
     group('Circuit composition -', () {
       test('2 NOTs', () {
         final qmem = QMemorySpace.zero(2);
-        final qa = qmem.createRegister('a', at: QbitAddress(0));
+        final qa = qmem.createRegister('a', at: Hardware.$0);
         final notCircuit = QCircuit(gateBuilder2);
         notCircuit.not(qa);
         final circuit = QCircuit(gateBuilder2);

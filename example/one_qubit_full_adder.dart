@@ -16,24 +16,19 @@ void main() {
   //  3      ----| CC-NOT |-----------| CC-NOT |----------------------  --> (a+b)1 = carry
   //              --------             --------
 
-  final $0 = QbitAddress(0),
-      $1 = QbitAddress(1),
-      $2 = QbitAddress(2),
-      $3 = QbitAddress(3);
-
   final gateBuilder = QGateBuilder.get(4, withCache: false);
 
   final circuit = QCircuit(gateBuilder);
-  circuit.toffoli($3, controls: {$0, $1});
-  circuit.not($1, controls: $0);
-  circuit.toffoli($3, controls: {$1, $2});
-  circuit.not($2, controls: $1);
-  circuit.not($1, controls: $0);
+  circuit.toffoli(Hardware.$3, controls: {Hardware.$0, Hardware.$1});
+  circuit.not(Hardware.$1, controls: Hardware.$0);
+  circuit.toffoli(Hardware.$3, controls: {Hardware.$1, Hardware.$2});
+  circuit.not(Hardware.$2, controls: Hardware.$1);
+  circuit.not(Hardware.$1, controls: Hardware.$0);
 
   final qmem = QMemorySpace.zero(4);
-  final qa = qmem.createRegister('a', at: $0);
-  final qb = qmem.createRegister('b', at: $1);
-  final qc = qmem.createRegister('c', from: $2, to: $3);
+  final qa = qmem.createRegister('a', at: Hardware.$0);
+  final qb = qmem.createRegister('b', at: Hardware.$1);
+  final qc = qmem.createRegister('c', from: Hardware.$2, to: Hardware.$3);
 
   describe(circuit);
   draw(circuit, qmem: qmem);

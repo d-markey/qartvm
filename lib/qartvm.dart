@@ -18,5 +18,5 @@ export 'src/qgate_builder.dart';
 export 'src/qgate_type.dart';
 export 'src/qmemory_space.dart';
 export 'src/qregister.dart' show QRegister;
-export 'src/qstate.dart' show QState, QbitAddress;
+export 'src/qstate.dart' show QState, QbitAddress, Hardware;
 export 'src/utils/exceptions.dart';

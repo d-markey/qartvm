@@ -8,13 +8,8 @@ void main() {
   final gateBuilder = QGateBuilder.get(size, withCache: false);
 
   // swap qubits 4 & 5 controlled by qubits 0, 1, 2 & 3
-  final controls = {
-    QbitAddress(0),
-    QbitAddress(1),
-    QbitAddress(2),
-    QbitAddress(3),
-  };
-  final targets = {QbitAddress(4), QbitAddress(5)};
+  final controls = {Hardware.$0, Hardware.$1, Hardware.$2, Hardware.$3};
+  final targets = {Hardware.$4, Hardware.$5};
 
   // build uncontrolled swap gate for target qubits
   final swap = gateBuilder.highLevel.swap(targets);

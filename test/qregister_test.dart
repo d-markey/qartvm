@@ -4,20 +4,15 @@ import 'package:test/test.dart';
 import 'math/complex_matcher.dart';
 
 void main() {
-  final $0 = QbitAddress(0),
-      $1 = QbitAddress(1),
-      $2 = QbitAddress(2),
-      $3 = QbitAddress(3),
-      $4 = QbitAddress(4),
-      $5 = QbitAddress(5),
-      $6 = QbitAddress(6),
-      $7 = QbitAddress(7);
   group('Quantum Register -', () {
     group('Initialization -', () {
       test('bytes', () {
         final qmem = QMemorySpace.zero(8);
-        final qa = qmem.createRegister('a', addresses: [$3, $2, $1, $0]);
-        final qb = qmem.createRegister('b', from: $7, to: $4);
+        final qa = qmem.createRegister(
+          'a',
+          addresses: [Hardware.$3, Hardware.$2, Hardware.$1, Hardware.$0],
+        );
+        final qb = qmem.createRegister('b', from: Hardware.$7, to: Hardware.$4);
         qmem.initialize({qa: 6, qb: 7});
         var probs = qmem.probabilities;
         var sum = probs.values.reduce((s, p) => s + p);
@@ -36,8 +31,11 @@ void main() {
 
       test('Qubit', () {
         final qmem = QMemorySpace.zero(8);
-        final qa = qmem.createRegister('a', from: $3, to: $0);
-        final qb = qmem.createRegister('b', addresses: [$7, $6, $5, $4]);
+        final qa = qmem.createRegister('a', from: Hardware.$3, to: Hardware.$0);
+        final qb = qmem.createRegister(
+          'b',
+          addresses: [Hardware.$7, Hardware.$6, Hardware.$5, Hardware.$4],
+        );
         qmem.initialize({qa: Qbit.one, qb: Qbit.zero});
         var probs = qmem.probabilities;
         var sum = probs.values.reduce((s, p) => s + p);
@@ -52,8 +50,14 @@ void main() {
 
       test('Qubits', () {
         final qmem = QMemorySpace.zero(8);
-        final qa = qmem.createRegister('a', addresses: [$3, $2, $1, $0]);
-        final qb = qmem.createRegister('b', addresses: [$7, $6, $5, $4]);
+        final qa = qmem.createRegister(
+          'a',
+          addresses: [Hardware.$3, Hardware.$2, Hardware.$1, Hardware.$0],
+        );
+        final qb = qmem.createRegister(
+          'b',
+          addresses: [Hardware.$7, Hardware.$6, Hardware.$5, Hardware.$4],
+        );
         qmem.initialize({
           qa: [Qbit.one, Qbit.one, Qbit.one, Qbit.zero],
           qb: [Qbit.zero, Qbit.zero, Qbit.one, Qbit.one],
@@ -74,8 +78,8 @@ void main() {
 
       test('function - big endian', () {
         final qmem = QMemorySpace.zero(8);
-        final qa = qmem.createRegister('a', from: $3, to: $0);
-        final qb = qmem.createRegister('b', from: $7, to: $4);
+        final qa = qmem.createRegister('a', from: Hardware.$3, to: Hardware.$0);
+        final qb = qmem.createRegister('b', from: Hardware.$7, to: Hardware.$4);
         qmem.initialize({qa: () => 5, qb: () => 12});
         final probs = qmem.probabilities;
         final sum = probs.values.reduce((s, p) => s + p);
@@ -87,8 +91,8 @@ void main() {
 
       test('function - little endian', () {
         final qmem = QMemorySpace.zero(8);
-        final qa = qmem.createRegister('a', from: $0, to: $3);
-        final qb = qmem.createRegister('b', from: $4, to: $7);
+        final qa = qmem.createRegister('a', from: Hardware.$0, to: Hardware.$3);
+        final qb = qmem.createRegister('b', from: Hardware.$4, to: Hardware.$7);
         qmem.initialize({qa: () => 5, qb: () => 12});
         final probs = qmem.probabilities;
         final sum = probs.values.reduce((s, p) => s + p);
@@ -100,8 +104,14 @@ void main() {
 
       test('partial', () {
         final qmem = QMemorySpace.one(8);
-        final qa = qmem.createRegister('a', addresses: [$3, $2, $1, $0]);
-        final qb = qmem.createRegister('b', addresses: [$7, $6, $5, $4]);
+        final qa = qmem.createRegister(
+          'a',
+          addresses: [Hardware.$3, Hardware.$2, Hardware.$1, Hardware.$0],
+        );
+        final qb = qmem.createRegister(
+          'b',
+          addresses: [Hardware.$7, Hardware.$6, Hardware.$5, Hardware.$4],
+        );
 
         var probs = qmem.probabilities;
         var sum = probs.values.reduce((s, p) => s + p);

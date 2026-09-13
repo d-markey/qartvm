@@ -27,24 +27,20 @@ void main() {
 
   final qmem = QMemorySpace.zero(3);
 
-  final $0 = QbitAddress(0);
-  final $1 = QbitAddress(1);
-  final $2 = QbitAddress(2);
-
-  final alice = qmem.createRegister('Alice', at: $0);
-  final bob = qmem.createRegister('Bob', at: $2);
+  final alice = qmem.createRegister('Alice', at: Hardware.$0);
+  final bob = qmem.createRegister('Bob', at: Hardware.$2);
 
   final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
 
   final circuit = QCircuit(gateBuilder);
-  circuit.hadamard($1);
-  circuit.not($2, controls: $1);
-  circuit.not($1, controls: $0);
-  circuit.hadamard($0);
-  circuit.measure({$0});
-  circuit.measure({$1});
-  circuit.not($2, controls: {$1});
-  circuit.pauliZ($2, controls: {$0});
+  circuit.hadamard(Hardware.$1);
+  circuit.not(Hardware.$2, controls: Hardware.$1);
+  circuit.not(Hardware.$1, controls: Hardware.$0);
+  circuit.hadamard(Hardware.$0);
+  circuit.measure({Hardware.$0});
+  circuit.measure({Hardware.$1});
+  circuit.not(Hardware.$2, controls: {Hardware.$1});
+  circuit.pauliZ(Hardware.$2, controls: {Hardware.$0});
 
   print('');
   print('Verification before compilation');

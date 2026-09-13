@@ -198,9 +198,6 @@ void main() {
     });
 
     group('Measurement Mode -', () {
-      final $0 = QbitAddress(0);
-      final $1 = QbitAddress(1);
-
       test('independent (default)', () {
         final qmem = QMemorySpace.plus(
           2,
@@ -271,7 +268,10 @@ void main() {
         expect(qmem.probabilities['111'], closeTo(0.5, 1e-9));
 
         // Measure only q0 and q1 jointly
-        final res = qmem.read(qbits: [$0, $1], mode: QMeasureMode.joint);
+        final res = qmem.read(
+          qbits: [Hardware.$0, Hardware.$1],
+          mode: QMeasureMode.joint,
+        );
         expect(res == 0 || res == 3, isTrue);
 
         // q2 should still be |1>

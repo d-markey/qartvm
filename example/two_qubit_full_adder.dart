@@ -30,15 +30,12 @@ void main() {
   //    3      =      b0    /      b0
   //    4      =      b1    /      b1
 
-  final $0 = QbitAddress(0),
-      $1 = QbitAddress(1),
-      $2 = QbitAddress(2),
-      $3 = QbitAddress(3),
-      $4 = QbitAddress(4);
-
   final qmem = QMemorySpace.zero(6);
-  final qa = qmem.createRegister('a', addresses: [$2, $1, $0]);
-  final qb = qmem.createRegister('b', addresses: [$3, $4]);
+  final qa = qmem.createRegister(
+    'a',
+    addresses: [Hardware.$2, Hardware.$1, Hardware.$0],
+  );
+  final qb = qmem.createRegister('b', addresses: [Hardware.$3, Hardware.$4]);
 
   final gateBuilder = QGateBuilder.get(qmem.size, withCache: true);
 
@@ -47,13 +44,13 @@ void main() {
   circuit.qft(qa, swap: true);
   final qft = circuit.gates.last.matrix!;
 
-  circuit.phase(math.pi / 2, $2, controls: $4);
-  circuit.phase(math.pi / 4, $2, controls: $3);
+  circuit.phase(math.pi / 2, Hardware.$2, controls: Hardware.$4);
+  circuit.phase(math.pi / 4, Hardware.$2, controls: Hardware.$3);
 
-  circuit.phase(math.pi, $1, controls: $4);
-  circuit.phase(math.pi / 2, $1, controls: $3);
+  circuit.phase(math.pi, Hardware.$1, controls: Hardware.$4);
+  circuit.phase(math.pi / 2, Hardware.$1, controls: Hardware.$3);
 
-  circuit.phase(math.pi, $0, controls: $3);
+  circuit.phase(math.pi, Hardware.$0, controls: Hardware.$3);
 
   circuit.invQft(qa, swap: true);
   final invqft = circuit.gates.last.matrix!;

@@ -1,3 +1,7 @@
+## 0.9.3
+
+Add accessor for output variables.
+
 ## 0.9.2
 
 - Implement "local gates" operating on target/control qubits only (see `QMemorySpace._applyLocalGate()`).

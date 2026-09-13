@@ -4,7 +4,7 @@ import 'utils.dart';
 
 void main() {
   final circuit = QCircuit(QGateBuilder.get(2, withCache: false));
-  circuit.not(1, controls: 0);
+  circuit.not(Hardware.$1, controls: Hardware.$0);
 
   describe(circuit);
   draw(circuit);

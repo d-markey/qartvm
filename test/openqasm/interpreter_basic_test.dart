@@ -154,7 +154,7 @@ int shift_right = a >> 1;
       final context = StateContext();
       context.quantumMemory = QMemorySpace.zero(2);
       context.symbols.declareVariable('x', 5);
-      context.quantumMemory!.measure(qbits: {QbitAddress(0)});
+      context.quantumMemory!.measure(qbits: {Hardware.$0});
 
       final fork = context.fork();
 

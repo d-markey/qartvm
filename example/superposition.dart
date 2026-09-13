@@ -16,15 +16,13 @@ void main() {
   //  2 ----| H |----
   //         ---
 
-  final $0 = QbitAddress(0), $1 = QbitAddress(1), $2 = QbitAddress(2);
-
   final qmem = QMemorySpace.zero(3);
-  final qa = qmem.createRegister('a', at: $0);
-  final qb = qmem.createRegister('b', at: $1);
-  final qc = qmem.createRegister('c', at: $2);
+  final qa = qmem.createRegister('a', at: Hardware.$0);
+  final qb = qmem.createRegister('b', at: Hardware.$1);
+  final qc = qmem.createRegister('c', at: Hardware.$2);
   final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
   final circuit = QCircuit(gateBuilder);
-  circuit.hadamard({$0, $2});
+  circuit.hadamard({Hardware.$0, Hardware.$2});
 
   describe(circuit);
   draw(circuit, qmem: qmem);
