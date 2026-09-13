@@ -31,8 +31,9 @@ var qmem4 = QMemorySpace.load(5, size: 3); // |101>
 -   **Registers**: You can define named registers (e.g., `q[0]`, `q[1]`) mapping to physical qubit indices.
 -   **State Access**: Access amplitudes and probabilities of basis states. `qmem.probabilities` returns a map of states (e.g., "001") to their probabilities.
 -   **Measurement**: 
-    -   `measure(qubits)`: Collapses the wave function based on the probability of outcomes for specific qubits.
-    -   `read(qubits)`: Measures and returns the integer representation of the classical result.
+    -   `measure(qubits, {mode})`: Collapses the wave function. Supports `independent` (default) or `joint` modes.
+    -   `read(qubits, {mode})`: Measures and returns the integer representation.
+    -   See [Measurement Modes](file:///C:/_Projects/github/qartvm/doc/measurement_modes.md) for a detailed comparison.
 -   **Gate Application**: `applyGate(matrix, qubits)` applies a unitary matrix to specific qubits.
 
 ## QCircuit (`lib/src/qcircuit.dart`)

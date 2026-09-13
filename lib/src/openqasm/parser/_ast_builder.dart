@@ -1,3 +1,5 @@
+import '../../math/complex.dart';
+import '../../qstate.dart';
 import '../antlr4/parser/OpenQASM3Parser.dart';
 import '../antlr4/parser/OpenQASM3ParserBaseVisitor.dart';
 import 'ast_nodes.dart';
@@ -156,18 +158,18 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
 
   @override
   OpenQASMNode? visitGateModifier(GateModifierContext ctx) {
-    String type = '';
+    Modifier? type;
     if (ctx.INV() != null) {
-      type = 'inv';
+      type = .inv;
     }
     if (ctx.POW() != null) {
-      type = 'pow';
+      type = .pow;
     }
     if (ctx.CTRL() != null) {
-      type = 'ctrl';
+      type = .ctrl;
     }
     if (ctx.NEGCTRL() != null) {
-      type = 'negctrl';
+      type = .negctrl;
     }
     final expression = ctx.expression() != null
         ? visit(ctx.expression()!) as Expression
@@ -216,7 +218,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       final text = ctx.HardwareQubit()!.text!;
       return HardwareQubitExpression(
         Source.fromContext(ctx),
-        int.parse(text.substring(1)),
+        QbitAddress(int.parse(text.substring(1))),
       );
     }
     return IdentifierExpression(Source.fromContext(ctx), ctx.text);
@@ -289,7 +291,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       return LiteralExpression(
         Source.fromContext(ctx),
         int.parse(ctx.DecimalIntegerLiteral()!.text!.replaceAll('_', '')),
-        'int',
+        .int,
       );
     }
     if (ctx.BinaryIntegerLiteral() != null) {
@@ -297,7 +299,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       return LiteralExpression(
         Source.fromContext(ctx),
         int.parse(text.substring(2).replaceAll('_', ''), radix: 2),
-        'int',
+        .int,
       );
     }
     if (ctx.OctalIntegerLiteral() != null) {
@@ -305,7 +307,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       return LiteralExpression(
         Source.fromContext(ctx),
         int.parse(text.substring(2).replaceAll('_', ''), radix: 8),
-        'int',
+        .int,
       );
     }
     if (ctx.HexIntegerLiteral() != null) {
@@ -313,58 +315,64 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
       return LiteralExpression(
         Source.fromContext(ctx),
         int.parse(text.substring(2).replaceAll('_', ''), radix: 16),
-        'int',
+        .int,
       );
     }
     if (ctx.FloatLiteral() != null) {
       return LiteralExpression(
         Source.fromContext(ctx),
         double.parse(ctx.FloatLiteral()!.text!.replaceAll('_', '')),
-        'float',
+        .float,
       );
     }
     if (ctx.BooleanLiteral() != null) {
       return LiteralExpression(
         Source.fromContext(ctx),
         ctx.BooleanLiteral()!.text == 'true',
-        'bool',
+        .bool,
       );
     }
     if (ctx.StringLiteral() != null) {
       return LiteralExpression(
         Source.fromContext(ctx),
         ctx.StringLiteral()!.text!.replaceAll('"', '').replaceAll('\'', ''),
-        'string',
+        .string,
       );
     }
     if (ctx.ImaginaryLiteral() != null) {
       final text = ctx.ImaginaryLiteral()!.text!.trim();
-      final val = double.parse(text.substring(0, text.length - 2).trim());
-      return LiteralExpression(Source.fromContext(ctx), val, 'imaginary');
+      final val = double.parse(
+        text.substring(0, text.length - 2).trim().replaceAll('_', ''),
+      );
+      return LiteralExpression(
+        Source.fromContext(ctx),
+        Complex(im: val),
+        .complex,
+      );
     }
     if (ctx.TimingLiteral() != null) {
       return LiteralExpression(
         Source.fromContext(ctx),
         ctx.TimingLiteral()!.text,
-        'timing',
+        .timing,
       );
     }
     if (ctx.BitstringLiteral() != null) {
       final text = ctx.BitstringLiteral()!.text!;
       return LiteralExpression(
         Source.fromContext(ctx),
-        text.replaceAll('"', ''),
-        'bitstring',
+        text.replaceAll('"', '').replaceAll('_', ''),
+        .bitstring,
       );
     }
     if (ctx.HardwareQubit() != null) {
       final text = ctx.HardwareQubit()!.text!;
       return HardwareQubitExpression(
         Source.fromContext(ctx),
-        int.parse(text.substring(1)),
+        QbitAddress(int.parse(text.substring(1))),
       );
     }
-    return LiteralExpression(Source.fromContext(ctx), ctx.text, 'literal');
+    return LiteralExpression(Source.fromContext(ctx), ctx.text, .any);
   }
 
   @override
@@ -787,7 +795,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
 
   @override
   OpenQASMNode? visitIoDeclarationStatement(IoDeclarationStatementContext ctx) {
-    final direction = ctx.INPUT() != null ? 'input' : 'output';
+    final direction = ctx.INPUT() != null ? Direction.input : Direction.output;
     final type = ctx.scalarType() != null
         ? visitScalarType(ctx.scalarType()!) as TypeNode
         : visitArrayType(ctx.arrayType()!) as TypeNode;
@@ -844,7 +852,7 @@ class AstBuilder extends OpenQASM3ParserBaseVisitor<OpenQASMNode> {
 
   @override
   OpenQASMNode? visitArrayLiteral(ArrayLiteralContext ctx) {
-    final elements = <dynamic>[];
+    final elements = <Expression>[];
 
     // Parse each element - can be expression or nested arrayLiteral
     if (ctx.children != null) {

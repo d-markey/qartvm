@@ -1,3 +1,17 @@
+## 0.9.2
+
+- Implement "local gates" operating on target/control qubits only (see `QMemorySpace._applyLocalGate()`).
+- Implement a "joint" measurement mode (see `QMemorySpace.measure()` and `QMemorySpace.read()`).
+- Implement `QbitAddress` as an extension type over `int`.
+- OpenQASM:
+  - Rename `ExecutionContext` -> `StateContext` and add `StateContext.fork()`.  
+  - Implement expression optimization / simplification.
+  - Make `OpenQASMInterpreter.execute()` return a list of `InterpreterResult`.
+
+- Shor example finally implemented via OpenQASM code generation!
+  - Synthesis: modular exponentiations via precomputed permutations / truth-tables
+  - Ripple & QFT: using Ripple-Carry adders or QFT adders
+
 ## 0.9.1
 
 Math optimizations:

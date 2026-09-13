@@ -77,6 +77,7 @@ QCircuit buildDecoder(QGateBuilder gateBuilder) {
   // inverse QFT
   decoder.invQft(
     Iterable<int>.generate(gateBuilder.size).toList(),
+    swap: true,
     label: "INV_QFT",
   );
   // measure

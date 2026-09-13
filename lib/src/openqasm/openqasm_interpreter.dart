@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import '../qmemory_space.dart';
-import 'interpreter/_execution_context.dart';
 import 'interpreter/_expression_evaluator.dart';
 import 'interpreter/_flow_exceptions.dart';
 import 'interpreter/_gate_mapper.dart';
@@ -9,10 +8,12 @@ import 'interpreter/_program_scanner.dart';
 import 'interpreter/_qbit_resolver.dart';
 import 'interpreter/_range_result.dart';
 import 'interpreter/_standard_gate_executors.dart';
+import 'interpreter/_state_context.dart';
 import 'interpreter/exceptions.dart';
 import 'interpreter/interpreter_result.dart';
 import 'interpreter/openqasm_include_provider.dart';
 import 'openqasm_parser.dart';
+import 'parser/_eval.dart';
 import 'parser/ast_nodes.dart';
 
 /// Observer callback for OpenQASM execution.
@@ -53,28 +54,33 @@ class OpenQASMInterpreter {
     _observers.remove(observer);
   }
 
-  /// Executes the given [program] and returns the result.
+  /// Executes the given [program] and returns a list of results.
   ///
   /// The [includeProvider] passed to the constructor is used to load
   /// any files referenced by `include` statements.
   ///
-  /// Use [executionContext] or [initialVariables] to provide classical values
+  /// Use [stateContext] or [inputVariables] to provide classical values
   /// that are available at runtime without hardcoding them into the QASM source.
-  Future<InterpreterResult> execute(
+  ///
+  /// [expectedMeasurements] is currently for future branching support.
+  /// When 1 (default), executes as a single branch and returns a single-item list.
+  Future<List<InterpreterResult>> execute(
     Program program, {
-    ExecutionContext? executionContext,
-    Map<String, dynamic>? initialVariables,
+    StateContext? stateContext,
+    Map<String, dynamic>? inputVariables,
+    int expectedMeasurements = 1,
+    bool withCache = true,
   }) async {
     _stepCount = 0;
-    final context = executionContext ?? ExecutionContext();
-    if (initialVariables != null) {
-      for (final entry in initialVariables.entries) {
-        context.setRuntimeVariable(entry.key, entry.value);
+    final context = stateContext ?? StateContext(withCache: withCache);
+    if (inputVariables != null) {
+      for (final entry in inputVariables.entries) {
+        context.setInputVariable(entry.key, entry.value);
       }
     }
     _evaluator = ExpressionEvaluator(context, (statements) async {
       for (final statement in statements) {
-        await _executeStatement(statement, context);
+        await _executeStatementAsync(statement, context);
       }
     });
     _gateMapper = GateMapper(
@@ -95,13 +101,13 @@ class OpenQASMInterpreter {
 
     // 1. Pre-scan for total qubit count and constants
     final scanner = ProgramScanner(context, _evaluator);
-    final totalQubits = await scanner.scan(
+    final totalQbits = await scanner.scan(
       program,
     ); // Scan might trigger eval which is async
 
     // Initialize quantum memory if needed
-    if (totalQubits > 0) {
-      context.quantumMemory = QMemorySpace.zero(totalQubits);
+    if (totalQbits > 0) {
+      context.quantumMemory = QMemorySpace.zero(totalQbits);
     }
 
     // Reset context state (except quantum memory) for the actual execution
@@ -118,14 +124,14 @@ class OpenQASMInterpreter {
     }
 
     // Collect results
-    final measurements = context.measurements;
-
-    return InterpreterResult(
-      quantumMemory:
-          context.quantumMemory, // Nullable - null if no qubits declared
-      classicalVariables: context.getAllVariables(),
-      measurements: measurements,
-    );
+    return [
+      InterpreterResult(
+        quantumMemory:
+            context.quantumMemory, // Nullable - null if no qubits declared
+        classicalVariables: context.getAllVariables(),
+        measurements: context.measurements,
+      ),
+    ];
   }
 
   /// Checks that the OpenQASM version is supported.
@@ -140,7 +146,7 @@ class OpenQASMInterpreter {
   }
 
   /// Notifies all observers of the current execution state.
-  Future<void> _notify(Statement statement, ExecutionContext context) async {
+  Future<void> _notify(Statement statement, StateContext context) async {
     if (_observers.isEmpty) return;
 
     final qmem = context.quantumMemory;
@@ -165,7 +171,7 @@ class OpenQASMInterpreter {
   /// Handles include statements which require async file loading.
   Future<void> _executeStatementAsync(
     Statement statement,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     // Notify observers before execution
     await _notify(statement, context);
@@ -180,7 +186,7 @@ class OpenQASMInterpreter {
   /// Executes a single statement.
   Future<void> _executeStatement(
     Statement statement,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     // Note: _notify is called by _executeStatementAsync for top-level statements.
     // Nested statements (loops, if, custom gates) call this directly.
@@ -257,19 +263,19 @@ class OpenQASMInterpreter {
 
   Future<void> _executeQubitDeclaration(
     QubitDeclaration stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     final sizeExpr = stmt.type.designator;
     final sizeValue = sizeExpr != null
         ? await _evaluator.evaluate(sizeExpr) as int
         : 1;
 
-    context.declareQubitRegister(stmt.name, sizeValue);
+    context.declareQbitRegister(stmt.name, sizeValue);
   }
 
   Future<void> _executeClassicalDeclaration(
     ClassicalDeclaration stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     var value = stmt.initializer != null
         ? await _evaluator.evaluate(stmt.initializer)
@@ -296,14 +302,14 @@ class OpenQASMInterpreter {
 
   Future<void> _executeGateCall(
     GateCallStatement stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     await _gateMapper.executeGateCall(stmt);
   }
 
   Future<void> _executeMeasurement(
     MeasurementStatement stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     final value = await _evaluator.evaluate(stmt.measureExpression);
 
@@ -312,29 +318,45 @@ class OpenQASMInterpreter {
     }
   }
 
-  Future<void> _executeReset(
-    ResetStatement stmt,
-    ExecutionContext context,
-  ) async {
-    final qubits = await _qbitResolver.resolve(stmt.qubit);
+  // `reset` is implemented as a measurement followed by a conditional X:
+  // read the qubit's current value, and if it comes back |1>, apply an X
+  // gate to force it to |0>.
+  //
+  // Because it's built on a measurement, `reset` is an IRREVERSIBLE
+  // (non-unitary) operation. It's only safe on a qubit that's definitely
+  // in a classical basis state -- not in superposition, and not
+  // entangled with any other qubit. If the target IS entangled with the
+  // rest of the register (as an ancilla can be mid-computation), this
+  // performs a partial measurement of the whole joint state: it collapses
+  // the superposition of every qubit correlated with it, destroying
+  // interference that algorithms like phase estimation depend on to work
+  // at all. And unlike an explicit `measure` statement, the outcome here
+  // isn't stored anywhere visible to the rest of the program, so any such
+  // collapse happens silently, with no trace to debug from.
+  //
+  // Only reset ancilla/scratch qubits that a preceding (unitary)
+  // uncomputation step has already returned to a definite, unentangled
+  // state -- never use `reset` as a substitute for that uncomputation.
+  Future<void> _executeReset(ResetStatement stmt, StateContext context) async {
+    final qbits = await _qbitResolver.resolve(stmt.qbit);
     final qmem = context.quantumMemory;
     if (qmem == null) return;
 
-    for (final q in qubits) {
-      final value = qmem.read(qubits: [q]);
+    for (final q in qbits) {
+      final value = qmem.read(qbits: [q]);
       if (value == 1) {
         await _gateMapper.applyGate('x', [q], null, null);
       }
     }
   }
 
-  void _executeBarrier(BarrierStatement stmt, ExecutionContext context) {
+  void _executeBarrier(BarrierStatement stmt, StateContext context) {
     // Barrier is a no-op in simulation
   }
 
   Future<void> _executeAssignment(
     AssignmentStatement stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     var value = await _evaluator.evaluate(stmt.value);
 
@@ -345,11 +367,7 @@ class OpenQASMInterpreter {
         context.updateVariable(name, value);
       } else {
         final currentValue = context.getVariable(name);
-        final newValue = _applyCompoundOperator(
-          stmt.operator,
-          currentValue,
-          value,
-        );
+        final newValue = applyAssignmentOp(currentValue, stmt.operator, value);
         context.updateVariable(name, newValue);
       }
     } else if (target is IndexExpression) {
@@ -413,33 +431,13 @@ class OpenQASMInterpreter {
         list[lastIndex] = value;
       } else {
         final currentValue = list[lastIndex];
-        final newValue = _applyCompoundOperator(
-          stmt.operator,
-          currentValue,
-          value,
-        );
+        final newValue = applyAssignmentOp(currentValue, stmt.operator, value);
         list[lastIndex] = newValue;
       }
     }
   }
 
-  dynamic _applyCompoundOperator(String op, dynamic left, dynamic right) {
-    return switch (op) {
-      '+=' => left + right,
-      '-=' => left - right,
-      '*=' => left * right,
-      '/=' => left / right,
-      '%=' => left % right,
-      '<<=' => (left as int) << (right as int),
-      '>>=' => (left as int) >> (right as int),
-      '&=' => (left as int) & (right as int),
-      '|=' => (left as int) | (right as int),
-      '^=' => (left as int) ^ (right as int),
-      _ => throw InterpreterException('Unknown assignment operator: $op'),
-    };
-  }
-
-  Future<void> _executeIf(IfStatement stmt, ExecutionContext context) async {
+  Future<void> _executeIf(IfStatement stmt, StateContext context) async {
     if (await _conditionToBool(stmt.condition, context)) {
       await _executeWithScope(stmt.ifBody, context);
     } else if (stmt.elseBody != null) {
@@ -449,7 +447,7 @@ class OpenQASMInterpreter {
 
   Future<void> _executeWithScope(
     List<Statement> body,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     context.pushScope();
     try {
@@ -461,7 +459,7 @@ class OpenQASMInterpreter {
     }
   }
 
-  Future<void> _executeFor(ForStatement stmt, ExecutionContext context) async {
+  Future<void> _executeFor(ForStatement stmt, StateContext context) async {
     final rangeValue = await _evaluator.evaluate(stmt.range);
     final Iterable<dynamic> values = switch (rangeValue) {
       RangeResult r => r.values,
@@ -487,10 +485,7 @@ class OpenQASMInterpreter {
     }
   }
 
-  Future<void> _executeWhile(
-    WhileStatement stmt,
-    ExecutionContext context,
-  ) async {
+  Future<void> _executeWhile(WhileStatement stmt, StateContext context) async {
     while (await _conditionToBool(stmt.condition, context)) {
       final shouldBreak = await _executeLoopBody(stmt.body, context);
       if (shouldBreak) break;
@@ -501,7 +496,7 @@ class OpenQASMInterpreter {
   /// Returns true if the loop should break, false otherwise.
   Future<bool> _executeLoopBody(
     List<Statement> body,
-    ExecutionContext context, {
+    StateContext context, {
     void Function()? onScopeEnter,
   }) async {
     context.pushScope();
@@ -522,19 +517,19 @@ class OpenQASMInterpreter {
 
   Future<bool> _conditionToBool(
     Expression condition,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     final result = await _evaluator.evaluate(condition);
-    return ExpressionEvaluator.toBool(result);
+    return toBool(result);
   }
 
-  void _executeGateDefinition(GateStatement stmt, ExecutionContext context) {
+  void _executeGateDefinition(GateStatement stmt, StateContext context) {
     context.symbols.declareGate(stmt.name, stmt);
   }
 
   void _executeSubroutineDefinition(
     SubroutineDefinition stmt,
-    ExecutionContext context,
+    StateContext context,
   ) {
     context.symbols.declareSubroutine(stmt.name, stmt);
   }
@@ -542,7 +537,7 @@ class OpenQASMInterpreter {
   /// Executes an include statement by loading the file and parsing/executing its contents.
   Future<void> _executeInclude(
     IncludeStatement stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     // Special case for standard gates: register built-in gates without loading from a provider
     if (stmt.filename == 'stdgates.inc') {
@@ -584,7 +579,7 @@ class OpenQASMInterpreter {
   /// Registers standard OpenQASM gates as executors.
   /// This is called when `include "stdgates.inc"` is processed.
   /// At this point, quantum memory has been initialized with the correct size.
-  void _registerStandardGates(ExecutionContext context) {
+  void _registerStandardGates(StateContext context) {
     final qmem = context.quantumMemory;
     if (qmem == null) {
       throw InterpreterException(
@@ -643,29 +638,36 @@ class OpenQASMInterpreter {
     context.symbols.registerGateExecutor('cswap', CSWAPGateExecutor(qmem));
   }
 
-  void _executeAlias(AliasStatement stmt, ExecutionContext context) {
+  void _executeAlias(AliasStatement stmt, StateContext context) {
     throw UnimplementedError('AliasStatement not yet implemented');
   }
 
   Future<void> _executeConstant(
     ConstantDeclaration stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     final value = await _evaluator.evaluate(stmt.value);
     context.symbols.declareConstant(stmt.name, value);
   }
 
-  void _executeIO(IOStatement stmt, ExecutionContext context) {
-    // IO statements are no-ops in simulation
+  void _executeIO(IOStatement stmt, StateContext context) {
+    switch (stmt.direction) {
+      case .input:
+        final val = context.loadInputVariable(stmt.name);
+        context.symbols.declareVariable(stmt.name, val);
+      case .output:
+        // output is not supported yet
+        break;
+    }
   }
 
-  void _executeExtern(ExternStatement stmt, ExecutionContext context) {
+  void _executeExtern(ExternStatement stmt, StateContext context) {
     // Extern declarations are no-ops
   }
 
   Future<void> _executeExpressionStatement(
     ExpressionStatement stmt,
-    ExecutionContext context,
+    StateContext context,
   ) async {
     await _evaluator.evaluate(stmt.expression);
   }

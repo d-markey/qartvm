@@ -1,11 +1,12 @@
 import 'qmemory_space.dart';
+import 'qstate.dart';
 
 /// Represents a quantum register (ordered set of qubits)
 class QRegister {
   /// Creates a register with name [name] using qubits [addresses] from [qmem] space
-  QRegister._(this.name, QMemorySpace qmem, List<int> addresses)
+  QRegister._(this.name, QMemorySpace qmem, List<QbitAddress> addresses)
     : _qmem = qmem,
-      qubits = addresses.toList();
+      qbits = addresses.toList();
 
   final QMemorySpace _qmem;
 
@@ -13,18 +14,18 @@ class QRegister {
   final String name;
 
   /// The list of qubits making up this quantum register, identified by their address in the quantum memory space
-  final List<int> qubits;
+  final List<QbitAddress> qbits;
 
   /// The size of this quantum register
-  int get size => qubits.length;
+  int get size => qbits.length;
 
   /// Gets the address of this quantum register's [i]th qubit in the memory space
-  int operator [](int i) => qubits[i];
+  QbitAddress operator [](int i) => qbits[i];
 
   /// Gets the index of this qubit in this quantum register
-  int? indexOf(int qubit) {
-    for (var j = 0; j < qubits.length; j++) {
-      if (qubits[j] == qubit) return j;
+  int? indexOf(QbitAddress qbit) {
+    for (var j = 0; j < qbits.length; j++) {
+      if (qbits[j] == qbit) return j;
     }
     return null;
   }
@@ -34,11 +35,12 @@ class QRegister {
   int? _measure;
 
   /// Measures the qubits of this quantum register and returns the integer
-  int read() => (_measure = _qmem.read(qubits: qubits));
+  int read({QMeasureMode? mode, bool debug = false}) =>
+      (_measure = _qmem.read(qbits: qbits, mode: mode, debug: debug));
 
   @override
   String toString() =>
-      '$name (${qubits.length == 1 ? 'qubit' : 'qubits'} ${qubits.map((q) => '#$q').join(', ')})';
+      '$name (${qbits.length == 1 ? 'qubit' : 'qubits'} ${qbits.map((q) => '#$q').join(', ')})';
 }
 
 // for internal use
@@ -47,6 +49,6 @@ extension QRegisterImpl on QRegister {
   static QRegister ctor(
     String name,
     QMemorySpace memory,
-    List<int> addresses,
+    List<QbitAddress> addresses,
   ) => QRegister._(name, memory, addresses);
 }

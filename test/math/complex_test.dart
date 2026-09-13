@@ -10,7 +10,7 @@ void main() {
     group('Constants -', () {
       test('zero', () {
         final a = Complex.zero;
-        expect(a.det, equals(0));
+        expect(a.modulus2, equals(0));
         expect(a.modulus, equals(0));
         expect(a, complexEquals(Complex(re: 0)));
         expect(a, complexEquals(Complex.polar(radius: 0), precision: 1e-9));
@@ -18,7 +18,7 @@ void main() {
 
       test('one', () {
         final a = Complex.one;
-        expect(a.det, equals(1));
+        expect(a.modulus2, equals(1));
         expect(a.modulus, equals(1));
         expect(a, complexEquals(Complex(re: 1)));
         expect(
@@ -29,7 +29,7 @@ void main() {
 
       test('i', () {
         final a = Complex.i;
-        expect(a.det, equals(1));
+        expect(a.modulus2, equals(1));
         expect(a.modulus, equals(1));
         expect(a, complexEquals(Complex(im: 1)));
         expect(
@@ -73,7 +73,7 @@ void main() {
 
       test('Multiplication', () {
         final a = Complex.i;
-        expect(a * a, complexEquals(Complex.minusOne));
+        expect(a * a, complexEquals(-Complex.one));
         final b = Complex.polar(radius: 3, angle: math.pi / 4);
         expect(
           a * b,

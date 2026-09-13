@@ -1,16 +1,17 @@
 import 'dart:math' as math;
 
 import 'math/complex.dart';
-import 'exceptions.dart';
-import 'extensions.dart';
+import 'utils/exceptions.dart';
+import 'utils/extensions.dart';
 
 /// Class representing a qubit
 class Qbit {
   /// Builds a qubit in state [ket0] |0> + [ket1] |1>
   /// |[ket0]|² + |[ket1]|² must be equal to 1
   Qbit({required this.ket0, required this.ket1}) {
-    if (!(ket0.det + ket1.det).equals(1, precision: 1e-9)) {
-      throw InvalidQubitError();
+    if (!(ket0.modulus2 + ket1.modulus2).equals(1, precision: 1e-9)) {
+      print('ket0.modulus2 + ket1.modulus2 = ${ket0.modulus2 + ket1.modulus2}');
+      throw InvalidQbitError();
     }
   }
 
@@ -18,7 +19,7 @@ class Qbit {
   static Qbit random() {
     var k0 = Complex.random();
     var k1 = Complex.random();
-    final adjust = math.sqrt(k0.det + k1.det);
+    final adjust = math.sqrt(k0.modulus2 + k1.modulus2);
     k0 /= adjust;
     k1 /= adjust;
     return Qbit(ket0: k0, ket1: k1);
@@ -32,7 +33,7 @@ class Qbit {
     error = Complex.random(radius: errorLevel);
     var k1 = ket1 + error;
 
-    final adjust = math.sqrt(k0.det + k1.det);
+    final adjust = math.sqrt(k0.modulus2 + k1.modulus2);
     k0 /= adjust;
     k1 /= adjust;
 
@@ -113,15 +114,15 @@ class Qbit {
 
   @override
   String toString() {
-    if (ket0 == Complex.zero) {
-      if (ket1 == Complex.one) {
+    if (ket0.isZero) {
+      if (ket1.isOne) {
         return '|1>';
       } else {
         final k1 = _component(ket1);
         return '$k1 |1>';
       }
-    } else if (ket1 == Complex.zero) {
-      if (ket0 == Complex.one) {
+    } else if (ket1.isZero) {
+      if (ket0.isOne) {
         return '|0>';
       } else {
         final k0 = _component(ket0);

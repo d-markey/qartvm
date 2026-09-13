@@ -27,20 +27,24 @@ void main() {
 
   final qmem = QMemorySpace.zero(3);
 
-  final alice = qmem.createRegister('Alice', at: 0);
-  final bob = qmem.createRegister('Bob', at: 2);
+  final $0 = QbitAddress(0);
+  final $1 = QbitAddress(1);
+  final $2 = QbitAddress(2);
+
+  final alice = qmem.createRegister('Alice', at: $0);
+  final bob = qmem.createRegister('Bob', at: $2);
 
   final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
 
   final circuit = QCircuit(gateBuilder);
-  circuit.hadamard(1);
-  circuit.not(2, controls: 1);
-  circuit.not(1, controls: 0);
-  circuit.hadamard(0);
-  circuit.measure({0});
-  circuit.measure({1});
-  circuit.not(2, controls: {1});
-  circuit.pauliZ(2, controls: {0});
+  circuit.hadamard($1);
+  circuit.not($2, controls: $1);
+  circuit.not($1, controls: $0);
+  circuit.hadamard($0);
+  circuit.measure({$0});
+  circuit.measure({$1});
+  circuit.not($2, controls: {$1});
+  circuit.pauliZ($2, controls: {$0});
 
   print('');
   print('Verification before compilation');
@@ -72,8 +76,8 @@ void checkTeleportation(
   });
 
   print('Initial states: ${amplInfo(qmem, fractionDigits: 6)}');
-  final alice0 = qmem.getPropability('0..');
-  final alice1 = qmem.getPropability('1..');
+  final alice0 = qmem.getProbability('0..');
+  final alice1 = qmem.getProbability('1..');
   print(
     '   Alice: 0 (${percent(alice0, fractionDigits: 2)}) / 1 (${percent(alice1, fractionDigits: 2)})',
   );
@@ -82,8 +86,8 @@ void checkTeleportation(
 
   // Bob's qubit will have same probabilities as Alice's initial qubit
   print('Final states: ${amplInfo(qmem, fractionDigits: 6)}');
-  final bob0 = qmem.getPropability('..0');
-  final bob1 = qmem.getPropability('..1');
+  final bob0 = qmem.getProbability('..0');
+  final bob1 = qmem.getProbability('..1');
   print(
     '   Bob  : 0 (${percent(bob0, fractionDigits: 2)}) / 1 (${percent(bob1, fractionDigits: 2)})',
   );

@@ -6,7 +6,7 @@ import 'utils.dart';
 
 void main() {
   // 2-qubit adder for a (in 0..4) + b (in 0..3)
-  // computes a+b mod 8 if a > 4
+  // computes a+b mod 8
   //
   //              -----                                                                 -----------    ---------
   //  0 = a0 ----| QFT |---------------------------------------------------------------| P(1.0 pi) |--| INV-QFT |----  = (a+b)0
@@ -29,34 +29,41 @@ void main() {
   //    2      =      a2    /    (a+b)2 (carry)
   //    3      =      b0    /      b0
   //    4      =      b1    /      b1
-  //    5      =      |0>                           (suppressed as this qubit is useless)
 
-  final qmem = QMemorySpace.zero(5);
-  final qa = qmem.createRegister('a', addresses: [2, 1, 0]);
-  final qb = qmem.createRegister('b', addresses: [4, 3]);
+  final $0 = QbitAddress(0),
+      $1 = QbitAddress(1),
+      $2 = QbitAddress(2),
+      $3 = QbitAddress(3),
+      $4 = QbitAddress(4);
+
+  final qmem = QMemorySpace.zero(6);
+  final qa = qmem.createRegister('a', addresses: [$2, $1, $0]);
+  final qb = qmem.createRegister('b', addresses: [$3, $4]);
 
   final gateBuilder = QGateBuilder.get(qmem.size, withCache: true);
 
   final circuit = QCircuit(gateBuilder);
 
-  circuit.qft(qa);
+  circuit.qft(qa, swap: true);
   final qft = circuit.gates.last.matrix!;
 
-  // circuit.phase(math.pi, 2, controls: 5); // suppressed because qubit 5 is always |0>
-  circuit.phase(math.pi / 2, 2, controls: 4);
-  circuit.phase(math.pi / 4, 2, controls: 3);
+  circuit.phase(math.pi / 2, $2, controls: $4);
+  circuit.phase(math.pi / 4, $2, controls: $3);
 
-  circuit.phase(math.pi, 1, controls: 4);
-  circuit.phase(math.pi / 2, 1, controls: 3);
+  circuit.phase(math.pi, $1, controls: $4);
+  circuit.phase(math.pi / 2, $1, controls: $3);
 
-  circuit.phase(math.pi, 0, controls: 3);
+  circuit.phase(math.pi, $0, controls: $3);
 
-  circuit.invQft(qa);
+  circuit.invQft(qa, swap: true);
   final invqft = circuit.gates.last.matrix!;
 
-  print((qft).toStringIndent(hideZeroes: true));
-  print((invqft).toStringIndent(hideZeroes: true));
-  print((qft * invqft).toStringIndent(hideZeroes: true));
+  assert(
+    (qft * invqft).equals(
+      ComplexSparseMatrix.identity(qft.rows),
+      precision: 1e-6,
+    ),
+  );
 
   describe(circuit);
   draw(circuit, qmem: qmem);
@@ -95,8 +102,7 @@ void verifyAddition(
   _nbExec = 0;
 
   // truth table
-  // a can actually be in 0..4 as there will be no carry when adding b in 0..3
-  for (var a = 0; a <= 7; a++) {
+  for (var a = 0; a <= 4; a++) {
     for (var b = 0; b <= 3; b++) {
       final results = <int, int>{};
       for (var i = 0; i < 100; i++) {
@@ -126,13 +132,13 @@ void verifyAddition(
     _nbExec++;
 
     // read values of b and sum after execution
-    final sum = qa.read();
     final bb = qb.read();
-    if (sum != (a + b) % 8) {
-      throw Exception('Wrong result $sum for $a + $b');
-    }
     if (bb != b) {
       throw Exception('Unexpected change in ${qb.name}: $bb (was $b)');
+    }
+    final sum = qa.read();
+    if (sum != (a + b) % 8) {
+      throw Exception('Wrong result $sum for $a + $b');
     }
   }
 }

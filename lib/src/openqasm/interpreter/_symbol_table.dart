@@ -175,6 +175,21 @@ class SymbolTable {
     _scopes.add(_Scope());
   }
 
+  /// Copies all entries from [source] into this symbol table.
+  void copyFrom(SymbolTable source) {
+    clear();
+    for (final scope in source._scopes) {
+      final clone = _Scope();
+      clone.qubits.addAll(scope.qubits);
+      clone.variables.addAll(scope.variables);
+      clone.gates.addAll(scope.gates);
+      clone.subroutines.addAll(scope.subroutines);
+      clone.constants.addAll(scope.constants);
+      clone.executors.addAll(scope.executors);
+      _scopes.add(clone);
+    }
+  }
+
   /// Returns all qubit registers in the current scope hierarchy.
   Map<String, QRegister> getAllQubits() {
     final result = <String, QRegister>{};

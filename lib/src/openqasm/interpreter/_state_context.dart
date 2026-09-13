@@ -2,6 +2,7 @@ import '../../qcircuit.dart';
 import '../../qgate_builder.dart';
 import '../../qmemory_space.dart';
 import '../../qregister.dart';
+import '../../qstate.dart';
 import '../parser/ast_nodes.dart';
 import '_symbol_table.dart';
 import 'exceptions.dart';
@@ -13,18 +14,22 @@ import 'exceptions.dart';
 /// - Quantum memory space
 /// - Quantum circuit (optional, for deferred execution)
 /// - Classical variable storage
-class ExecutionContext {
-  ExecutionContext({this.quantumMemory, this.circuit})
+class StateContext {
+  StateContext({this.quantumMemory, this.circuit, this.withCache = true})
     : symbols = SymbolTable(),
       _qubitCounter = 0,
       _measurements = {},
-      _runtimeVariables = {};
+      _inputVariables = {},
+      _outputVariables = {};
+
+  final bool withCache;
 
   /// Symbol table tracking all declared entities.
   final SymbolTable symbols;
 
-  /// Runtime-supplied classical variables that are not declared in the QASM source.
-  final Map<String, dynamic> _runtimeVariables;
+  /// IO variables for IO statements.
+  final Map<String, dynamic> _inputVariables;
+  final Map<String, dynamic> _outputVariables;
 
   /// Measurement results (last value for each qubit/register key).
   final Map<String, int> _measurements;
@@ -42,9 +47,9 @@ class ExecutionContext {
 
   /// Declares a quantum register with the given [name] and [size].
   /// Allocates qubits in the quantum memory space.
-  QRegister declareQubitRegister(String name, int size) {
+  QRegister declareQbitRegister(String name, int size) {
     // Allocate qubit addresses
-    final addresses = List.generate(size, (i) => _qubitCounter++);
+    final addresses = List.generate(size, (i) => QbitAddress(_qubitCounter++));
 
     // Ensure quantum memory exists and has enough capacity
     _ensureQuantumMemory(_qubitCounter);
@@ -58,25 +63,25 @@ class ExecutionContext {
     return register;
   }
 
+  void pushQubitRegister(String name, QRegister register) {
+    symbols.declareQubit(name, register);
+  }
+
   /// Declares a classical variable with the given [name], [type], and optional [value].
   void declareClassicalVariable(String name, TypeNode type, [dynamic value]) {
     // Allow execution-context values to seed undeclared/runtime variables.
-    value ??= _runtimeVariables[name] ?? _getDefaultValue(type);
+    value ??= _inputVariables[name] ?? _getDefaultValue(type);
     symbols.declareVariable(name, value);
   }
 
   /// Updates a classical variable's value.
   void updateVariable(String name, dynamic value) {
-    // try {
     symbols.updateVariable(name, value);
-    // } on SymbolTableException {
-    //   _runtimeVariables[name] = value;
-    // }
   }
 
   /// Injects a runtime-supplied classical variable value.
-  void setRuntimeVariable(String name, dynamic value) {
-    _runtimeVariables[name] = value;
+  void setInputVariable(String name, dynamic value) {
+    _inputVariables[name] = value;
   }
 
   /// Records a measurement result.
@@ -106,12 +111,10 @@ class ExecutionContext {
     final constValue = symbols.lookupConstant(name);
     if (constValue != null) return constValue;
 
-    if (_runtimeVariables.containsKey(name)) {
-      return _runtimeVariables[name];
-    }
-
     throw ExecutionException('Variable "$name" not found');
   }
+
+  dynamic loadInputVariable(String name) => _inputVariables[name];
 
   /// Enters a new scope (for blocks, loops, functions).
   void pushScope() {
@@ -121,6 +124,26 @@ class ExecutionContext {
   /// Exits the current scope.
   void popScope() {
     symbols.popScope();
+  }
+
+  /// Creates a deep copy of this execution context.
+  ///
+  /// This is intended for branching execution paths, such as when a measurement
+  /// splits execution into multiple possible outcomes. The cloned context shares
+  /// no mutable state with the original, so mutations in one branch do not affect
+  /// the others.
+  StateContext fork() {
+    final clone = StateContext(
+      quantumMemory: quantumMemory?.clone(),
+      circuit: circuit,
+    );
+
+    clone._qubitCounter = _qubitCounter;
+    clone._measurements.addAll(_measurements);
+    clone._inputVariables.addAll(_inputVariables);
+    clone.symbols.copyFrom(symbols);
+
+    return clone;
   }
 
   /// Resets the context for a new execution pass.
@@ -149,7 +172,9 @@ class ExecutionContext {
     if (_qubitCounter == 0) {
       throw ExecutionException('No qubits declared yet');
     }
-    return QCircuit(QGateBuilder.get(_qubitCounter, withCache: false));
+    // Automatically disable cache for large circuits to avoid OOM
+    final useCache = withCache && _qubitCounter <= 20;
+    return QCircuit(QGateBuilder.get(_qubitCounter, withCache: useCache));
   }
 
   /// Gets default value for a given type.
@@ -192,7 +217,7 @@ class ExecutionContext {
   /// Returns all classical variables.
   Map<String, dynamic> getAllVariables() {
     final variables = Map<String, dynamic>.from(symbols.getAllVariables());
-    for (final entry in _runtimeVariables.entries) {
+    for (final entry in _inputVariables.entries) {
       variables[entry.key] = entry.value;
     }
     return variables;

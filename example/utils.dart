@@ -52,7 +52,7 @@ String probInfo(QMemorySpace qmem, {int fractionDigits = 0}) => qmem
 String amplInfo(QMemorySpace qmem, {int fractionDigits = 0}) => qmem
     .amplitudes
     .entries
-    .where((e) => e.value.det > 1e-9)
+    .where((e) => e.value.modulus2 > 1e-9)
     .map(
       (e) =>
           '${qmem.formatState(e.key)} (${e.value.toStringAsFixed(fractionDigits)})',

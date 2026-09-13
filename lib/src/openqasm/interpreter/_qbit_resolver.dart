@@ -1,18 +1,20 @@
 import 'dart:async';
+
+import '../../qstate.dart';
 import '../parser/ast_nodes.dart';
-import '_execution_context.dart';
 import '_range_result.dart'; // Added for RangeResult
+import '_state_context.dart';
 import 'exceptions.dart';
 
 /// Resolves OpenQASM expressions to qubit addresses.
 class QbitResolver {
   QbitResolver(this.context, this.evaluate);
 
-  final ExecutionContext context;
+  final StateContext context;
   final Future<dynamic> Function(Expression) evaluate;
 
   /// Resolves an expression to a list of qubit addresses.
-  Future<List<int>> resolve(Expression expr) async {
+  Future<List<QbitAddress>> resolve(Expression expr) async {
     if (expr is MeasureExpression) {
       return resolve(expr.qubit);
     }
@@ -22,7 +24,7 @@ class QbitResolver {
       if (register == null) {
         throw EvaluationException('Unknown qubit register "${expr.name}"');
       }
-      return register.qubits;
+      return register.qbits;
     } else if (expr is IndexExpression) {
       // Evaluate index expression
       // The evaluator's _evaluateIndex handles qubit register indexing
@@ -40,18 +42,18 @@ class QbitResolver {
           // Since evaluate() is now async, we await it.
           final indexValue = await evaluate(expr.indices[0]);
           if (indexValue is int) {
-            return [register.qubits[indexValue]];
+            return [register.qbits[indexValue]];
           } else if (indexValue is List<int>) {
-            return indexValue.map((i) => register.qubits[i]).toList();
+            return indexValue.map((i) => register.qbits[i]).toList();
           } else if (indexValue is RangeResult) {
-            return indexValue.values.map((i) => register.qubits[i]).toList();
+            return indexValue.values.map((i) => register.qbits[i]).toList();
           }
           throw EvaluationException('Invalid qubit index: $indexValue');
         }
       }
       // If it's not a direct register access, maybe it evaluates to a list of integers (aliases? not supported yet)
     } else if (expr is HardwareQubitExpression) {
-      return [expr.index];
+      return [expr.address];
     }
 
     throw EvaluationException(
@@ -60,7 +62,7 @@ class QbitResolver {
   }
 
   /// Resolves a list of expressions to a flat list of qubit addresses.
-  Future<List<int>> resolveAll(Iterable<Expression> exprs) async {
+  Future<List<QbitAddress>> resolveAll(Iterable<Expression> exprs) async {
     final results = await Future.wait(exprs.map(resolve));
     return results.expand((x) => x).toList();
   }

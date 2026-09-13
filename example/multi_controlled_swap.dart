@@ -8,8 +8,13 @@ void main() {
   final gateBuilder = QGateBuilder.get(size, withCache: false);
 
   // swap qubits 4 & 5 controlled by qubits 0, 1, 2 & 3
-  final controls = {0, 1, 2, 3};
-  final targets = {4, 5};
+  final controls = {
+    QbitAddress(0),
+    QbitAddress(1),
+    QbitAddress(2),
+    QbitAddress(3),
+  };
+  final targets = {QbitAddress(4), QbitAddress(5)};
 
   // build uncontrolled swap gate for target qubits
   final swap = gateBuilder.highLevel.swap(targets);
@@ -31,7 +36,11 @@ void main() {
   verify(circuit, controls, targets);
 }
 
-void verify(QCircuit circuit, Set<int> controls, Set<int> targets) {
+void verify(
+  QCircuit circuit,
+  Set<QbitAddress> controls,
+  Set<QbitAddress> targets,
+) {
   final a = targets.first, b = targets.last;
   final maxState = 1 << circuit.size;
   final qubits = List.filled(circuit.size, Qbit.zero);
@@ -50,8 +59,10 @@ void verify(QCircuit circuit, Set<int> controls, Set<int> targets) {
         .singleWhere((e) => e.value > 0)
         .key;
 
-    final mustSwap = controls.every((q) => init[q] == '1');
-    final swapped = (outcome[a] == init[b] && outcome[b] == init[a]);
+    final mustSwap = controls.every((q) => init[q.index] == '1');
+    final swapped =
+        (outcome[a.index] == init[b.index] &&
+        outcome[b.index] == init[a.index]);
     final unchanged = (init == outcome);
 
     if (mustSwap && !swapped) {

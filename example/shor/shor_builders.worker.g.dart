@@ -24,7 +24,7 @@ extension on ShorBuilders {
       final ComplexMatrix $res;
       try {
         final $dsr = _$Deser(contextAware: false);
-        $res = await addGate($dsr.$1($req.args[0]), $dsr.$0($req.args[1]));
+        $res = await addGate($dsr.$1($req.args[0]), $dsr.$2($req.args[1]));
       } finally {}
       return $res;
     },
@@ -82,11 +82,11 @@ extension on ShorBuilders {
 /// remote service.
 mixin _$ShorBuilders$Invoker on Invoker implements ShorBuilders {
   @override
-  Future<ComplexMatrix> addGate(List<int> qubits, int constant) async {
-    final dynamic $res = await send(_$addGateId, args: [qubits, constant]);
+  Future<ComplexMatrix> addGate(List<QbitAddress> qbits, int constant) async {
+    final dynamic $res = await send(_$addGateId, args: [qbits, constant]);
     try {
       final $dsr = _$Deser(contextAware: false);
-      return $dsr.$2($res);
+      return $dsr.$3($res);
     } finally {}
   }
 
@@ -94,53 +94,59 @@ mixin _$ShorBuilders$Invoker on Invoker implements ShorBuilders {
   Future<void> clearCache() => send(_$clearCacheId);
 
   @override
-  Future<ComplexMatrix> invQftGate(List<int> qubits) async {
-    final dynamic $res = await send(_$invQftGateId, args: [qubits]);
+  Future<ComplexMatrix> invQftGate(List<QbitAddress> qbits) async {
+    final dynamic $res = await send(_$invQftGateId, args: [qbits]);
     try {
       final $dsr = _$Deser(contextAware: false);
-      return $dsr.$2($res);
+      return $dsr.$3($res);
     } finally {}
   }
 
   @override
-  Future<ComplexMatrix> qftGate(List<int> qubits) async {
-    final dynamic $res = await send(_$qftGateId, args: [qubits]);
+  Future<ComplexMatrix> qftGate(List<QbitAddress> qbits) async {
+    final dynamic $res = await send(_$qftGateId, args: [qbits]);
     try {
       final $dsr = _$Deser(contextAware: false);
-      return $dsr.$2($res);
+      return $dsr.$3($res);
     } finally {}
   }
 
   @override
-  Future<ComplexMatrix> resetFlagGate(List<int> qubits, int flag) async {
-    final dynamic $res = await send(_$resetFlagGateId, args: [qubits, flag]);
+  Future<ComplexMatrix> resetFlagGate(
+    List<QbitAddress> qbits,
+    QbitAddress flag,
+  ) async {
+    final dynamic $res = await send(_$resetFlagGateId, args: [qbits, flag]);
     try {
       final $dsr = _$Deser(contextAware: false);
-      return $dsr.$2($res);
+      return $dsr.$3($res);
     } finally {}
   }
 
   @override
   Future<ComplexMatrix> setFlagOnOverflowGate(
-    List<int> qubits,
-    int flag,
+    List<QbitAddress> qbits,
+    QbitAddress flag,
   ) async {
     final dynamic $res = await send(
       _$setFlagOnOverflowGateId,
-      args: [qubits, flag],
+      args: [qbits, flag],
     );
     try {
       final $dsr = _$Deser(contextAware: false);
-      return $dsr.$2($res);
+      return $dsr.$3($res);
     } finally {}
   }
 
   @override
-  Future<ComplexMatrix> swapperGate(List<int> qa, List<int> qb) async {
+  Future<ComplexMatrix> swapperGate(
+    List<QbitAddress> qa,
+    List<QbitAddress> qb,
+  ) async {
     final dynamic $res = await send(_$swapperGateId, args: [qa, qb]);
     try {
       final $dsr = _$Deser(contextAware: false);
-      return $dsr.$2($res);
+      return $dsr.$3($res);
     } finally {}
   }
 }
@@ -184,7 +190,7 @@ class _$ShorBuilders$WorkerService extends ShorBuilders
 /// Service initializer for ShorBuilders
 WorkerService $ShorBuildersInitializer(WorkerRequest $req) {
   final $dsr = _$Deser(contextAware: false);
-  return _$ShorBuilders$WorkerService($dsr.$0($req.args[0]));
+  return _$ShorBuilders$WorkerService($dsr.$2($req.args[0]));
 }
 
 /// Worker for ShorBuilders
@@ -264,36 +270,43 @@ base class ShorBuildersWorkerPool extends WorkerPool<ShorBuildersWorker>
   final int size;
 
   @override
-  Future<ComplexMatrix> addGate(List<int> qubits, int constant) =>
-      execute((w) => w.addGate(qubits, constant));
+  Future<ComplexMatrix> addGate(List<QbitAddress> qbits, int constant) =>
+      execute((w) => w.addGate(qbits, constant));
 
   @override
   Future<void> clearCache() => execute((w) => w.clearCache());
 
   @override
-  Future<ComplexMatrix> invQftGate(List<int> qubits) =>
-      execute((w) => w.invQftGate(qubits));
+  Future<ComplexMatrix> invQftGate(List<QbitAddress> qbits) =>
+      execute((w) => w.invQftGate(qbits));
 
   @override
-  Future<ComplexMatrix> qftGate(List<int> qubits) =>
-      execute((w) => w.qftGate(qubits));
+  Future<ComplexMatrix> qftGate(List<QbitAddress> qbits) =>
+      execute((w) => w.qftGate(qbits));
 
   @override
-  Future<ComplexMatrix> resetFlagGate(List<int> qubits, int flag) =>
-      execute((w) => w.resetFlagGate(qubits, flag));
+  Future<ComplexMatrix> resetFlagGate(
+    List<QbitAddress> qbits,
+    QbitAddress flag,
+  ) => execute((w) => w.resetFlagGate(qbits, flag));
 
   @override
-  Future<ComplexMatrix> setFlagOnOverflowGate(List<int> qubits, int flag) =>
-      execute((w) => w.setFlagOnOverflowGate(qubits, flag));
+  Future<ComplexMatrix> setFlagOnOverflowGate(
+    List<QbitAddress> qbits,
+    QbitAddress flag,
+  ) => execute((w) => w.setFlagOnOverflowGate(qbits, flag));
 
   @override
-  Future<ComplexMatrix> swapperGate(List<int> qa, List<int> qb) =>
-      execute((w) => w.swapperGate(qa, qb));
+  Future<ComplexMatrix> swapperGate(
+    List<QbitAddress> qa,
+    List<QbitAddress> qb,
+  ) => execute((w) => w.swapperGate(qa, qb));
 }
 
 final class _$Deser extends MarshalingContext {
   _$Deser({super.contextAware});
-  late final $0 = value<int>();
-  late final $1 = list<int>($0);
-  late final $2 = value<ComplexMatrix>();
+  late final $0 = value<QbitAddress>();
+  late final $1 = list<QbitAddress>($0);
+  late final $2 = value<int>();
+  late final $3 = value<ComplexMatrix>();
 }

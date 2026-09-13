@@ -3,10 +3,12 @@ import 'complex.dart';
 import 'complex_dense_matrix.dart';
 import 'complex_sparse_matrix.dart';
 
-enum ComplexMatrixType { dense, sparse }
-
 abstract class ComplexMatrix {
-  ComplexMatrix.base();
+  ComplexMatrix.base([String warning = '']) {
+    if (warning.isNotEmpty) {
+      print('!!! $runtimeType: $warning');
+    }
+  }
 
   int get memoryFootprint;
 
@@ -16,6 +18,10 @@ abstract class ComplexMatrix {
 
   bool get isSquare => rows == columns;
 
+  bool get isIdentity;
+
+  bool get isDiagonal;
+
   Complex get(int row, int column);
 
   void set(int row, int column, Complex value);
@@ -23,10 +29,6 @@ abstract class ComplexMatrix {
   ComplexMatrix clone();
 
   ComplexMatrix copy(covariant ComplexMatrix other);
-
-  void copyFrom(ComplexArray source);
-
-  void copyTo(ComplexArray destination);
 
   ComplexMatrix neg();
 
@@ -54,85 +56,60 @@ abstract class ComplexMatrix {
 
   ComplexMatrix conjugate();
 
-  String toStringIndent({
-    int indent,
-    int? fractionDigits,
-    bool hideZeroes,
-    double precision,
-  });
-
-  static ComplexMatrix tensor(ComplexMatrix a, ComplexMatrix b) {
-    final ComplexMatrix result;
-    final rows = a.rows * b.rows;
-    final columns = a.columns * b.columns;
-    final sparseA = a is ComplexSparseMatrix ? a : null;
-    final sparseB = b is ComplexSparseMatrix ? b : null;
-    if (sparseA != null && sparseB != null) {
-      // full sparse
-      result = ComplexSparseMatrix.zero(rows, columns);
-      for (final (ar, ac, av) in sparseA.nonZeroEntries) {
-        for (final (br, bc, bv) in sparseB.nonZeroEntries) {
-          final r = ar * b.rows + br;
-          final c = ac * b.columns + bc;
-          result.set(r, c, result.get(r, c) + av * bv);
-        }
-      }
-    } else if (sparseA != null) {
-      // sparseB == null
-      result = ComplexSparseMatrix.zero(rows, columns);
-      for (final (ar, ac, av) in sparseA.nonZeroEntries) {
-        for (var br = 0; br < b.rows; br++) {
-          for (var bc = 0; bc < b.columns; bc++) {
-            final bv = b.get(br, bc);
-            if (bv == Complex.zero) continue;
-            final r = ar * b.rows + br;
-            final c = ac * b.columns + bc;
-            result.set(r, c, result.get(r, c) + av * bv);
-          }
-        }
-      }
-    } else if (sparseB != null) {
-      // sparseA == null
-      result = ComplexSparseMatrix.zero(rows, columns);
-      for (var ar = 0; ar < a.rows; ar++) {
-        for (var ac = 0; ac < a.columns; ac++) {
-          final av = a.get(ar, ac);
-          if (av == Complex.zero) continue;
-          for (final (br, bc, bv) in sparseB.nonZeroEntries) {
-            final r = ar * b.rows + br;
-            final c = ac * b.columns + bc;
-            result.set(r, c, result.get(r, c) + av * bv);
-          }
-        }
-      }
-    } else {
-      // full dense
-      result = ComplexDenseMatrix.zero(rows, columns);
-      for (var ar = 0; ar < a.rows; ar++) {
-        for (var ac = 0; ac < a.columns; ac++) {
-          final av = a.get(ar, ac);
-          if (av == Complex.zero) continue;
-          for (var br = 0; br < b.rows; br++) {
-            for (var bc = 0; bc < b.columns; bc++) {
-              final bv = b.get(br, bc);
-              if (bv == Complex.zero) continue;
-              final r = ar * b.rows + br;
-              final c = ac * b.columns + bc;
-              result.set(r, c, result.get(r, c) + av * bv);
-            }
-          }
-        }
-      }
-    }
-
-    return result;
-  }
-
   Complex get det;
 
   ComplexMatrix inverse();
 
   bool equals(ComplexMatrix other, {double precision = 0});
+
+  @override
+  String toString() => toStringIndent();
+
+  /// Returns a String representation of this matrix with indentation at level [indent]
+  /// If [hideZeroes] is `true`, values equal to [Complex.zero] down to a precision of [precision] will not be displayed
+  /// The optional [fractionDigits] is used to format [Complex] values
+  String toStringIndent({
+    int indent = 0,
+    int? fractionDigits,
+    bool hideZeroes = false,
+    double precision = 0,
+  }) {
+    final spaces = '   ';
+    final tabs = spaces * indent;
+    final sb = StringBuffer();
+    sb.write('$tabs[\n');
+    for (var r = 0; r < rows; r++) {
+      if (r > 0) {
+        sb.write(',\n');
+      }
+      sb.write('$tabs$spaces[');
+      var isZero = false;
+      for (var c = 0; c < columns; c++) {
+        final v = get(r, c);
+        if (c > 0) {
+          if (isZero && hideZeroes) {
+            sb.write('  ');
+          } else {
+            sb.write(', ');
+          }
+        }
+        if (hideZeroes && v.equals(Complex.zero, precision: precision)) {
+          isZero |= true;
+          sb.write(' ');
+        } else {
+          isZero &= false;
+          sb.write(
+            (fractionDigits == null)
+                ? v.toString()
+                : v.toStringAsFixed(fractionDigits),
+          );
+        }
+      }
+      sb.write(']');
+    }
+    sb.write('\n$tabs]');
+    return sb.toString();
+  }
 
   List serialize();
 

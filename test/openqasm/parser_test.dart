@@ -287,23 +287,23 @@ h $0;
       // Imaginary
       final s4 = program.statements[3] as ClassicalDeclaration;
       final binExpr = s4.initializer as BinaryExpression;
-      expect((binExpr.right as LiteralExpression).type, equals('imaginary'));
-      expect((binExpr.right as LiteralExpression).value, equals(2.0));
+      expect((binExpr.right as LiteralExpression).type, LiteralType.complex);
+      expect((binExpr.right as LiteralExpression).value, equals(Complex.i * 2));
 
       // Timing
       final s5 = program.statements[4] as ClassicalDeclaration;
-      expect((s5.initializer as LiteralExpression).type, equals('timing'));
+      expect((s5.initializer as LiteralExpression).type, LiteralType.timing);
       expect((s5.initializer as LiteralExpression).value, equals('100ns'));
 
       // Bitstring
       final s6 = program.statements[5] as ClassicalDeclaration;
-      expect((s6.initializer as LiteralExpression).type, equals('bitstring'));
+      expect((s6.initializer as LiteralExpression).type, LiteralType.bitstring);
       expect((s6.initializer as LiteralExpression).value, equals('1011'));
 
       // Hardware Qubit
       final s7 = program.statements[6] as GateCallStatement;
       expect(s7.qubits[0], isA<HardwareQubitExpression>());
-      expect((s7.qubits[0] as HardwareQubitExpression).index, equals(0));
+      expect((s7.qubits[0] as HardwareQubitExpression).address, equals(0));
     });
   });
 }

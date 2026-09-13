@@ -24,7 +24,7 @@ void main() {
         c[1] = measure q[1];
       ''');
 
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(2));

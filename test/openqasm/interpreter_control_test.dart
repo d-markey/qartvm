@@ -19,7 +19,7 @@ void main() {
         measure q -> c;
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.quantumMemory, isNotNull);
       expect(result.classicalVariables['c'], equals(1));
@@ -35,7 +35,7 @@ void main() {
         c = measure q;
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['c'], equals(1));
     });
@@ -49,11 +49,11 @@ void main() {
         reset q;
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // After reset, measuring should give 0
       final qmem = result.quantumMemory!;
-      expect(qmem.read(qubits: [0]), equals(0));
+      expect(qmem.read(qbits: [0]), equals(0));
     });
 
     test('If Statement (True Condition)', () async {
@@ -67,10 +67,10 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final qmem = result.quantumMemory!;
-      expect(qmem.read(qubits: [0]), equals(1));
+      expect(qmem.read(qbits: [0]), equals(1));
     });
 
     test('If Statement (False Condition)', () async {
@@ -84,10 +84,10 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final qmem = result.quantumMemory!;
-      expect(qmem.read(qubits: [0]), equals(0));
+      expect(qmem.read(qbits: [0]), equals(0));
     });
 
     test('If-Else Statement', () async {
@@ -101,7 +101,9 @@ void main() {
           result = 2;
         }
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['result'], equals(2));
 
       final source2 = '''
@@ -114,7 +116,9 @@ void main() {
           result = 2;
         }
       ''';
-      final result2 = await interpreter.execute(OpenQASMParser.parse(source2));
+      final result2 = (await interpreter.execute(
+        OpenQASMParser.parse(source2),
+      ))[0];
       expect(result2.classicalVariables['result'], equals(1));
     });
 
@@ -134,11 +138,11 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final qmem = result.quantumMemory!;
       final b = result.classicalVariables['b'];
-      final q1 = qmem.read(qubits: [1]);
+      final q1 = qmem.read(qbits: [1]);
 
       expect(q1, equals(b));
     });

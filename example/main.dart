@@ -1,21 +1,23 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'matrix_inversion.dart' as _matrix_inversion;
-import 'superposition.dart' as _superposition;
 import 'bell_state.dart' as _bell_state;
-import 'one_qubit_full_adder.dart' as _one_qubit_full_adder;
-import 'two_qubit_full_adder.dart' as _two_qubit_full_adder;
-import 'three_qubit_full_adder.dart' as _three_qubit_full_adder;
-import 'multi_controlled_swap.dart' as _multi_controlled_swap;
-import 'qubit_teleportation.dart' as _qubit_teleportation;
 import 'fredkin_implementation.dart' as _fredkin_implementation;
 import 'inverse_qft_decoder.dart' as _inverse_qft_decoder;
-import 'phase_kickback.dart' as _phase_kickback;
+import 'matrix_inversion.dart' as _matrix_inversion;
 import 'modulo_multiplier.dart' as _modulo_multiplier;
+import 'multi_controlled_swap.dart' as _multi_controlled_swap;
+import 'one_qubit_full_adder.dart' as _one_qubit_full_adder;
+import 'phase_kickback.dart' as _phase_kickback;
+import 'qmemory.dart' as _qmemory;
+import 'qubit_teleportation.dart' as _qubit_teleportation;
 import 'shor_algorithm.dart' as _shor_algorithm;
+import 'superposition.dart' as _superposition;
+import 'three_qubit_full_adder.dart' as _three_qubit_full_adder;
+import 'two_qubit_full_adder.dart' as _two_qubit_full_adder;
 
 final programs = <String, FutureOr Function()>{
+  'QUANTUM MEMORY': _qmemory.main,
   'MATRIX INVERSION': _matrix_inversion.main,
   'SUPERPOSITION': _superposition.main,
   'BELL STATE': _bell_state.main,

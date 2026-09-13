@@ -1,4 +1,4 @@
-import '../exceptions.dart';
+import '../utils/exceptions.dart';
 import '_complex_array.dart';
 import 'complex.dart';
 import 'complex_matrix.dart';
@@ -10,7 +10,11 @@ class ComplexDenseMatrix extends ComplexMatrix {
     this.columns,
     ComplexArray values,
   ) : _values = values.clone(),
-      super.base();
+      super.base(
+        columns <= 2
+            ? ''
+            : '', //'ComplexDenseMatrix.fromComplexArray $rows x $columns',
+      );
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with values obtained from the [generator] function
   ComplexDenseMatrix.generate(
@@ -18,11 +22,28 @@ class ComplexDenseMatrix extends ComplexMatrix {
     this.columns,
     Complex Function(int row, int column) generator,
   ) : _values = ComplexArray.zero(rows * columns),
-      super.base() {
+      super.base(
+        columns <= 2
+            ? ''
+            : '', //'ComplexDenseMatrix.generate $rows x $columns',
+      ) {
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < columns; c++) {
         _values.set(_idx(r, c), generator(r, c));
       }
+    }
+  }
+
+  /// Builds a diagonal matrix of [dim] rows and [dim] columns initialized with values obtained from the [generator] function
+  ComplexDenseMatrix.diagonal(int dim, Complex Function(int idx) generator)
+    : rows = dim,
+      columns = dim,
+      _values = ComplexArray.zero(dim * dim),
+      super.base(
+        dim <= 2 ? '' : '' /*'ComplexDenseMatrix.generate $dim x $dim'*/,
+      ) {
+    for (var idx = 0; idx < dim; idx++) {
+      _values.set(_idx(idx, idx), generator(idx));
     }
   }
 
@@ -45,7 +66,9 @@ class ComplexDenseMatrix extends ComplexMatrix {
   /// Builds a matrix of [rows] rows and [columns] columns initialized with [Complex.zero]
   ComplexDenseMatrix.zero(this.rows, this.columns)
     : _values = ComplexArray.zero(rows * columns),
-      super.base();
+      super.base(
+        columns <= 2 ? '' : '', // 'ComplexDenseMatrix.zero $rows x $columns',
+      );
 
   /// Builds a matrix of [rows] rows and [columns] columns initialized with [value]
   ComplexDenseMatrix.filled(int rows, int columns, Complex value)
@@ -71,7 +94,6 @@ class ComplexDenseMatrix extends ComplexMatrix {
 
   /// Copies values from [source] into this instance
   /// The size of [source] must match the size of this matrix (i.e. [source].[ComplexArray.length] == [rows] * [columns])
-  @override
   void copyFrom(ComplexArray source) {
     if (source.length != _values.length) {
       throw InvalidOperationException();
@@ -81,7 +103,6 @@ class ComplexDenseMatrix extends ComplexMatrix {
 
   /// Copies values from this instance to [destination]
   /// The size of [destination] must match the size of this matrix (i.e. [destination].[ComplexArray.length] == [rows] * [columns])
-  @override
   void copyTo(ComplexArray destination) {
     if (destination.length != _values.length) {
       throw InvalidOperationException();
@@ -113,6 +134,7 @@ class ComplexDenseMatrix extends ComplexMatrix {
   bool get isSquare => rows == columns;
 
   /// Returns true is this instance is the identity matrix (i.e. values at row r and column c == 1 is r == c, 0 otherwise)
+  @override
   bool get isIdentity {
     if (!isSquare) return false;
     for (var r = 0; r < rows; r++) {
@@ -121,6 +143,19 @@ class ComplexDenseMatrix extends ComplexMatrix {
           return false;
         }
         if (r == c && !_values.isOne(_idx(r, c))) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  @override
+  bool get isDiagonal {
+    if (!isSquare) return false;
+    for (var r = 1; r < rows; r++) {
+      for (var c = 0; c < r; c++) {
+        if (!_values.isZero(_idx(r, c)) || !_values.isZero(_idx(c, r))) {
           return false;
         }
       }
@@ -137,9 +172,13 @@ class ComplexDenseMatrix extends ComplexMatrix {
     if (rows != other.rows || columns != other.columns) {
       throw InvalidOperationException();
     }
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < columns; c++) {
-        set(r, c, other.get(r, c));
+    if (other is ComplexDenseMatrix) {
+      _values.copy(other._values);
+    } else {
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < columns; c++) {
+          set(r, c, other.get(r, c));
+        }
       }
     }
     return this;
@@ -286,33 +325,6 @@ class ComplexDenseMatrix extends ComplexMatrix {
     return this;
   }
 
-  /// Builds a new matrix which is the result of the tensor product of [a] by [b]
-  /// The size of the resulting matrix is [rows] = [a].[rows] * [b].[rows] and [columns] = [a].[columns] * [b].[columns]
-  static ComplexDenseMatrix tensor(ComplexDenseMatrix a, ComplexDenseMatrix b) {
-    final arows = a.rows, acolumns = a.columns;
-    final brows = b.rows, bcolumns = b.columns;
-
-    final rows = arows * brows, columns = acolumns * bcolumns;
-    final c = ComplexDenseMatrix.zero(rows, columns);
-
-    final av = a._values, aidx = a._idx;
-    final bv = b._values, bidx = b._idx;
-    final cv = c._values, cidx = c._idx;
-    for (var ar = 0; ar < arows; ar++) {
-      for (var ac = 0; ac < acolumns; ac++) {
-        for (var br = 0; br < brows; br++) {
-          final cr = (ar * brows) + br;
-          for (var bc = 0; bc < bcolumns; bc++) {
-            final cc = (ac * bcolumns) + bc;
-            cv.mul(cidx(cr, cc), av, aidx(ar, ac), bv, bidx(br, bc));
-          }
-        }
-      }
-    }
-
-    return c;
-  }
-
   @override
   bool operator ==(Object other) =>
       (other is ComplexDenseMatrix) &&
@@ -428,7 +440,7 @@ class ComplexDenseMatrix extends ComplexMatrix {
           cv.assign(cidx(r, rows + c), iv, iidx(r, c));
         }
       }
-      if (copy._gaussianElimination(full: true) == Complex.zero) {
+      if (copy._gaussianElimination(full: true).isZero) {
         throw InvalidOperationException();
       }
       final inv = ComplexDenseMatrix.zero(rows, rows);
@@ -525,62 +537,13 @@ class ComplexDenseMatrix extends ComplexMatrix {
   }
 
   @override
-  String toString() => toStringIndent();
-
-  /// Returns a String representation of this matrix with indentation at level [indent]
-  /// If [hideZeroes] is `true`, values equal to [Complex.zero] down to a precision of [precision] will not be displayed
-  /// The optional [fractionDigits] is used to format [Complex] values
-  @override
-  String toStringIndent({
-    int indent = 0,
-    int? fractionDigits,
-    bool hideZeroes = false,
-    double precision = 0,
-  }) {
-    final spaces = '   ';
-    final tabs = spaces * indent;
-    final sb = StringBuffer();
-    sb.write('$tabs[\n');
-    for (var r = 0; r < rows; r++) {
-      if (r > 0) {
-        sb.write(',\n');
-      }
-      sb.write('$tabs$spaces[');
-      var isZero = false;
-      for (var c = 0; c < columns; c++) {
-        final v = _values[_idx(r, c)];
-        if (c > 0) {
-          if (isZero && hideZeroes) {
-            sb.write('  ');
-          } else {
-            sb.write(', ');
-          }
-        }
-        if (hideZeroes && v.equals(Complex.zero, precision: precision)) {
-          isZero |= true;
-          sb.write(' ');
-        } else {
-          isZero &= false;
-          sb.write(
-            (fractionDigits == null)
-                ? v.toString()
-                : v.toStringAsFixed(fractionDigits),
-          );
-        }
-      }
-      sb.write(']');
-    }
-    sb.write('\n$tabs]');
-    return sb.toString();
-  }
-
-  @override
   List serialize() => [
-    1,
-    'dense',
-    rows,
+    1, // version
+    'dense', // kind
+    rows, // size
     columns,
     [
+      // values
       for (var i = 0; i < rows * columns; i++) [_values[i].re, _values[i].im],
     ],
   ];

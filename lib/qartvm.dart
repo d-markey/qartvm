@@ -1,10 +1,9 @@
-export 'src/exceptions.dart';
 export 'src/math/complex.dart';
 export 'src/math/complex_dense_matrix.dart';
 export 'src/math/complex_matrix.dart';
 export 'src/math/complex_sparse_matrix.dart';
 export 'src/math/complex_vector.dart';
-export 'src/openqasm/interpreter/_execution_context.dart';
+export 'src/openqasm/interpreter/_state_context.dart';
 export 'src/openqasm/interpreter/exceptions.dart';
 export 'src/openqasm/interpreter/interpreter_result.dart';
 export 'src/openqasm/interpreter/openqasm_include_provider.dart';
@@ -19,4 +18,5 @@ export 'src/qgate_builder.dart';
 export 'src/qgate_type.dart';
 export 'src/qmemory_space.dart';
 export 'src/qregister.dart' show QRegister;
-export 'src/qstate.dart' show QState;
+export 'src/qstate.dart' show QState, QbitAddress;
+export 'src/utils/exceptions.dart';

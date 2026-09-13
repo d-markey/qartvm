@@ -69,9 +69,8 @@ void main() {
         [Complex.one, Complex.zero],
       ]);
 
-      final tensor = ComplexMatrix.tensor(a, b);
+      final tensor = ComplexSparseMatrix.tensor(a, b);
 
-      expect(tensor, isA<ComplexSparseMatrix>());
       expect(
         tensor,
         complexMatrixEquals(
@@ -92,7 +91,7 @@ void main() {
         [Complex.one, Complex.zero],
       ]);
 
-      expect(sparse.det, complexEquals(Complex.minusOne));
+      expect(sparse.det, complexEquals(-Complex.one));
       expect(
         sparse * sparse.inverse(),
         complexMatrixEquals(ComplexDenseMatrix.identity(2), precision: 1e-9),
@@ -252,7 +251,7 @@ void main() {
         final a = ComplexDenseMatrix([
           [Complex.zero],
         ]);
-        expect(a.det, isZero);
+        expect(a.det, complexEquals(Complex.zero));
       });
 
       test('Non-zero', () {

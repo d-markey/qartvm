@@ -14,13 +14,14 @@ void main() {
   //                  --------
   final gateBuilder = QGateBuilder.get(3, withCache: false);
 
+  final $0 = QbitAddress(0), $1 = QbitAddress(1), $2 = QbitAddress(2);
+
   print('');
   print('USING STANDARD GATES');
-
   final fredkinCircuitWithStandardGates = QCircuit(gateBuilder);
-  fredkinCircuitWithStandardGates.not(1, controls: 2);
-  fredkinCircuitWithStandardGates.toffoli(2, controls: {0, 1});
-  fredkinCircuitWithStandardGates.not(1, controls: 2);
+  fredkinCircuitWithStandardGates.not($1, controls: $2);
+  fredkinCircuitWithStandardGates.toffoli($2, controls: {$0, $1});
+  fredkinCircuitWithStandardGates.not($1, controls: $2);
 
   describe(fredkinCircuitWithStandardGates);
   draw(fredkinCircuitWithStandardGates);
@@ -29,8 +30,8 @@ void main() {
   print('');
   print('USING CUSTOM GATE');
 
-  final cnot21 = gateBuilder.controlled.not({1}, controls: {2});
-  final toffoli012 = gateBuilder.highLevel.toffoli(2, controls: {0, 1});
+  final cnot21 = gateBuilder.controlled.not({$1}, controls: {$2});
+  final toffoli012 = gateBuilder.highLevel.toffoli($2, controls: {$0, $1});
   // Here, the custom Fredkin gate matrix is computed by multiplying
   // the matrices of the standard gates that make it up.
   // The Fredkin matrix (hard-coded) could have been provided as well.
@@ -53,7 +54,7 @@ void main() {
   print('USING BUILT-IN GATE');
 
   final fredkinCircuitWithBuiltInGate = QCircuit(gateBuilder);
-  fredkinCircuitWithBuiltInGate.fredkin({1, 2}, control: 0);
+  fredkinCircuitWithBuiltInGate.fredkin({$1, $2}, control: $0);
 
   describe(fredkinCircuitWithBuiltInGate);
   draw(fredkinCircuitWithBuiltInGate);

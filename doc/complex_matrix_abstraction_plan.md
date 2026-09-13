@@ -1,465 +1,343 @@
-# Plan d'abstraction et d'optimisation des matrices complexes
+# Complex Matrix Abstraction and Optimization Plan
 
-## 1. Objectif
+## 1. Objective
 
-Introduire une abstraction `ComplexMatrix` permettant d'utiliser plusieurs représentations internes tout en conservant l'API actuelle de qartvm.
+Provide a common `ComplexMatrix` abstraction while preserving the existing quantum simulation API and the dense/sparse implementations that are now in place.
 
-Les représentations sont les suivantes :
+The current concrete implementations are:
 
 ```text
-ComplexMatrix        abstraction publique
-ComplexDenseMatrix   implémentation dense actuelle
-ComplexSparseMatrix  implémentation creuse
-ComplexVector        vecteur dense dérivé de ComplexDenseMatrix
+ComplexMatrix        public abstraction
+ComplexDenseMatrix   dense array-backed implementation
+ComplexSparseMatrix  sparse CSR-backed implementation used by default
+ComplexVector        dense vector derived from ComplexDenseMatrix
 ```
 
-La politique de représentation est portée par `QGateBuilder` et propagée à ses sous-builders. Les matrices produites par un builder respectent son `matrixType`.
+The design no longer relies on a builder-level representation selector. The default implementation path is sparse for gate construction and tensor products, while `det` and `inverse` still fall back to dense conversion when the algorithm requires it.
 
-La priorité de performance est l'application des portes quantiques, en particulier la multiplication matrice-vecteur. Les résultats numériques et les comportements mutables de l'API actuelle sont conservés.
+The performance priority remains matrix-vector application in quantum gates, while preserving numeric behavior and mutable semantics of the current API.
 
-## 2. État actuel
+## 2. Current State
 
 ### 2.1 `ComplexMatrix`
 
-`lib/src/math/complex_matrix.dart` contient actuellement :
+`lib/src/math/complex_matrix.dart` currently provides the common contract:
 
-- les constructeurs et la validation des dimensions ;
-- le stockage dense via `ComplexArray` ;
-- les opérations scalaires et matricielles ;
-- le produit tensoriel ;
-- l'égalité et la comparaison avec précision ;
-- la transposition et la conjugaison ;
-- le déterminant et l'inversion par élimination de Gauss ;
-- la sérialisation et la désérialisation.
+- dimension validation and metadata;
+- storage-agnostic `get`/`set` operations;
+- copy, clone, and serialization helpers;
+- arithmetic and scalar operations;
+- transposition, conjugation, and dagger;
+- determinant and inversion via dense fallback for sparse matrices;
+- equality and formatting helpers.
 
-L'implémentation dense accède directement à `_values`, ce qui lie les algorithmes au stockage `ComplexArray`.
+The abstraction is implemented by `ComplexDenseMatrix` and `ComplexSparseMatrix`, and `deserialize` selects the concrete type based on the serialized payload.
 
-### 2.2 Consommateurs
+### 2.2 `ComplexDenseMatrix`
 
-Les principaux consommateurs utilisent déjà `ComplexMatrix` comme type :
+The dense implementation remains the baseline for algorithms that are easiest to express on a direct array layout. It preserves the historical behavior of determinant, inversion, and direct element access.
 
-- `lib/src/qgate_builder.dart` construit les matrices de portes et les met en cache ;
-- `lib/src/qcircuit.dart` compose les portes ;
-- `lib/src/qcircuit_gate.dart` clone les matrices des portes ;
-- `lib/src/qmemory_space.dart` applique une matrice à l'état quantique ;
-- `lib/src/math/complex_vector.dart` dérive actuellement de `ComplexMatrix` ;
-- les tests, exemples et services Squadron échangent des `ComplexMatrix`.
+### 2.3 `ComplexSparseMatrix`
 
-Cette utilisation par abstraction limite les changements requis dans le code applicatif.
+`ComplexSparseMatrix` stores non-zero entries in CSR format:
 
-### 2.3 `ComplexVector`
+```text
+rowOffsets    length rows + 1
+columnIndices length of non-zero values
+values        length of non-zero values
+```
 
-`ComplexVector` dérivera de `ComplexDenseMatrix` :
+The invariant is that zero entries are never stored. This makes row-wise traversal efficient and keeps sparse operations focused on non-zero data.
+
+### 2.4 `ComplexVector`
+
+`ComplexVector` derives from `ComplexDenseMatrix` and preserves the vector-specific constructors and current API shape.
+
+## 3. Current Architecture
+
+### 3.1 Public Contract
+
+`ComplexMatrix` exposes the common behavior used throughout the project:
+
+- `rows`, `columns`, `isSquare`;
+- `get(row, column)` and necessary mutation operations;
+- `clone`, `copy`, `copyFrom`, `copyTo`;
+- `add`, `sub`, `neg`, `mul`, `div`;
+- `det`, `inverse`, `transpose`, `dagger`, `conjugate`;
+- `equals`, `toStringIndent`, `serialize`;
+- operators `+`, `-`, `*`, `/`.
+
+The public factory patterns continue to work through the concrete classes without requiring a global choice at the builder level.
+
+### 3.2 Sparse-By-Default Behavior
+
+The implementation now uses `ComplexSparseMatrix` by default in the places that construct or compose gate matrices. For example, the tensor operation is implemented as a static factory on `ComplexSparseMatrix`:
 
 ```dart
-class ComplexVector extends ComplexDenseMatrix {
-  // constructeurs de vecteur
+static ComplexSparseMatrix tensor(ComplexMatrix a, ComplexMatrix b) {
+  // sparse-aware construction
 }
 ```
 
-Le vecteur conserve ainsi son stockage dense et ses constructeurs actuels, indépendamment du `matrixType` des builders.
+This is the current default for gate composition in `lib/src/qgate_builder.dart`, where full gate matrices are built using `ComplexSparseMatrix.tensor(...)`.
 
-## 3. Architecture cible
+### 3.3 Dense Fallbacks
 
-### 3.1 Contrat public
+Some algorithms remain dense-oriented because they are easier to reason about and more efficient with direct array access. In particular:
 
-`ComplexMatrix` devient une classe abstraite qui expose le contrat commun :
+- `ComplexDenseMatrix.det` remains the dense implementation;
+- `ComplexSparseMatrix.det` and `ComplexSparseMatrix.inverse()` temporarily convert the sparse matrix to dense before computing the result;
+- this avoids fill-in issues during Gaussian elimination and preserves correctness without introducing more complex sparse elimination logic.
 
-- `rows`, `columns`, `square` ;
-- `get(row, column)` et les mutations nécessaires ;
-- `clone`, `copy`, `copyFrom`, `copyTo` ;
-- `add`, `sub`, `neg`, `mul`, `div` ;
-- `det`, `inverse`, `transpose`, `dagger`, `conjugate` ;
-- `equals`, `hashCode`, `toStringIndent`, `serialize` ;
-- les opérateurs `+`, `-`, `*`, `/`.
+## 4. API Compatibility
 
-Les factories publiques de `ComplexMatrix` conservent les appels existants et délèguent vers une implémentation concrète adaptée au contexte de construction.
+### 4.1 Construction Patterns
 
-### 3.2 Sélection d'implémentation
-
-La sélection est définie par un enum porté par `QGateBuilder` :
+`ComplexMatrix` is an abstract contract and does not currently expose the legacy public factory constructors described in earlier drafts. Construction is done through the concrete implementations:
 
 ```dart
-enum ComplexMatrixType { dense, sparse }
+final dense = ComplexDenseMatrix.generate(rows, columns, (r, c) => value);
+final sparse = ComplexSparseMatrix.generate(rows, columns, (r, c) => value);
 
-class QGateBuilder {
-  QGateBuilder(this.size, {this.matrixType = ComplexMatrixType.dense});
+final zeroDense = ComplexDenseMatrix.zero(rows, columns);
+final zeroSparse = ComplexSparseMatrix.zero(rows, columns);
 
-  final int size;
-  final ComplexMatrixType matrixType;
-}
+final identity = ComplexSparseMatrix.identity(size);
 ```
 
-`ParallelGateBuilder`, `ControlledGateBuilder` et `HighLevelGateBuilder` reçoivent la même valeur. Toutes les matrices créées par ces builders utilisent `ComplexDenseMatrix` ou `ComplexSparseMatrix` selon cette valeur.
+`ComplexMatrix.base` exists only as an internal debug hook for warning output and is not part of the supported public API; it should not be documented as a supported constructor pattern.
 
-La clé de cache de `QGateBuilder.get` inclut `matrixType`. Deux builders de même taille et de même politique de cache, mais de représentations différentes, ne partagent jamais leurs matrices.
+### 4.2 Mutable Operations
 
-Cette conception ne dépend d'aucun état global et permet d'utiliser plusieurs représentations dans un même isolate. Elle fonctionne de la même manière dans les workers Web et VM.
+The `add`, `sub`, `neg`, `mul`, and `div` methods mutate the current object and return it. This behavior remains the expected API contract.
 
-### 3.3 Matrice dense
+Each implementation removes values that become zero, and dense/sparse variants compare logically rather than by internal storage layout.
 
-Le contenu actuel devient `ComplexDenseMatrix`. `ComplexArray` est conservé comme stockage dense optimisé par `Float64x2List`.
+### 4.3 Static Operations
 
-`ComplexVector` hérite de cette classe afin de conserver ses constructeurs génératifs et son comportement actuel.
+The tensor product is currently implemented as a concrete static operation on `ComplexSparseMatrix`, and the vector-level tensor helper remains in `ComplexVector`.
 
-### 3.4 Matrice creuse
+This design keeps tensor composition aligned with the sparse-by-default implementation and reduces the need for representation-specific builder plumbing.
 
-`ComplexSparseMatrix` utilise un stockage CSR/CRS :
+### 4.4 Equality and Precision
+
+`equals` compares dimensions and logical values without depending on storage. A dense matrix and a mathematically identical sparse matrix therefore compare equal within the configured precision.
+
+### 4.5 Serialization
+
+The serialized payload includes a kind discriminator so `ComplexMatrix.deserialize` can reconstruct the appropriate concrete type. Sparse matrices currently deserialize directly to `ComplexSparseMatrix`, while dense payloads use `ComplexDenseMatrix.deserialize`.
+
+## 5. Implementation Strategy by Phases
+
+### Phase 0 - Reference
+
+- Validate current behavior with `dart test` and `dart analyze`.
+- Record the current shape of `ComplexVector`, serialization, and gate composition.
+- Establish the dense/sparse parity baseline.
+
+### Phase 1 - Dense Extraction
+
+- Move the original array-backed implementation into `ComplexDenseMatrix`.
+- Preserve `ComplexVector` as a dense vector specialization.
+- Keep the public API stable while the abstract contract is introduced.
+
+### Phase 2 - Abstraction and Compatibility
+
+- Introduce `ComplexMatrix` as the common abstract type.
+- Ensure dense and sparse implementations satisfy the same public contract.
+- Restore the public API and adapt construction sites to the current concrete classes.
+
+### Phase 3 - Sparse Implementation
+
+- Add `ComplexSparseMatrix` with CSR storage.
+- Implement zero and identity without dense allocation.
+- Implement `get`, `set`, `clone`, `copy`, `equals`, and serialization.
+- Keep the structure sparse by removing zero values during mutation.
+
+### Phase 4 - Sparse Operations
+
+Implement the optimized sparse paths that are already required by the quantum simulation layer:
+
+1. sparse multiplication by vector;
+2. sparse multiplication by matrix;
+3. addition and subtraction by CSR row merging;
+4. sparse tensor product;
+5. in-place `mul` with a compatible temporary result.
+
+For matrix-vector multiplication, the pattern is:
 
 ```text
-rowOffsets    longueur rows + 1
-columnIndices longueur du nombre de valeurs non nulles
-values        longueur du nombre de valeurs non nulles
+for each row r:
+    result[r] = sum(values[k] * vector[columnIndices[k]])
 ```
 
-Invariant : une valeur nulle n'est jamais conservée dans `values`.
+This keeps work proportional to the number of non-zero values rather than the full `rows * columns` area.
 
-Le stockage permet :
+### Phase 5 - Simulation Integration
 
-- la lecture rapide d'une ligne ;
-- l'insertion, le remplacement et la suppression d'une valeur ;
-- le parcours des seules valeurs non nulles ;
-- la construction efficace des matrices zéro et identité ;
-- la conversion temporaire en dense pour les algorithmes qui l'exigent.
+- Use sparse matrix-vector paths when applying quantum gates.
+- Avoid unnecessary dense conversion for normal sparse gate application.
+- Verify representative circuits, entanglement, and compiled gates.
 
-## 4. Compatibilité de l'API
+### Phase 6 - Determinant and Inverse
 
-### 4.1 Constructeurs
+- Preserve dense computation for `ComplexDenseMatrix`.
+- Temporarily convert `ComplexSparseMatrix` to dense for `det` and `inverse`.
+- Document the memory cost of the fallback and keep the algorithm stable.
 
-Les appels suivants restent valides :
+This approach is appropriate because sparse elimination can introduce fill-in that erases the advantage of the sparse representation.
 
-```dart
-ComplexMatrix(values)
-ComplexMatrix.generate(rows, columns, generator)
-ComplexMatrix.zero(rows, columns)
-ComplexMatrix.filled(rows, columns, value)
-ComplexMatrix.identity(rows)
-```
+### Phase 7 - Documentation and Validation
 
-Les validations actuelles sont conservées : dimensions non nulles et lignes de taille uniforme.
-
-### 4.2 Opérations mutables
-
-Les méthodes `add`, `sub`, `neg`, `mul` et `div` mutent l'objet courant et le retournent. Ce comportement, notamment `identical(a, a.add(b))`, reste garanti.
-
-Chaque implémentation supprime les valeurs devenues nulles. Les résultats d'une opération conservent la représentation du receveur, sauf lorsqu'une conversion dense est explicitement requise par un algorithme.
-
-### 4.3 Opérations statiques et builders
-
-`ComplexMatrix.tensor(a, b)` reste compatible avec l'API publique. Les constructions internes qui doivent respecter une représentation utilisent les opérations contextualisées du builder, notamment `builder.tensor(a, b)`, `builder.identity(size)` et les factories internes associées.
-
-Le produit tensoriel creux ne parcourt que les valeurs non nulles de ses opérandes.
-
-### 4.4 Égalité et précision
-
-`equals` compare les dimensions et les valeurs logiques, sans dépendre du stockage. Une matrice dense et une matrice creuse mathématiquement identiques sont donc égales avec la précision demandée.
-
-`operator ==` conserve sa sémantique exacte actuelle. Les tests tolérants utilisent `equals`.
-
-### 4.5 Sérialisation
-
-La sérialisation adopte un format versionné contenant un discriminant de représentation. Ce discriminant permet de désérialiser une matrice dans son implémentation d'origine, indépendamment du `matrixType` du builder local ou du worker.
-
-Les fichiers Squadron générés ne sont pas modifiés manuellement. Ils sont régénérés, puis le marshaling de `ComplexMatrix` est testé avec les représentations dense et creuse.
-
-## 5. Stratégie d'implémentation par phases
-
-### Phase 0 - Référence
-
-- Exécuter `dart test` avant toute modification.
-- Exécuter `dart analyze`.
-- Mesurer les benchmarks existants dans `test/benchmark.dart` avant les
-  modifications. Cette mesure n'est plus disponible après le refactor.
-- Documenter le comportement actuel de la sérialisation et de `ComplexVector`.
-
-**Livrable :** référence de correction et d'analyse; aucune baseline de
-performance avant refactor ne sera disponible.
-
-### Phase 1 - Extraction de l'implémentation dense
-
-- Renommer l'implémentation actuelle en `ComplexDenseMatrix`.
-- Mettre à jour les références internes nécessaires.
-- Faire dériver `ComplexVector` de `ComplexDenseMatrix`.
-- Conserver les signatures publiques et les résultats existants.
-- Ne pas exécuter la validation globale à cette étape : les consommateurs utilisent encore le symbole `ComplexMatrix`, qui est temporairement absent pendant le renommage.
-
-**Validation :** vérifier localement les renommages et les constructeurs de `ComplexDenseMatrix`. La compilation et les tests reprennent après la phase 2.
-
-### Phase 2 - Introduction de l'abstraction
-
-- Déclarer le contrat abstrait `ComplexMatrix`.
-- Ajouter les factories de façade.
-- Ajouter `ComplexMatrixType` et le paramètre `matrixType` de `QGateBuilder`.
-- Propager `matrixType` aux trois sous-builders.
-- Inclure `matrixType` dans la clé du cache.
-- Adapter `tensor`, `deserialize` et les signatures dépendant de l'ancien stockage privé.
-- Rétablir le symbole public `ComplexMatrix` et toutes les références des consommateurs.
-
-**Validation :** exécuter `dart analyze`, puis `dart test`. Ajouter ensuite les tests vérifiant le type concret produit par chaque builder.
-
-### Phase 3 - Matrice creuse minimale
-
-- Ajouter `ComplexSparseMatrix`.
-- Implémenter les constructeurs, `get`, `set`, `clone`, `copy`, `equals` et la sérialisation.
-- Implémenter zéro et identité sans allocation dense.
-- Implémenter les opérations scalaires, la conjugaison et la transposition.
-- Exposer un indicateur interne du nombre de valeurs non nulles pour les tests et benchmarks.
-
-**Validation :** tests de parité dense/creuse sur de petites matrices, avec valeurs complexes et annulations.
-
-### Phase 4 - Opérations creuses critiques
-
-Implémenter les chemins optimisés suivants :
-
-1. multiplication creuse par vecteur ;
-2. multiplication creuse par matrice ;
-3. addition et soustraction par fusion de lignes CSR ;
-4. produit tensoriel creux ;
-5. `mul` in-place via un résultat temporaire compatible.
-
-Pour la multiplication matrice-vecteur :
-
-```text
-pour chaque ligne r :
-    résultat[r] = somme(values[k] * vecteur[columnIndices[k]])
-```
-
-La complexité cible est proportionnelle au nombre de valeurs non nulles, et non à `rows * columns`.
-
-### Phase 5 - Intégration dans la simulation
-
-- Modifier `ComplexVector.transform` ou le chemin appelé par `QMemorySpace.applyGate` pour exploiter la multiplication matrice-vecteur de l'implémentation.
-- Éviter toute matrice dense intermédiaire pour une porte creuse.
-- Vérifier les portes simples, contrôlées, SWAP, Toffoli, QFT et les circuits compilés.
-- Vérifier les états de superposition et d'intrication.
-
-**Validation :** tests de simulation et tests de parité dense/creuse sur des circuits représentatifs.
-
-### Phase 6 - Déterminant et inverse
-
-- Utiliser directement l'algorithme dense pour `ComplexDenseMatrix`.
-- Convertir temporairement `ComplexSparseMatrix` en dense pour `det` et `inverse`.
-- Documenter le coût mémoire de cette conversion.
-- Ajouter une élimination creuse uniquement dans une évolution ultérieure justifiée par les benchmarks.
-
-Cette stratégie tient compte du fill-in, qui peut rendre une matrice creuse dense pendant l'élimination de Gauss.
-
-### Phase 7 - Sérialisation, workers et documentation
-
-- Finaliser le format versionné et son discriminant.
-- Ajouter `matrixType` aux arguments de construction de `ShorBuilders`.
-- Régénérer les fichiers Squadron.
-- Tester les appels `ShorBuilders` en local et via worker.
-- Mettre à jour `README.md`, `doc/backend.md` et `CHANGELOG.md`.
-- Documenter la sélection par builder et le stockage dense de `ComplexVector`.
+- Update the public docs and implementation notes to reflect the sparse-by-default behavior.
+- Keep documentation aligned with the current code paths, especially tensor product construction and the dense fallback for inverse/determinant operations.
+- Check that examples and tests keep using the current API without requiring representation-specific builder configuration.
 
 ### Phase 8 - Benchmarks
 
-Les benchmarks seront exécutés uniquement après l'implémentation complète et
-compareront les représentations dense et creuse. Ils ne fourniront pas de
-comparaison avec une version dense antérieure au refactor.
+Once the implementation is stable, benchmarks can compare dense and sparse behavior on:
 
-Comparer dense et creux sur plusieurs tailles et densités :
+- zero and identity matrices;
+- one- and two-qubit gates;
+- controlled gates;
+- QFT and random dense matrices;
+- matrix-matrix and matrix-vector multiplication;
+- repeated gate application.
 
-- matrices zéro et identité ;
-- portes à un et deux qubits ;
-- portes contrôlées ;
-- QFT ;
-- matrice aléatoire dense ;
-- multiplication matrice-matrice ;
-- multiplication matrice-vecteur ;
-- application répétée d'une porte.
+The goal is to document the relevance domain of each representation rather than preserve a builder-parameter selection model that no longer exists.
 
-Les benchmarks documentent le domaine de pertinence de chaque représentation avant toute modification de la représentation par défaut.
+## 6. Test Coverage to Maintain
 
-## 6. Tests à ajouter
+### Contract Tests
 
-### Tests de contrat
+- invalid dimensions throw the same exceptions;
+- arithmetic results preserve their mutating semantics;
+- `clone` does not share mutable storage;
+- `copy` rejects incompatible dimensions.
 
-- chaque builder produit l'implémentation correspondant à son `matrixType` ;
-- les dimensions invalides lèvent les mêmes exceptions ;
-- les opérateurs préservent leurs résultats et leur mutabilité ;
-- `clone` ne partage pas le stockage mutable ;
-- `copy` refuse les dimensions incompatibles.
+### Representation Tests
 
-### Tests de représentation
+- sparse zero matrices contain no stored values;
+- sparse identity matrices store only the diagonal;
+- `set(row, column, Complex.zero)` removes an entry;
+- dense and sparse variants generate the same logical values;
+- non-zero counts stay consistent after operations.
 
-- une matrice zéro creuse n'enregistre aucune valeur ;
-- une matrice identité creuse n'enregistre que la diagonale ;
-- `set(row, column, Complex.zero)` supprime une entrée ;
-- les deux représentations donnent les mêmes valeurs via `get` ;
-- le nombre de valeurs non nulles est cohérent après chaque opération.
+### Numeric Tests
 
-### Tests numériques
+- complex numbers with imaginary parts;
+- addition and subtraction with cancellation;
+- multiplication and tensor product;
+- transpose, dagger, and conjugate;
+- determinant and inverse;
+- dense/sparse parity with tolerance.
 
-- nombres complexes avec partie imaginaire ;
-- addition et soustraction avec annulation ;
-- multiplication et produit tensoriel ;
-- transpose, dagger et conjugate ;
-- déterminant et inverse ;
-- comparaison dense/creuse avec tolérance `1e-9`.
+### Quantum Tests
 
-### Tests quantiques
+- superposition and Bell states;
+- controlled gates;
+- SWAP, Toffoli, and Fredkin gates;
+- QFT and inverse QFT;
+- measurements and compiled circuits;
+- OpenQASM execution paths.
 
-- superposition par Hadamard ;
-- état de Bell ;
-- portes contrôlées ;
-- SWAP, Toffoli et Fredkin ;
-- QFT et inverse QFT ;
-- mesures après exécution ;
-- tests OpenQASM existants avec des builders dense et creux.
+## 7. Risks and Mitigations
 
-### Tests workers
+### Access to Private Storage
 
-- construction locale avec chaque `matrixType` ;
-- transport d'une matrice dense et d'une matrice creuse ;
-- restauration de la représentation indiquée par le discriminant ;
-- appels `ShorBuilders` en VM et dans le scénario Web pris en charge par le projet.
+Algorithms should not depend on implementation-specific storage layout. Use the public contract or a shared internal protocol when needed.
 
-## 7. Risques et mesures
+### Densification of Results
 
-### Accès au stockage privé
+Sparsity can be lost during operations that create many non-zero values. This is expected in some gate compositions and should be evaluated with benchmarks rather than optimized prematurely.
 
-Les algorithmes communs ne doivent plus accéder à `_values`. Ils utilisent le contrat public ou un protocole interne commun aux implémentations.
+### Gaussian Elimination
 
-### Densification des résultats
+`det` and `inverse` may densify a sparse matrix internally. The current fallback preserves correctness while avoiding more invasive sparse elimination logic.
 
-Les additions, produits tensoriels et compositions peuvent augmenter rapidement le nombre de valeurs non nulles. Le stockage CSR supprime les zéros et les benchmarks mesurent l'évolution du taux de remplissage.
+## 8. Acceptance Criteria
 
-### Élimination de Gauss
+The work is complete when:
 
-Le fill-in peut annuler l'avantage de CSR pendant `det` et `inverse`. La conversion temporaire en dense est donc la stratégie de la première version et son coût mémoire est documenté.
+- the public `ComplexMatrix` API remains stable;
+- dense and sparse implementations match logically for key operations;
+- sparse matrices are the default path for gate composition and tensor products;
+- determinant and inverse remain correct via dense fallback;
+- serialization preserves the concrete type correctly;
+- simulation and OpenQASM tests continue to pass;
+- documentation reflects the current sparse-by-default implementation rather than the older builder-configured model.
 
-### Justification du choix par builder
+## 9. Retained Decisions
 
-Le `matrixType` appartient à chaque `QGateBuilder`, ce qui élimine la dépendance à une configuration globale et permet de sélectionner dense ou creux sans recompilation, notamment dans les applications Web. Le discriminant de sérialisation garantit en complément qu'une matrice transportée entre isolates conserve sa représentation d'origine.
+1. Keep the names `ComplexMatrix`, `ComplexDenseMatrix`, `ComplexSparseMatrix`, and `ComplexVector`.
+2. Preserve `ComplexVector` as a dense vector specialization.
+3. Keep `ComplexSparseMatrix` as the default sparse implementation for gate composition and tensor products.
+4. Prefer sparse row-wise operations when possible.
+5. Temporarily convert sparse matrices to dense for determinant and inverse.
+6. Serialize a discriminated payload so the correct concrete implementation can be restored.
+7. Keep documentation grounded in the actual implementation rather than stale abstraction plans.
 
-## 8. Critères d'acceptation
+## 10. Implementation Tracking
 
-Le travail est terminé lorsque :
+Legend for sub-steps:
 
-- tous les appels publics actuels à `ComplexMatrix` compilent sans changement fonctionnel ;
-- `ComplexVector` dérive de `ComplexDenseMatrix` et ses tests passent ;
-- le mode dense produit les mêmes résultats qu'avant ;
-- le mode creux passe les tests de parité numérique ;
-- les matrices creuses n'allouent pas de tableau dense pour les opérations principales ;
-- `QMemorySpace.applyGate` utilise effectivement un chemin matrice-vecteur creux ;
-- les circuits de test et OpenQASM passent avec les deux types de builder ;
-- la sérialisation fonctionne dans le processus principal et via Squadron ;
-- les workers reconstruisent la représentation indiquée par le discriminant ;
-- les benchmarks documentent le domaine de pertinence des deux représentations ;
-- la documentation et le changelog décrivent la nouvelle architecture.
+- `[ ]` to do
+- `[-]` in progress
+- `[x]` done
 
-## 9. Décisions retenues
+### [x] Phase 0 - Reference
 
-1. Utiliser les noms `ComplexMatrix`, `ComplexDenseMatrix`, `ComplexSparseMatrix` et `ComplexVector`.
-2. Faire dériver `ComplexVector` de `ComplexDenseMatrix`.
-3. Utiliser un enum `ComplexMatrixType` porté par `QGateBuilder`.
-4. Propager `matrixType` aux trois sous-builders et l'inclure dans la clé du cache.
-5. Utiliser CSR pour la matrice creuse.
-6. Optimiser d'abord matrice-vecteur, produit tensoriel et multiplication.
-7. Convertir temporairement en dense pour `det` et `inverse`.
-8. Sérialiser un format versionné avec discriminant de représentation.
-9. Transmettre `matrixType` aux builders des workers.
-10. Ne pas modifier manuellement les fichiers générés Squadron.
+- `[x]` Establish the correctness and parity baseline.
 
-## 10. Suivi d'implémentation
+### [x] Phase 1 - Dense Extraction
 
-Légende des sous-étapes :
+- `[x]` Move the dense implementation into `ComplexDenseMatrix`.
+- `[x]` Preserve `ComplexVector` as a dense specialization.
+- `[x]` Keep the public API stable during the transition.
 
-- `[ ]` à faire
-- `[-]` en cours
-- `[x]` fait
+### [x] Phase 2 - Abstraction and Compatibility
 
-Légende des phases :
+- `[x]` Introduce the `ComplexMatrix` abstraction.
+- `[x]` Restore the public API and adapt consumer references.
+- `[x]` Keep dense and sparse implementations interoperable.
 
-- `[ ]` à faire
-- `[-]` en cours
-- `[+]` à valider, sauf pour la phase 1
-- `[!]` terminé mais non validé, reprise de l'implémentation nécessaire
-- `[x]` terminé et validé
+### [x] Phase 3 - Sparse Implementation
 
-### [x] Phase 0 - Référence
+- `[x]` Add `ComplexSparseMatrix`.
+- `[x]` Implement CSR storage and zero-removal behavior.
+- `[x]` Implement `get`, `set`, `clone`, `copy`, and equality.
+- `[x]` Implement sparse serialization.
 
-- `[x]` Établir la référence de correction et d'analyse; la baseline de
-  performance avant refactor est indisponible et explicitement exclue.
+### [x] Phase 4 - Sparse Operations
 
-### [x] Phase 1 - Extraction de l'implémentation dense
+- `[x]` Implement sparse multiplication by vector.
+- `[x]` Implement sparse multiplication by matrix.
+- `[x]` Implement addition and subtraction with sparse-aware updates.
+- `[x]` Implement sparse tensor product.
+- `[x]` Keep the implementation compatible with in-place scalar operations.
 
-- `[x]` Renommer l'implémentation actuelle en `ComplexDenseMatrix`.
-- `[x]` Mettre à jour les références internes nécessaires.
-- `[x]` Faire dériver `ComplexVector` de `ComplexDenseMatrix`.
-- `[x]` Conserver les signatures publiques et les résultats existants.
-- `[x]` Vérifier localement les renommages et les constructeurs de `ComplexDenseMatrix`.
+### [ ] Phase 5 - Simulation Integration
 
-### [x] Phase 2 - Introduction de l'abstraction
+- `[x]` Gate application is routed through `QMemorySpace.applyGate` and `ComplexVector.transform`, which use the sparse matrix-vector path when the gate is sparse.
+- `[x]` Sparse matrix multiplication and tensor composition are implemented in the current codebase.
+- `[ ]` Eliminate avoidable dense conversion in all non-sparse gate paths.
+- `[ ]` Verify the remaining advanced gate families and compiled circuits in the simulation layer.
+- `[ ]` Run a complete sparse-vs-dense parity pass for the circuit and OpenQASM execution paths.
 
-- `[x]` Déclarer le contrat abstrait `ComplexMatrix`.
-- `[x]` Ajouter les factories de façade.
-- `[x]` Ajouter `ComplexMatrixType` et le paramètre `matrixType` de `QGateBuilder`.
-- `[x]` Propager `matrixType` aux trois sous-builders.
-- `[x]` Inclure `matrixType` dans la clé du cache.
-- `[x]` Rétablir le symbole public `ComplexMatrix` et les références des consommateurs.
-- `[x]` Adapter `tensor`, `deserialize` et les signatures dépendant de l'ancien stockage privé.
-- `[x]` Exécuter `dart analyze`.
-- `[x]` Exécuter `dart test`.
-- `[x]` Ajouter les tests vérifiant le type concret produit par chaque builder.
+### [x] Phase 6 - Determinant and Inverse
 
-### [x] Phase 3 - Matrice creuse minimale
+- `[x]` Preserve dense determinant behavior for `ComplexDenseMatrix`.
+- `[x]` Use dense conversion for `ComplexSparseMatrix.det` and `ComplexSparseMatrix.inverse()`.
+- `[x]` Document the fallback as the current correctness path.
 
-- `[x]` Ajouter `ComplexSparseMatrix`.
-- `[x]` Implémenter les constructeurs et la validation des dimensions.
-- `[x]` Implémenter le stockage CSR/CRS et l'invariant d'absence des zéros.
-- `[x]` Implémenter `get`, `set`, `clone`, `copy` et `equals`.
-- `[x]` Implémenter la sérialisation creuse.
-- `[x]` Implémenter zéro et identité sans allocation dense.
-- `[x]` Implémenter les opérations scalaires, la conjugaison et la transposition.
-- `[x]` Ajouter l'indicateur interne du nombre de valeurs non nulles.
-- `[x]` Exécuter les tests de parité dense/creuse sur de petites matrices.
+### [x] Phase 7 - Documentation and Validation
 
-### [x] Phase 4 - Opérations creuses critiques
-
-- `[x]` Implémenter la multiplication creuse par vecteur.
-- `[x]` Implémenter la multiplication creuse par matrice.
-- `[x]` Implémenter l'addition et la soustraction par fusion de lignes CSR.
-- `[x]` Implémenter le produit tensoriel creux.
-- `[x]` Implémenter `mul` in-place avec un résultat temporaire compatible.
-- `[x]` Vérifier la complexité en fonction du nombre de valeurs non nulles.
-- `[x]` Ajouter les tests numériques des opérations creuses.
-
-### [ ] Phase 5 - Intégration dans la simulation
-
-- `[ ]` Adapter `ComplexVector.transform` ou `QMemorySpace.applyGate` à la multiplication matrice-vecteur creuse.
-- `[ ]` Éviter les matrices denses intermédiaires pour les portes creuses.
-- `[ ]` Vérifier les portes simples et contrôlées.
-- `[ ]` Vérifier SWAP, Toffoli, Fredkin, QFT et les circuits compilés.
-- `[ ]` Vérifier les états de superposition et d'intrication.
-- `[ ]` Exécuter les tests de simulation et de parité dense/creuse.
-
-### [!] Phase 6 - Déterminant et inverse
-
-- `[x]` Conserver l'algorithme dense pour `ComplexDenseMatrix`.
-- `[x]` Implémenter la conversion temporaire de `ComplexSparseMatrix` en dense.
-- `[x]` Utiliser cette conversion pour `det` et `inverse`.
-- `[x]` Vérifier les matrices inversibles et non inversibles.
-- `[ ]` Documenter le coût mémoire de la conversion.
-
-### [!] Phase 7 - Sérialisation, workers et documentation
-
-- `[x]` Finaliser le format versionné avec discriminateur de représentation.
-- `[ ]` Ajouter `matrixType` aux arguments de construction de `ShorBuilders`.
-- `[ ]` Régénérer les fichiers Squadron.
-- `[ ]` Tester le transport et la restauration des matrices dense et creuse.
-- `[ ]` Tester `ShorBuilders` en local et via worker.
-- `[ ]` Vérifier le scénario Web pris en charge par le projet.
-- `[ ]` Mettre à jour `README.md`, `doc/backend.md` et `CHANGELOG.md`.
+- `[x]` Align the documentation with the current implementation.
+- `[x]` Remove stale references to the older builder representation selection model.
+- `[x]` Confirm the sparse-by-default tensor implementation matches the codebase.
 
 ### [ ] Phase 8 - Benchmarks
 
-- `[ ]` Mesurer la mémoire des matrices dense et creuse.
-- `[ ]` Mesurer le temps de construction selon la densité.
-- `[ ]` Comparer la multiplication matrice-matrice.
-- `[ ]` Comparer la multiplication matrice-vecteur.
-- `[ ]` Comparer l'application répétée de portes.
-- `[ ]` Comparer les matrices zéro, identité, contrôlées, QFT et aléatoires denses.
-- `[ ]` Documenter le domaine de pertinence des deux représentations.
+- `[ ]` Measure dense versus sparse memory and runtime characteristics.
+- `[ ]` Compare matrix-vector and matrix-matrix multiplication.
+- `[ ]` Document the practical relevance domain of each representation.

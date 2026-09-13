@@ -3,7 +3,7 @@ import 'package:qartvm/qartvm.dart';
 void main() {
   const nQubits = 10;
   final qmem = QMemorySpace.zero(nQubits);
-  final denseBuilder = QGateBuilder.get(nQubits, withCache: true);
+  final gateBuilder = QGateBuilder.get(nQubits, withCache: true);
 
   print('--- Benchmarking $nQubits Qubits ---');
 
@@ -16,23 +16,32 @@ void main() {
     'Matrix Multiplication (${1 << nQubits}x${1 << nQubits}): ${stopwatch.elapsedMilliseconds}ms',
   );
 
-  // Benchmark 2: Gate Application (Dense Matrix-Vector)
+  // Benchmark 2: Matrix Multiplication (SParse)
+  final sm1 = ComplexSparseMatrix.identity(1 << nQubits);
+  final sm2 = ComplexSparseMatrix.identity(1 << nQubits);
   stopwatch.reset();
-  stopwatch.start();
-  final hGate = denseBuilder.parallel.hadamard({0});
+  final _ = sm1 * sm2;
+  print(
+    'Matrix Multiplication (${1 << nQubits}x${1 << nQubits}): ${stopwatch.elapsedMilliseconds}ms',
+  );
+
+  final $0 = QbitAddress(0);
+
+  // Benchmark 3: Gate Application
+  stopwatch.reset();
+  final hGate = gateBuilder.parallel.hadamard({$0});
   for (var i = 0; i < 10; i++) {
-    qmem.applyGate(hGate, {0});
+    qmem.applyGate(hGate, {$0});
   }
   print(
     'Single-qubit Gate Application (10 times): ${stopwatch.elapsedMilliseconds}ms',
   );
 
-  // Benchmark 3: Tensor Product
-  final a = ComplexDenseMatrix.identity(2);
-  final b = ComplexDenseMatrix.identity(512);
+  // Benchmark 4: Tensor Product
+  final a = ComplexSparseMatrix.identity(2);
+  final b = ComplexSparseMatrix.identity(512);
   stopwatch.reset();
-  stopwatch.start();
-  ComplexMatrix.tensor(a, b);
+  final _ = ComplexSparseMatrix.tensor(a, b);
   print(
     'Tensor Product (2x2 with 512x512): ${stopwatch.elapsedMilliseconds}ms',
   );

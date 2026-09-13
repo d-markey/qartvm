@@ -17,12 +17,11 @@ bit[2] c;
 c[0] = measure q[0];
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
-      expect(result.measurements, isNotEmpty);
-      expect(result.measurements.containsKey('q[0]'), isTrue);
+      expect(result.measurements, contains('q[0] (0)'));
       // Value is 0 because initial state is |0>
-      expect(result.measurements['q[0]'], equals(0));
+      expect(result.measurements['q[0] (0)'], equals(0));
     });
 
     test('should extract register measurement', () async {
@@ -33,7 +32,7 @@ bit[2] c;
 c = measure q;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // When measuring a register 'q' of size 2, we might expect entries for q[0] and q[1],
       // OR a single entry 'q' with integer value.
@@ -42,8 +41,8 @@ c = measure q;
       // The current implementation plan suggests using the expression text as key.
       // "measure q" -> key "q", value integer.
 
-      expect(result.measurements.containsKey('q'), isTrue);
-      expect(result.measurements['q'], equals(0));
+      expect(result.measurements, contains('q (0,1)'));
+      expect(result.measurements['q (0,1)'], equals(0));
     });
 
     test('should extract measurement with gates applied', () async {
@@ -56,9 +55,10 @@ x q;
 c = measure q;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
-      expect(result.measurements['q'], equals(1));
+      expect(result.measurements, contains('q (0)'));
+      expect(result.measurements['q (0)'], equals(1));
     });
   });
 }

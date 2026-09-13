@@ -15,7 +15,7 @@ OPENQASM 3.0;
 qubit[2] q;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(2));
@@ -29,7 +29,7 @@ float y = 3.14;
 bool flag = true;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['x'], equals(5));
       expect(result.classicalVariables['y'], equals(3.14));
@@ -45,7 +45,7 @@ int c = 4 * 3;
 float d = 10 / 2;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['a'], equals(15));
       expect(result.classicalVariables['b'], equals(17));
@@ -61,7 +61,7 @@ x = 20;
 x += 5;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['x'], equals(25));
     });
@@ -76,7 +76,7 @@ int product = a * b;
 bool comparison = a > b;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['sum'], equals(8));
       expect(result.classicalVariables['product'], equals(15));
@@ -90,7 +90,7 @@ float pi_val = pi;
 float tau_val = tau;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['pi_val'], closeTo(3.14159, 0.0001));
       expect(result.classicalVariables['tau_val'], closeTo(6.28318, 0.0001));
@@ -103,7 +103,7 @@ const int N = 5;
 int doubled = N * 2;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['doubled'], equals(10));
     });
@@ -118,10 +118,10 @@ int a;
 int result = N * a;
 ''';
         final program = OpenQASMParser.parse(source);
-        final result = await interpreter.execute(
+        final result = (await interpreter.execute(
           program,
-          initialVariables: {'N': 5, 'a': 7},
-        );
+          inputVariables: {'N': 5, 'a': 7},
+        ))[0];
 
         expect(result.classicalVariables['N'], equals(5));
         expect(result.classicalVariables['a'], equals(7));
@@ -141,13 +141,34 @@ int shift_left = a << 1;
 int shift_right = a >> 1;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['and_result'], equals(12 & 5));
       expect(result.classicalVariables['or_result'], equals(12 | 5));
       expect(result.classicalVariables['xor_result'], equals(12 ^ 5));
       expect(result.classicalVariables['shift_left'], equals(12 << 1));
       expect(result.classicalVariables['shift_right'], equals(12 >> 1));
+    });
+
+    test('StateContext.fork() clones state and variables', () {
+      final context = StateContext();
+      context.quantumMemory = QMemorySpace.zero(2);
+      context.symbols.declareVariable('x', 5);
+      context.quantumMemory!.measure(qbits: {QbitAddress(0)});
+
+      final fork = context.fork();
+
+      expect(identical(context.quantumMemory, fork.quantumMemory), isFalse);
+      expect(identical(context.symbols, fork.symbols), isFalse);
+      expect(fork.getVariable('x'), equals(5));
+      final origAmp = context.quantumMemory!.amplitudes['00']!;
+      final forkAmp = fork.quantumMemory!.amplitudes['00']!;
+      expect(forkAmp.re, closeTo(origAmp.re, 1e-12));
+      expect(forkAmp.im, closeTo(origAmp.im, 1e-12));
+
+      fork.updateVariable('x', 9);
+      expect(context.getVariable('x'), equals(5));
+      expect(fork.getVariable('x'), equals(9));
     });
   });
 }

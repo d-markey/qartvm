@@ -1,5 +1,4 @@
-import '../exceptions.dart';
-import '_complex_array.dart';
+import '../utils/exceptions.dart';
 import 'complex.dart';
 import 'complex_dense_matrix.dart';
 import 'complex_matrix.dart';
@@ -7,72 +6,78 @@ import 'complex_vector.dart';
 
 /// A complex matrix stored in compressed sparse row (CSR) form.
 class ComplexSparseMatrix extends ComplexMatrix {
-  factory ComplexSparseMatrix(List<List<Complex>> values) {
-    if (values.isEmpty ||
-        values.first.isEmpty ||
-        values.any((row) => row.length != values.first.length)) {
-      throw InvalidDimensionsException();
-    }
-    return ComplexSparseMatrix.generate(
-      values.length,
-      values.first.length,
-      (row, column) => values[row][column],
-    );
-  }
-
-  ComplexSparseMatrix.generate(
-    int rows,
-    int columns,
-    Complex Function(int row, int column) generator,
-  ) : rows = rows,
-      columns = columns,
-      _rowOffsets = List<int>.filled(rows + 1, 0),
+  ComplexSparseMatrix._fromCsr(
+    this.rows,
+    this.columns,
+    List<int> rowOffsets,
+    List<int> columnIndices,
+    List<Complex> values,
+  ) : _rowOffsets = List<int>.filled(rows + 1, 0),
       _columnIndices = <int>[],
       _values = <Complex>[],
       super.base() {
-    _validateDimensions();
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
-        set(row, column, generator(row, column));
-      }
-    }
+    _rowOffsets.setRange(0, _rowOffsets.length, rowOffsets);
+    _columnIndices.addAll(columnIndices);
+    _values.addAll(values);
   }
 
   ComplexSparseMatrix.zero(this.rows, this.columns)
     : _rowOffsets = List<int>.filled(rows + 1, 0),
       _columnIndices = <int>[],
       _values = <Complex>[],
-      super.base() {
-    _validateDimensions();
-  }
+      super.base();
 
-  ComplexSparseMatrix.filled(int rows, int columns, Complex value)
-    : this.generate(rows, columns, (_, _) => value);
-
-  ComplexSparseMatrix.identity(int rows)
-    : rows = rows,
-      columns = rows,
-      _rowOffsets = List<int>.filled(rows + 1, 0),
-      _columnIndices = <int>[],
-      _values = <Complex>[],
-      super.base() {
-    _validateDimensions();
-    for (var i = 0; i < rows; i++) {
-      set(i, i, Complex.one);
-    }
-  }
-
-  void _validateDimensions() {
-    if (rows <= 0 || columns <= 0) {
+  factory ComplexSparseMatrix(List<List<Complex>> values) {
+    final first = values.firstOrNull ?? const [];
+    if (first.isEmpty || values.any((row) => row.length != first.length)) {
       throw InvalidDimensionsException();
     }
+    return ComplexSparseMatrix.generate(
+      values.length,
+      first.length,
+      (row, column) => values[row][column],
+    );
   }
+
+  factory ComplexSparseMatrix.fromMatrix(ComplexMatrix source) =>
+      ComplexSparseMatrix.generate(source.rows, source.columns, source.get);
+
+  factory ComplexSparseMatrix.generate(
+    int rows,
+    int columns,
+    Complex Function(int row, int column) generator,
+  ) {
+    final builder = ComplexSparseMatrixBuilder(rows, columns);
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < columns; c++) {
+        builder.append(r, c, generator(r, c));
+      }
+    }
+    return builder.build();
+  }
+
+  factory ComplexSparseMatrix.diagonal(
+    int dim,
+    Complex Function(int idx) generator,
+  ) {
+    final builder = ComplexSparseMatrixBuilder(dim, dim);
+    for (var idx = 0; idx < dim; idx++) {
+      builder.append(idx, idx, generator(idx));
+    }
+    return builder.build();
+  }
+
+  factory ComplexSparseMatrix.identity(int dim) =>
+      ComplexSparseMatrix.diagonal(dim, (_) => Complex.one);
 
   @override
   final int rows;
 
   @override
   final int columns;
+
+  @override
+  int get hashCode => rows * columns;
 
   final List<int> _rowOffsets;
   final List<int> _columnIndices;
@@ -88,21 +93,42 @@ class ComplexSparseMatrix extends ComplexMatrix {
   int get nonZeroCount => _values.length;
 
   /// Iterates over each stored non-zero entry in row-major order.
-  Iterable<(int row, int column, Complex value)> get nonZeroEntries sync* {
-    for (var row = 0; row < rows; row++) {
-      final end = _rowOffsets[row + 1];
-      for (var index = _rowOffsets[row]; index < end; index++) {
-        yield (row, _columnIndices[index], _values[index]);
+  Iterable<({int row, int column, Complex value})> get nonZeroEntries sync* {
+    for (var r = 0; r < rows; r++) {
+      final end = _rowOffsets[r + 1];
+      for (var index = _rowOffsets[r]; index < end; index++) {
+        yield (row: r, column: _columnIndices[index], value: _values[index]);
       }
     }
   }
 
+  List<({int column, Complex value})> nonZeroEntriesInRow(int row) => [
+    for (var i = _rowOffsets[row]; i < _rowOffsets[row + 1]; i++)
+      (column: _columnIndices[i], value: _values[i]),
+  ];
+
+  @override
   bool get isIdentity {
     if (!isSquare || nonZeroCount != rows) return false;
     for (var row = 0; row < rows; row++) {
-      if (get(row, row) != Complex.one ||
+      if (!get(row, row).isOne ||
           _rowOffsets[row + 1] - _rowOffsets[row] != 1) {
         return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  bool get isDiagonal {
+    if (!isSquare) return false;
+    for (var row = 0; row < rows; row++) {
+      final end = _rowOffsets[row + 1];
+      for (var i = _rowOffsets[row]; i < end; i++) {
+        // column index must equal the row index
+        if (_columnIndices[i] != row) {
+          return false;
+        }
       }
     }
     return true;
@@ -135,7 +161,7 @@ class ComplexSparseMatrix extends ComplexMatrix {
     final index = _find(row, column);
     final exists =
         index < _rowOffsets[row + 1] && _columnIndices[index] == column;
-    if (value == Complex.zero) {
+    if (value.isZero) {
       if (!exists) return;
       _columnIndices.removeAt(index);
       _values.removeAt(index);
@@ -154,21 +180,12 @@ class ComplexSparseMatrix extends ComplexMatrix {
   }
 
   @override
-  ComplexSparseMatrix clone() => ComplexSparseMatrix.fromMatrix(this);
-
-  ComplexSparseMatrix.fromMatrix(ComplexMatrix source)
-    : rows = source.rows,
-      columns = source.columns,
-      _rowOffsets = List<int>.filled(source.rows + 1, 0),
-      _columnIndices = <int>[],
-      _values = <Complex>[],
-      super.base() {
-    _validateDimensions();
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
-        set(row, column, source.get(row, column));
-      }
-    }
+  ComplexSparseMatrix clone() {
+    final copy = ComplexSparseMatrix.zero(rows, columns);
+    copy._rowOffsets.setRange(0, copy._rowOffsets.length, _rowOffsets);
+    copy._columnIndices.addAll(_columnIndices);
+    copy._values.addAll(_values);
+    return copy;
   }
 
   @override
@@ -176,42 +193,24 @@ class ComplexSparseMatrix extends ComplexMatrix {
     if (rows != other.rows || columns != other.columns) {
       throw InvalidOperationException();
     }
-    _rowOffsets.fillRange(0, _rowOffsets.length, 0);
-    _columnIndices.clear();
-    _values.clear();
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
-        set(row, column, other.get(row, column));
+
+    if (other is ComplexSparseMatrix) {
+      _rowOffsets.setRange(0, _rowOffsets.length, other._rowOffsets);
+      _columnIndices.clear();
+      _columnIndices.addAll(other._columnIndices);
+      _values.clear();
+      _values.addAll(other._values);
+    } else {
+      _rowOffsets.fillRange(0, _rowOffsets.length, 0);
+      _columnIndices.clear();
+      _values.clear();
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < columns; c++) {
+          set(r, c, other.get(r, c));
+        }
       }
     }
     return this;
-  }
-
-  @override
-  void copyFrom(ComplexArray source) {
-    if (source.length != rows * columns) {
-      throw InvalidOperationException();
-    }
-    _rowOffsets.fillRange(0, _rowOffsets.length, 0);
-    _columnIndices.clear();
-    _values.clear();
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
-        set(row, column, source[row * columns + column]);
-      }
-    }
-  }
-
-  @override
-  void copyTo(ComplexArray destination) {
-    if (destination.length != rows * columns) {
-      throw InvalidOperationException();
-    }
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
-        destination.set(row * columns + column, get(row, column));
-      }
-    }
   }
 
   @override
@@ -226,27 +225,133 @@ class ComplexSparseMatrix extends ComplexMatrix {
   ComplexSparseMatrix operator -() => clone().neg();
 
   @override
-  ComplexSparseMatrix add(ComplexMatrix other) => _combine(other, false);
-
-  @override
-  ComplexSparseMatrix sub(ComplexMatrix other) => _combine(other, true);
-
-  ComplexSparseMatrix _combine(ComplexMatrix other, bool subtract) {
+  ComplexSparseMatrix add(ComplexMatrix other) {
     if (rows != other.rows || columns != other.columns) {
       throw InvalidOperationException(
-        'Cannot combine a ${rows}x$columns matrix and a ${other.rows}x${other.columns} matrix',
+        'Cannot add a ${rows}x$columns matrix and a ${other.rows}x${other.columns} matrix',
       );
     }
-    final result = ComplexSparseMatrix.zero(rows, columns);
-    for (var row = 0; row < rows; row++) {
-      for (var column = 0; column < columns; column++) {
-        final value =
-            get(row, column) +
-            (subtract ? -other.get(row, column) : other.get(row, column));
-        if (value != Complex.zero) result.set(row, column, value);
+
+    final builder = ComplexSparseMatrixBuilder(rows, columns);
+
+    if (other case final ComplexSparseMatrix sparseOther) {
+      // Two-pointer merge of already-sorted rows -- O(nnz(this) + nnz(other))
+      // total, no per-entry set() / O(dim) sweep.
+      for (var r = 0; r < rows; r++) {
+        final thisRow = nonZeroEntriesInRow(r);
+        final otherRow = sparseOther.nonZeroEntriesInRow(r);
+        var i = 0, j = 0;
+        while (i < thisRow.length && j < otherRow.length) {
+          final a = thisRow[i], b = otherRow[j];
+          if (a.column < b.column) {
+            builder.append(r, a.column, a.value);
+            i++;
+          } else if (b.column < a.column) {
+            builder.append(r, b.column, b.value);
+            j++;
+          } else {
+            builder.append(r, a.column, a.value + b.value);
+            i++;
+            j++;
+          }
+        }
+        for (; i < thisRow.length; i++) {
+          builder.append(r, thisRow[i].column, thisRow[i].value);
+        }
+        for (; j < otherRow.length; j++) {
+          builder.append(r, otherRow[j].column, otherRow[j].value);
+        }
+      }
+    } else {
+      for (var r = 0; r < rows; r++) {
+        final thisRow = nonZeroEntriesInRow(r);
+        var i = 0;
+        for (var c = 0; c < columns; c++) {
+          final otherVal = other.get(r, c);
+          var thisVal = Complex.zero;
+          if (i < thisRow.length && thisRow[i].column == c) {
+            thisVal = thisRow[i].value;
+            i++;
+          }
+          builder.append(r, c, thisVal + otherVal);
+        }
       }
     }
-    return result;
+
+    final built = builder.build();
+    _rowOffsets.setRange(0, _rowOffsets.length, built._rowOffsets);
+    _columnIndices
+      ..clear()
+      ..addAll(built._columnIndices);
+    _values
+      ..clear()
+      ..addAll(built._values);
+    return this;
+  }
+
+  @override
+  ComplexSparseMatrix sub(ComplexMatrix other) {
+    if (rows != other.rows || columns != other.columns) {
+      throw InvalidOperationException(
+        'Cannot subtract a ${other.rows}x${other.columns} matrix from a ${rows}x$columns matrix',
+      );
+    }
+
+    final builder = ComplexSparseMatrixBuilder(rows, columns);
+
+    if (other case final ComplexSparseMatrix sparseOther) {
+      // Two-pointer merge of already-sorted rows -- O(nnz(this) + nnz(other))
+      // total, no per-entry set() / O(dim) sweep.
+      for (var r = 0; r < rows; r++) {
+        final thisRow = nonZeroEntriesInRow(r);
+        final otherRow = sparseOther.nonZeroEntriesInRow(r);
+        var i = 0, j = 0;
+        while (i < thisRow.length && j < otherRow.length) {
+          final a = thisRow[i], b = otherRow[j];
+          if (a.column < b.column) {
+            builder.append(r, a.column, a.value);
+            i++;
+          } else if (b.column < a.column) {
+            builder.append(r, b.column, -b.value);
+            j++;
+          } else {
+            builder.append(r, a.column, a.value - b.value);
+            i++;
+            j++;
+          }
+        }
+        for (; i < thisRow.length; i++) {
+          builder.append(r, thisRow[i].column, thisRow[i].value);
+        }
+        for (; j < otherRow.length; j++) {
+          builder.append(r, otherRow[j].column, -otherRow[j].value);
+        }
+      }
+    } else {
+      for (var r = 0; r < rows; r++) {
+        final thisRow = nonZeroEntriesInRow(r);
+        var i = 0;
+        for (var c = 0; c < columns; c++) {
+          final otherVal = other.get(r, c);
+          var thisVal = Complex.zero;
+          if (i < thisRow.length && thisRow[i].column == c) {
+            thisVal = thisRow[i].value;
+            i++;
+          }
+          builder.append(r, c, thisVal - otherVal);
+        }
+      }
+    }
+
+    final built = builder.build();
+    _rowOffsets.setRange(0, _rowOffsets.length, built._rowOffsets);
+    _columnIndices
+      ..clear()
+      ..addAll(built._columnIndices);
+    _values
+      ..clear()
+      ..addAll(built._values);
+    return this;
   }
 
   @override
@@ -263,34 +368,89 @@ class ComplexSparseMatrix extends ComplexMatrix {
         'Cannot multiply ${rows}x$columns with ${other.runtimeType}',
       );
     }
-    if (other.columns == 1) {
+
+    final ocols = other.columns;
+    if (ocols == 1) {
+      // ComplexVector derives from ComplexDenseMatrix with 1 column -- already efficient, unchanged
       final result = ComplexVector.zero(rows);
       for (var row = 0; row < rows; row++) {
         var sum = Complex.zero;
-        for (
-          var index = _rowOffsets[row];
-          index < _rowOffsets[row + 1];
-          index++
-        ) {
-          sum = sum + _values[index] * other.get(_columnIndices[index], 0);
+        final end = _rowOffsets[row + 1];
+        for (var index = _rowOffsets[row]; index < end; index++) {
+          sum += _values[index] * other.get(_columnIndices[index], 0);
         }
         result.set(row, 0, sum);
       }
       return result;
     }
-    final result = ComplexSparseMatrix.zero(rows, other.columns);
+
+    // Gustavson's algorithm: for each row of `this`, only visit `other`'s
+    // ACTUAL nonzero entries in the relevant rows (not all `ocols` columns),
+    // accumulate per output column, flush sorted into the builder.
+    // O(nnz(this) * avg row-nnz of other), not O(nnz(this) * ocols).
+    final builder = ComplexSparseMatrixBuilder(rows, ocols);
+    final sparseOther = other is ComplexSparseMatrix ? other : null;
+
     for (var row = 0; row < rows; row++) {
-      final end = _rowOffsets[row + 1];
-      for (var index = _rowOffsets[row]; index < end; index++) {
-        final column = _columnIndices[index];
-        final value = _values[index];
-        for (var target = 0; target < other.columns; target++) {
-          final product = value * other.get(column, target);
-          result.set(row, target, result.get(row, target) + product);
+      final start = _rowOffsets[row], end = _rowOffsets[row + 1];
+      final rowNnz = end - start;
+      if (rowNnz == 0) continue;
+
+      if (rowNnz == 1) {
+        // Fast path: a single contributor means no summing/accumulation is
+        // needed at all -- just scale that one row of `other` and copy it
+        // straight through, already in sorted column order. Avoids allocating
+        // a Map for what is, for permutation-like gates (X/CX/CCX/SWAP), the
+        // overwhelmingly common case.
+        final aCol = _columnIndices[start];
+        final aVal = _values[start];
+        if (sparseOther != null) {
+          for (final (:column, :value) in sparseOther.nonZeroEntriesInRow(
+            aCol,
+          )) {
+            builder.append(row, column, aVal * value);
+          }
+        } else {
+          for (var target = 0; target < ocols; target++) {
+            final bVal = other.get(aCol, target);
+            builder.append(row, target, aVal * bVal);
+          }
+        }
+        continue;
+      }
+
+      // General case (multiple contributors per row): needs real accumulation.
+      final accumulator = <int, Complex>{};
+      for (var index = start; index < end; index++) {
+        final aCol = _columnIndices[index];
+        final aVal = _values[index];
+        if (sparseOther != null) {
+          for (final (:column, :value) in sparseOther.nonZeroEntriesInRow(
+            aCol,
+          )) {
+            final product = aVal * value;
+            accumulator[column] =
+                (accumulator[column] ?? Complex.zero) + product;
+          }
+        } else {
+          for (var target = 0; target < ocols; target++) {
+            final bVal = other.get(aCol, target);
+            if (bVal.isZero) continue;
+            final product = aVal * bVal;
+            accumulator[target] =
+                (accumulator[target] ?? Complex.zero) + product;
+          }
         }
       }
+      if (accumulator.isEmpty) continue;
+      final sortedCols = accumulator.keys.toList()..sort();
+      for (final c in sortedCols) {
+        final v = accumulator[c]!;
+        builder.append(row, c, v);
+      }
     }
-    return result;
+
+    return builder.build();
   }
 
   @override
@@ -311,29 +471,32 @@ class ComplexSparseMatrix extends ComplexMatrix {
   }
 
   void _scale(Object factor) {
-    if (factor is num) {
-      if (factor == 0) {
+    switch (factor) {
+      case num f when f == 0:
+      case Complex f when f.isZero:
         _rowOffsets.fillRange(0, _rowOffsets.length, 0);
         _columnIndices.clear();
         _values.clear();
-      } else if (factor != 1) {
-        final value = factor.toDouble();
-        for (var i = 0; i < _values.length; i++) {
-          _values[i] = _values[i] * value;
+
+      case num f when f == 1:
+      case Complex f when f.isOne:
+        // nothing to do
+        break;
+
+      case num f:
+        final df = f.toDouble(), len = _values.length;
+        for (var i = 0; i < len; i++) {
+          _values[i] = _values[i] * df;
         }
-      }
-    } else if (factor is Complex) {
-      if (factor == Complex.zero) {
-        _rowOffsets.fillRange(0, _rowOffsets.length, 0);
-        _columnIndices.clear();
-        _values.clear();
-      } else if (factor != Complex.one) {
-        for (var i = 0; i < _values.length; i++) {
-          _values[i] = _values[i] * factor;
+
+      case Complex f:
+        final len = _values.length;
+        for (var i = 0; i < len; i++) {
+          _values[i] = _values[i] * f;
         }
-      }
-    } else {
-      throw InvalidOperationException();
+
+      default:
+        throw InvalidOperationException();
     }
   }
 
@@ -371,12 +534,9 @@ class ComplexSparseMatrix extends ComplexMatrix {
 
   @override
   ComplexSparseMatrix conjugate() {
-    final result = clone();
-    for (var i = 0; i < result._values.length; i++) {
-      result._values[i] = Complex(
-        re: result._values[i].re,
-        im: -result._values[i].im,
-      );
+    final result = clone(), values = result._values;
+    for (var i = 0; i < values.length; i++) {
+      values[i] = values[i].conjugate;
     }
     return result;
   }
@@ -416,8 +576,108 @@ class ComplexSparseMatrix extends ComplexMatrix {
       columns == other.columns &&
       equals(other);
 
-  @override
-  int get hashCode => rows * columns;
+  static ComplexSparseMatrix tensor(ComplexMatrix a, ComplexMatrix b) {
+    final rows = a.rows * b.rows;
+    final columns = a.columns * b.columns;
+    final builder = ComplexSparseMatrixBuilder(rows, columns);
+
+    // Returns this row's nonzero (column, value) pairs, in ascending column
+    // order -- via a direct CSR slice if sparse, via a full row scan if not.
+    List<({int column, Complex value})> rowOfDense(ComplexMatrix m, int row) {
+      final out = <({int column, Complex value})>[];
+      for (var c = 0; c < m.columns; c++) {
+        final v = m.get(row, c);
+        if (!v.isZero) out.add((column: c, value: v));
+      }
+      return out;
+    }
+
+    List<({int column, Complex value})> rowOfSparse(
+      ComplexSparseMatrix m,
+      int row,
+    ) {
+      return m.nonZeroEntriesInRow(row); // needs adding, see below
+    }
+
+    final rowOfA = (a is ComplexSparseMatrix)
+        ? (int r) => rowOfSparse(a, r)
+        : (int r) => rowOfDense(a, r);
+
+    final rowOfB = (b is ComplexSparseMatrix)
+        ? (int r) => rowOfSparse(b, r)
+        : (int r) => rowOfDense(b, r);
+
+    for (var ar = 0; ar < a.rows; ar++) {
+      final aRowEntries = rowOfA(ar); // ascending a_col
+      if (aRowEntries.isEmpty) continue;
+      for (var br = 0; br < b.rows; br++) {
+        final bRowEntries = rowOfB(br); // ascending b_col
+        if (bRowEntries.isEmpty) continue;
+        final r = ar * b.rows + br;
+        // a_col is the "outer" digit of the output column (it's multiplied
+        // by b.columns), so it must be the outer loop for c to come out
+        // ascending; b_col is the inner digit.
+        for (final aEntry in aRowEntries) {
+          for (final bEntry in bRowEntries) {
+            final c = aEntry.column * b.columns + bEntry.column;
+            builder.append(r, c, aEntry.value * bEntry.value);
+          }
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
+  static ComplexSparseMatrix tensorIdentity2(ComplexMatrix a) {
+    final builder = ComplexSparseMatrixBuilder(a.rows * 2, a.columns * 2);
+
+    if (a is ComplexSparseMatrix) {
+      // Buffer one source row's entries at a time, then emit the "even"
+      // row (2r) fully before the "odd" row (2r+1) -- same content as the
+      // original interleaved set() calls, but reordered into the
+      // monotonic row-major sequence append() requires.
+      final pending = <(int column, Complex value)>[];
+      int? currentRow;
+
+      void flush() {
+        if (currentRow == null) return;
+        for (final (column, value) in pending) {
+          builder.append(2 * currentRow, 2 * column, value);
+        }
+        for (final (column, value) in pending) {
+          builder.append(2 * currentRow + 1, 2 * column + 1, value);
+        }
+        pending.clear();
+      }
+
+      for (final (:row, :column, :value) in a.nonZeroEntries) {
+        if (row != currentRow) {
+          flush();
+          currentRow = row;
+        }
+        pending.add((column, value));
+      }
+      flush();
+    } else {
+      final rowEntries = <(int column, Complex value)>[];
+      for (var r = 0; r < a.rows; r++) {
+        rowEntries.clear();
+        for (var c = 0; c < a.columns; c++) {
+          final v = a.get(r, c);
+          if (!v.isZero) rowEntries.add((c, v));
+        }
+        for (final (c, v) in rowEntries) {
+          builder.append(2 * r, 2 * c, v);
+        }
+        for (final (c, v) in rowEntries) {
+          builder.append(2 * r + 1, 2 * c + 1, v);
+        }
+      }
+    }
+
+    return builder.build();
+  }
 
   @override
   String toString() => toStringIndent();
@@ -454,11 +714,12 @@ class ComplexSparseMatrix extends ComplexMatrix {
 
   @override
   List serialize() => [
-    1,
-    'sparse',
-    rows,
+    1, // version
+    'sparse', // kind
+    rows, // size
     columns,
     [
+      // values
       for (var row = 0; row < rows; row++)
         [
           for (
@@ -479,5 +740,45 @@ class ComplexSparseMatrix extends ComplexMatrix {
       }
     }
     return matrix;
+  }
+}
+
+/// Bulk-builds a CSR matrix from entries supplied in row-major order
+/// (non-decreasing row, strictly increasing column within each row).
+/// O(nnz) total, versus O(nnz * dim) for repeated set() calls.
+class ComplexSparseMatrixBuilder {
+  final int rows;
+  final int columns;
+  final List<int> _rowOffsets;
+  final List<int> _columnIndices = [];
+  final List<Complex> _values = [];
+  int _currentRow = 0;
+
+  ComplexSparseMatrixBuilder(this.rows, this.columns)
+    : _rowOffsets = List<int>.filled(rows + 1, 0);
+
+  void append(int row, int column, Complex value) {
+    if (value.isZero) return;
+    assert(row >= _currentRow, 'append() requires non-decreasing rows');
+    while (_currentRow < row) {
+      _currentRow++;
+      _rowOffsets[_currentRow] = _columnIndices.length;
+    }
+    _columnIndices.add(column);
+    _values.add(value);
+  }
+
+  ComplexSparseMatrix build() {
+    while (_currentRow < rows) {
+      _currentRow++;
+      _rowOffsets[_currentRow] = _columnIndices.length;
+    }
+    return ComplexSparseMatrix._fromCsr(
+      rows,
+      columns,
+      _rowOffsets,
+      _columnIndices,
+      _values,
+    );
   }
 }

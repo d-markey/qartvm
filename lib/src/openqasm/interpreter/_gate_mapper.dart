@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import '../../qregister.dart';
+import '../../qstate.dart';
 import '../parser/ast_nodes.dart';
-import '_execution_context.dart';
 import '_expression_evaluator.dart';
 import '_gate_executor.dart';
 import '_qbit_resolver.dart';
+import '_state_context.dart';
 import 'exceptions.dart';
 
 /// Maps OpenQASM gate names to QCircuit operations.
@@ -14,10 +15,9 @@ class GateMapper {
     _qbitResolver = QbitResolver(context, evaluator.evaluate);
   }
 
-  final ExecutionContext context;
+  final StateContext context;
   final ExpressionEvaluator evaluator;
-  final Future<void> Function(List<Statement>, ExecutionContext)
-  statementExecutor;
+  final Future<void> Function(List<Statement>, StateContext) statementExecutor;
   late final QbitResolver _qbitResolver;
 
   /// Executes a gate call statement.
@@ -40,7 +40,7 @@ class GateMapper {
   /// Applies a gate to the quantum memory.
   Future<void> applyGate(
     String gateName,
-    List<int> qubits,
+    List<QbitAddress> qubits,
     List<num>? params,
     List<GateModifier>? modifiers,
   ) async {
@@ -86,7 +86,7 @@ class GateMapper {
   /// Looks up the gate executor (built-in or custom) from the symbol table and executes it.
   Future<void> _applySingleGateExecution(
     String gateName,
-    List<int> qubits,
+    List<QbitAddress> qubits,
     List<num>? processedParams, {
     bool isInverse = false,
   }) async {
@@ -158,7 +158,7 @@ class GateMapper {
   /// Executes a custom gate definition with the given qubits and parameters.
   Future<void> _executeCustomGate(
     GateStatement gateDef,
-    List<int> qubits,
+    List<QbitAddress> qubits,
     List<num>? params,
   ) async {
     // Validate qubit count matches gate definition
@@ -221,8 +221,8 @@ class GateMapper {
     if (modifiers == null) return null;
 
     for (final modifier in modifiers) {
-      if (modifier.type == 'ctrl' || modifier.type == 'negctrl') {
-        final isNegated = modifier.type == 'negctrl';
+      if (modifier.type == .ctrl || modifier.type == .negctrl) {
+        final isNegated = modifier.type == .negctrl;
 
         // Default control count is 1
         int controlCount = 1;
@@ -246,7 +246,7 @@ class GateMapper {
     if (modifiers == null) return 1;
 
     for (final modifier in modifiers) {
-      if (modifier.type == 'pow') {
+      if (modifier.type == .pow) {
         if (modifier.expression != null) {
           return (await evaluator.evaluate(modifier.expression) as num).toInt();
         }
@@ -263,7 +263,7 @@ class GateMapper {
     if (modifiers == null) return false;
 
     for (final modifier in modifiers) {
-      if (modifier.type == 'inv') {
+      if (modifier.type == .inv) {
         return true;
       }
     }
@@ -280,7 +280,7 @@ class GateMapper {
   /// where c0...cn are control qubits and t0...tn are target qubits
   Future<void> _applyControlledGate(
     String gateName,
-    List<int> allQubits,
+    List<QbitAddress> allQubits,
     List<num>? params,
     ControlInfo controlInfo, {
     bool isInverse = false,

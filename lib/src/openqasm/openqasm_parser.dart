@@ -1,8 +1,9 @@
 import 'package:antlr4/antlr4.dart';
+
 import 'antlr4/parser/OpenQASM3Lexer.dart';
 import 'antlr4/parser/OpenQASM3Parser.dart';
-import 'parser/ast_nodes.dart';
 import 'parser/_ast_builder.dart';
+import 'parser/ast_nodes.dart';
 
 class OpenQASMParser {
   /// Parses an OpenQASM 3 program from a String and returns the AST.

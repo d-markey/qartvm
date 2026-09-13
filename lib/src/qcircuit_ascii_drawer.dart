@@ -2,15 +2,16 @@ import 'qcircuit.dart';
 import 'qcircuit_gate.dart';
 import 'qgate_type.dart';
 import 'qmemory_space.dart';
+import 'qstate.dart';
 
 /// A quantum circuit ASCII drawer
 class QCircuitAsciiDrawer {
   /// Returns a set of strings representing the [circuit]
   Iterable<String> draw(QCircuit circuit, [QMemorySpace? qmem]) {
-    final nbQubits = circuit.size;
+    final nbQbits = circuit.size;
     final names = Iterable.generate(
-      nbQubits,
-      (i) => qmem?.getLogicalName(i) ?? '#$i',
+      nbQbits,
+      (i) => qmem?.getLogicalName(QbitAddress(i)) ?? '#$i',
     ).toList();
     final nameWidth = names.fold<int>(
       0,
@@ -20,7 +21,7 @@ class QCircuitAsciiDrawer {
 
     final lines = <StringBuffer>[];
     var idx = 0;
-    for (var i = 0; i < nbQubits; i++) {
+    for (var i = 0; i < nbQbits; i++) {
       lines.add(StringBuffer('${' ' * nameWidth}    '));
       lines.add(StringBuffer('${names[i].padRight(nameWidth)} ---'));
       lines.add(StringBuffer('${' ' * nameWidth}    '));
@@ -34,13 +35,13 @@ class QCircuitAsciiDrawer {
       }
     }
     idx = 0;
-    for (var i = 0; i < nbQubits; i++) {
+    for (var i = 0; i < nbQbits; i++) {
       lines[idx++].write('   ');
       lines[idx++].write('---');
       lines[idx++].write('   ');
     }
     idx = 0;
-    for (var i = 0; i < nbQubits; i++) {
+    for (var i = 0; i < nbQbits; i++) {
       lines[idx++].write('');
       lines[idx++].write('-- ${names[i]}');
       lines[idx++].write('');
@@ -59,7 +60,7 @@ class _QCircuitGateAsciiDrawer {
       }
     } else if (gate.type == QGateType.measure) {
       for (var i = 0; i < gate.circuit.size; i++) {
-        if (gate.qubits.isEmpty || gate.qubits.contains(i)) {
+        if (gate.qbits.isEmpty || gate.qbits.contains(i)) {
           yield '         ';
           yield '--${gate.type.symbol}--';
           yield '         ';
@@ -83,24 +84,24 @@ class _QCircuitGateAsciiDrawer {
       } else {
         ctrl = '$ctrl X -$ctrl';
       }
-      final min = gate.qubits.fold<int>(
+      final min = gate.qbits.fold<int>(
         gate.circuit.size,
         (previousValue, element) =>
-            element < previousValue ? element : previousValue,
+            element.index < previousValue ? element.index : previousValue,
       );
-      final max = gate.qubits.fold<int>(
+      final max = gate.qbits.fold<int>(
         -1,
         (previousValue, element) =>
-            element > previousValue ? element : previousValue,
+            element.index > previousValue ? element.index : previousValue,
       );
       for (var i = 0; i < gate.circuit.size; i++) {
         if (gate.controls.contains(i)) {
           yield blanks;
           yield ctrl;
           yield blanks;
-        } else if (gate.qubits.contains(i)) {
-          final last = gate.isUnitary || !gate.qubits.any(($) => $ > i);
-          final first = gate.isUnitary || !gate.qubits.any(($) => $ < i);
+        } else if (gate.qbits.contains(i)) {
+          final last = gate.isUnitary || !gate.qbits.any(($) => $.index > i);
+          final first = gate.isUnitary || !gate.qbits.any(($) => $.index < i);
           yield first ? border : cbox;
           yield box;
           yield last ? border : cbox;

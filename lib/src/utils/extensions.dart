@@ -6,7 +6,7 @@ extension DoubleExt on num {
   }
 
   /// Constant used for precision in [normalize]
-  static final sensitivity = 1e-12;
+  static final sensitivity = 1e-11;
 
   /// Returns an [int] if this instance is within [sensitivity] of the closest integer
   /// Otherwise returns this insance

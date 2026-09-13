@@ -18,7 +18,9 @@ void main() {
       }
       set_g();
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['g'], 1);
     });
 
@@ -30,7 +32,9 @@ void main() {
       }
       int[32] x = get_val();
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['x'], 42);
     });
 
@@ -42,7 +46,9 @@ void main() {
       }
       int[32] result = add(10, 20);
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['result'], 30);
     });
 
@@ -55,7 +61,9 @@ void main() {
       }
       modify_local();
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['x'], 10);
     });
 
@@ -71,7 +79,9 @@ void main() {
       int[32] a = my_abs(-5);
       int[32] b = my_abs(5);
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['a'], 5);
       expect(result.classicalVariables['b'], 5);
     });
@@ -87,7 +97,9 @@ void main() {
       }
       int[32] x = loop_return();
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['x'], 42);
     });
 
@@ -103,7 +115,9 @@ void main() {
       }
       int[32] x = loop_return();
       ''';
-      final result = await interpreter.execute(OpenQASMParser.parse(source));
+      final result = (await interpreter.execute(
+        OpenQASMParser.parse(source),
+      ))[0];
       expect(result.classicalVariables['x'], 99);
     });
   });

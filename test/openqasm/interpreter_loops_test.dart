@@ -18,7 +18,7 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // 1 + 2 + 3 + 4 = 10
       expect(result.classicalVariables['result'], equals(10));
@@ -35,7 +35,7 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // 2 * 3 = 6
       expect(result.classicalVariables['result'], equals(6));
@@ -52,7 +52,7 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // 0 + 1 + 2 + 3 + 4 = 10
       expect(result.classicalVariables['result'], equals(10));
@@ -71,7 +71,7 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // 1 + 2 + 3 + 4 = 10
       expect(result.classicalVariables['result'], equals(10));
@@ -89,7 +89,7 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // 1 + 2 + 4 + 5 = 12
       expect(result.classicalVariables['result'], equals(12));
@@ -105,14 +105,14 @@ void main() {
         }
       ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(5));
       // Each qubit should be in |+> state
       for (int i = 0; i < 5; i++) {
         expect(
-          result.quantumMemory!.getPropability(
+          result.quantumMemory!.getProbability(
             List.generate(5, (j) => j == i ? '0' : '.').join(),
           ),
           closeTo(0.5, 0.01),
@@ -137,7 +137,7 @@ void main() {
       ''';
       // Total qubits: 1 (q1) + 2 (q2) = 3
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.quantumMemory, isNotNull);
       expect(result.quantumMemory!.size, equals(3));

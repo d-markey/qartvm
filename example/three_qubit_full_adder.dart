@@ -37,30 +37,38 @@ void main() {
   //    6      =      b2    /      b2
   //    7      =      |0>                           (suppressed as this qubit is useless)
 
+  final $0 = QbitAddress(0),
+      $1 = QbitAddress(1),
+      $2 = QbitAddress(2),
+      $3 = QbitAddress(3),
+      $4 = QbitAddress(4),
+      $5 = QbitAddress(5),
+      $6 = QbitAddress(6);
+
   final qmem = QMemorySpace.zero(7);
-  final qa = qmem.createRegister('qa', addresses: [3, 2, 1, 0]);
-  final qb = qmem.createRegister('qb', addresses: [6, 5, 4]);
+  final qa = qmem.createRegister('qa', addresses: [$3, $2, $1, $0]);
+  final qb = qmem.createRegister('qb', addresses: [$4, $5, $6]);
 
   final gateBuilder = QGateBuilder.get(qmem.size, withCache: true);
   final circuit = QCircuit(gateBuilder);
 
-  circuit.qft([3, 2, 1, 0]);
+  circuit.qft(qa, swap: true);
 
   // circuit.phase(math.pi, 3, controls: 7); // suppressed because qubit 7 is always |0>
-  circuit.phase(math.pi / 2, 3, controls: 6);
-  circuit.phase(math.pi / 4, 3, controls: 5);
-  circuit.phase(math.pi / 8, 3, controls: 4);
+  circuit.phase(math.pi / 2, $3, controls: $6);
+  circuit.phase(math.pi / 4, $3, controls: $5);
+  circuit.phase(math.pi / 8, $3, controls: $4);
 
-  circuit.phase(math.pi, 2, controls: 6);
-  circuit.phase(math.pi / 2, 2, controls: 5);
-  circuit.phase(math.pi / 4, 2, controls: 4);
+  circuit.phase(math.pi, $2, controls: $6);
+  circuit.phase(math.pi / 2, $2, controls: $5);
+  circuit.phase(math.pi / 4, $2, controls: $4);
 
-  circuit.phase(math.pi, 1, controls: 5);
-  circuit.phase(math.pi / 2, 1, controls: 4);
+  circuit.phase(math.pi, $1, controls: $5);
+  circuit.phase(math.pi / 2, $1, controls: $4);
 
-  circuit.phase(math.pi, 0, controls: 4);
+  circuit.phase(math.pi, $0, controls: $4);
 
-  circuit.invQft([3, 2, 1, 0]);
+  circuit.invQft(qa, swap: true);
 
   circuit.addObserver((step, gate, qmem) {
     if (step == 0) {

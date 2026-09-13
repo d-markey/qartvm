@@ -21,16 +21,16 @@ class ShorBuilders {
   }
 
   @squadronMethod
-  FutureOr<ComplexMatrix> addGate(List<int> qubits, int constant) =>
-      _perf('addGate($qubits, $constant)', () {
+  FutureOr<ComplexMatrix> addGate(List<QbitAddress> qbits, int constant) =>
+      _perf('addGate($qbits, $constant)', () {
         final adder = QCircuit(builder);
-        final len = qubits.length;
+        final len = qbits.length;
         var div = 2;
         for (var i = 0; i < len; i++) {
           final angle = (2 * constant) / div;
           div <<= 1;
           if (angle % 2 != 0) {
-            adder.phase(angle * math.pi, {qubits[len - 1 - i]});
+            adder.phase(angle * math.pi, {qbits[len - 1 - i]});
           }
         }
         adder.compile();
@@ -38,56 +38,63 @@ class ShorBuilders {
       });
 
   @squadronMethod
-  FutureOr<ComplexMatrix> setFlagOnOverflowGate(List<int> qubits, int flag) =>
-      _perf('setFlagOnOverflowGate($qubits, $flag)', () {
-        final setter = QCircuit(
-          builder,
-        ).invQft(qubits).not(flag, controls: qubits[0]).qft(qubits);
-        setter.compile();
-        return setter.gates.first.matrix!;
-      });
+  FutureOr<ComplexMatrix> setFlagOnOverflowGate(
+    List<QbitAddress> qbits,
+    QbitAddress flag,
+  ) => _perf('setFlagOnOverflowGate($qbits, $flag)', () {
+    final setter = QCircuit(builder)
+        .invQft(qbits, swap: true)
+        .not(flag, controls: qbits.last)
+        .qft(qbits, swap: true);
+    setter.compile();
+    return setter.gates.first.matrix!;
+  });
 
   @squadronMethod
-  FutureOr<ComplexMatrix> resetFlagGate(List<int> qubits, int flag) =>
-      _perf('resetFlagGate($qubits, $flag)', () {
-        final resetter = QCircuit(builder)
-            .invQft(qubits)
-            .not(qubits[0])
-            .not(flag, controls: qubits[0])
-            .not(qubits[0])
-            .qft(qubits);
-        resetter.compile();
-        return resetter.gates.first.matrix!;
-      });
+  FutureOr<ComplexMatrix> resetFlagGate(
+    List<QbitAddress> qbits,
+    QbitAddress flag,
+  ) => _perf('resetFlagGate($qbits, $flag)', () {
+    final resetter = QCircuit(builder)
+        .invQft(qbits, swap: true)
+        .not(qbits.last)
+        .not(flag, controls: qbits.last)
+        .not(qbits.last)
+        .qft(qbits, swap: true);
+    resetter.compile();
+    return resetter.gates.first.matrix!;
+  });
 
   @squadronMethod
-  FutureOr<ComplexMatrix> swapperGate(List<int> qa, List<int> qb) =>
-      _perf('swapperGate($qa, $qb)', () {
-        final len = qa.length;
-        if (qb.length != len) {
-          throw WorkerException(
-            'The list of qubits to swap must have the same length',
-          );
-        }
-        final swapper = QCircuit(builder);
-        for (var i = 0; i < len; i++) {
-          swapper.swap({qa[i], qb[i]});
-        }
-        swapper.compile();
-        return swapper.gates.first.matrix!;
-      });
+  FutureOr<ComplexMatrix> swapperGate(
+    List<QbitAddress> qa,
+    List<QbitAddress> qb,
+  ) => _perf('swapperGate($qa, $qb)', () {
+    final len = qa.length;
+    if (qb.length != len) {
+      throw WorkerException(
+        'The list of qubits to swap must have the same length',
+      );
+    }
+    final swapper = QCircuit(builder);
+    for (var i = 0; i < len; i++) {
+      swapper.swap({qa[i], qb[i]});
+    }
+    swapper.compile();
+    return swapper.gates.first.matrix!;
+  });
 
   @squadronMethod
-  FutureOr<ComplexMatrix> qftGate(List<int> qubits) =>
-      _perf('qftGate($qubits)', () {
-        final qft = QCircuit(builder).qft(qubits);
+  FutureOr<ComplexMatrix> qftGate(List<QbitAddress> qbits) =>
+      _perf('qftGate($qbits)', () {
+        final qft = QCircuit(builder).qft(qbits, swap: true);
         return qft.gates.first.matrix!;
       });
 
   @squadronMethod
-  FutureOr<ComplexMatrix> invQftGate(List<int> qubits) =>
-      _perf('invQftGate($qubits)', () {
-        final invQft = QCircuit(builder).invQft(qubits);
+  FutureOr<ComplexMatrix> invQftGate(List<QbitAddress> qbits) =>
+      _perf('invQftGate($qbits)', () {
+        final invQft = QCircuit(builder).invQft(qbits, swap: true);
         return invQft.gates.first.matrix!;
       });
 }

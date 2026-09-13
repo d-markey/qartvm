@@ -1,185 +1,203 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:qartvm/qartvm.dart';
 
+import 'shor_generator.dart';
+
+final rnd = Random.secure(), sw = Stopwatch()..start();
+
 void main(List<String> args) async {
-  // USAGE: dart run shor_factorization.dart "3 * 5"
-  final interpreter = OpenQASMInterpreter();
-  final rnd = Random.secure();
-  final N = (args.length == 1) ? await _readArg(args.single) : (3 * 7);
+  // USAGE: dart run shor_factorization.dart "3 * 5" [--type synthesis|ripple|qft]
 
-  var nBits = 0;
-  while ((1 << nBits) <= N) {
-    nBits++;
+  if (args.isEmpty) {
+    print(
+      'Usage: dart run shor_factorization.dart <N> [--type synthesis|ripple|qft]',
+    );
+    return;
   }
-  print('*** Register size for N = $N: $nBits');
 
-  final sw = Stopwatch()..start();
+  final N = await _readArg(args[0]);
+
+  String type = 'synthesis';
+  for (int i = 1; i < args.length; i++) {
+    if (args[i] == '--type' && i + 1 < args.length) {
+      type = args[++i];
+    }
+  }
+
+  // Generator factory
+  ShorQasmGenerator createGenerator(int n, int a) {
+    return switch (type) {
+      'ripple' => RippleCarryAdderShorQasmGenerator(n, a),
+      'qft' => QftAdderShorQasmGenerator(n, a),
+      _ => ShorQasmGenerator(n, a),
+    };
+  }
+
+  // Pre-calculate nx from a sample generator
+  final sampleGen = createGenerator(N, N - 1);
+  final nx = sampleGen.nx;
+
+  print(
+    '[${sw.elapsed}] *** Factorization of N = $N using $type generator\n'
+    '[${sw.elapsed}] *** Circuit size = ${sampleGen.circuitSize} qubits\n'
+    '[${sw.elapsed}] ***    nx: ${sampleGen.nx}\n'
+    '[${sw.elapsed}] ***    ny: ${sampleGen.ny}\n'
+    '[${sw.elapsed}] ***    nanc: ${sampleGen.nAncilla}',
+  );
+  final xmask = Iterable.generate(
+    sampleGen.circuitSize,
+    (i) => i < sampleGen.nx ? '*' : '.',
+  ).join();
+
+  var curStep = 0, maxSteps = 0;
+  final interpreter = OpenQASMInterpreter()
+    ..addObserver((idx, stmt, state) {
+      if (idx == 0) {
+        curStep = 0;
+        stdout.writeln();
+      }
+      if (_isMeasurement(stmt)) {
+        curStep++;
+        stdout.writeln();
+        stdout.writeln('[${sw.elapsed}] Measurement at curStep = $curStep');
+        stdout.writeln(
+          '[${sw.elapsed}] Mask: $xmask (len=${xmask.length}), State size: ${state.size}',
+        );
+        final outcomes = state.getProbabilities(xmask).entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        for (var entry in outcomes) {
+          if (entry.value < 1e-5) continue;
+          final key = entry.key.substring(0, nx);
+          final phase = (key == '')
+              ? null
+              : int.tryParse(
+                  String.fromCharCodes(key.codeUnits.toList().reversed),
+                  radix: 2,
+                );
+          print(
+            '[${sw.elapsed}]    > $key ($phase): ${(entry.value * 100).toStringAsFixed(2)} %',
+          );
+        }
+      } else if (stmt is GateCallStatement) {
+        curStep++;
+        stdout.write('.');
+      }
+    });
+
+  // prepare generators
+  final generators = <({int a, ShorQasmGenerator gen})>[];
+  for (var a = 2; a < N - 1; a++) {
+    if (N.gcd(a) != 1) continue;
+    generators.add((a: a, gen: createGenerator(N, a)));
+  }
+
+  generators
+    ..shuffle()
+    ..sort(
+      (a, b) =>
+          a.gen.estimateComplexity().compareTo(b.gen.estimateComplexity()),
+    );
+
+  print(
+    '[${sw.elapsed}] *** Complexities:'
+    ' min ${generators.first.gen.estimateComplexity()},'
+    ' max ${generators.last.gen.estimateComplexity()},'
+    ' total ${generators.length}',
+  );
+
   var round = 0;
 
   while (true) {
-    round++;
-    sw.reset();
-    final a = 2 + rnd.nextInt(N - 2);
-    final params = '(N, a) = ($N, $a)';
-
-    print('************** ROUND #$round - $params **************');
-
-    final k = N.gcd(a);
-    if (k != 1) {
-      // found classical solution, but we'll force the quantum path
-      continue;
-      // ignore: dead_code
-      print('[${sw.elapsed}] Shor result for $params [classical route]');
-      print('  factors = ${[k, N ~/ k]}');
+    if (round >= generators.length) {
+      print('FAILED');
       break;
     }
 
-    final source = generateShorQasm(N, a, nBits);
+    final entry = generators[round];
+    final a = entry.a;
+    final params = '(N, a) = ($N, $a)';
+    round++;
+    sw.reset();
+
+    print(
+      '[${sw.elapsed}] ************** ROUND #$round - $params **************',
+    );
+
+    maxSteps = entry.gen.estimateComplexity();
+    print('[${sw.elapsed}] Shor estimated complexity for $params: $maxSteps');
+
+    final source = entry.gen.generate();
     print('[${sw.elapsed}] Generated Shor program for $params');
 
     final program = OpenQASMParser.parse(source);
     print('[${sw.elapsed}] Parsed Shor program for $params');
 
-    final result = await interpreter.execute(program);
-    print('[${sw.elapsed}] Executed Shor program for $params');
+    var attempts = 0, done = false;
+    while (attempts < 3 && !done) {
+      attempts++;
+      print('[${sw.elapsed}] ----- ATTEMPT #$attempts -----');
+      // Optimization: use cache for all types since matrices are local
+      final results = await interpreter.execute(program, withCache: true);
+      print('[${sw.elapsed}] Executed Shor program for $params');
 
-    final measuredPhase = _readMeasuredPhase(result);
-    final order = phaseToOrder(measuredPhase, nBits, a, N);
-    final factors = factorFromOrder(N, a, order);
+      final result = results[0];
+      final measuredPhase = _readMeasuredPhase(result);
+      final order = _phaseToOrder(measuredPhase, nx, a, N);
+      final factors = _factorFromOrder(N, a, order);
 
-    print('[${sw.elapsed}] Shor result for $params [quantum route]');
-    print('  measured phase = $measuredPhase');
-    print('  estimated order = $order');
-    if (factors.isEmpty) {
-      print('  no non-trivial factors recovered');
-    } else {
-      print('  factors = $factors');
-      print('');
-      print('******************** SOURCE CODE ********************');
-      print(source);
-      print('*****************************************************');
-      print('');
-      break;
+      print('[${sw.elapsed}] Shor result for $params [quantum route]');
+      if (factors.isEmpty) {
+        print(
+          '  measured phase = $measuredPhase\n'
+          '  estimated order = $order\n'
+          '  no non-trivial factors recovered',
+        );
+        // If we found a valid order but it's useless for factoring,
+        // no point in doing 10 attempts for this 'a'.
+        if (order > 1 && _isValidOrderCandidate(a, N, order)) {
+          print('  (a=$a is likely a dead end, moving to next round)');
+          break;
+        }
+      } else {
+        done = true;
+        final res = factors.reduce((a, b) => a * b);
+        print(
+          '  measured phase = $measuredPhase --> estimated order = $order\n'
+          '  factors = $factors --> product = $res\n'
+          '  ${res == N ? 'PASS' : 'FAIL -- expected $N'}',
+        );
+        break;
+      }
     }
+    if (done) break;
   }
 }
 
 Future<int> _readArg(String arg) async {
   var N = int.tryParse(arg);
-  if (N is int) return N;
-
-  final program = OpenQASMParser.parse('''
-    OPENQASM 3.0;
-    int N = $arg;
-  ''');
-
-  final result = await OpenQASMInterpreter().execute(program);
-  N = result.classicalVariables['N'];
-  if (N is! int) throw ArgumentError('Invalid argument: $arg');
-  print('*** N = $N = $arg');
+  if (N == null) {
+    final program = OpenQASMParser.parse('OPENQASM 3.0;\nint N = $arg;');
+    final result = (await OpenQASMInterpreter().execute(program))[0];
+    N = result.classicalVariables['N'];
+    if (N is! int) throw ArgumentError('Invalid argument: $arg');
+    print('[${sw.elapsed}] *** N = $arg = $N');
+  } else {
+    print('[${sw.elapsed}] *** N = $N');
+  }
   return N;
 }
 
-String generateShorQasm(int N, int a, int nBits) {
-  final order = _modularOrder(a, N);
-  print('*** Modular order for N = $N / a = $a: $order');
-
-  final lines = <String>[
-    'OPENQASM 3.0;',
-    'include "stdgates.inc";',
-    '',
-    '// constants for this context',
-    'const int N = $N;',
-    'const int a = $a;',
-    'const int n = $nBits;',
-    '',
-    '// computed modular order',
-    'const int order = $order;',
-    '',
-    'qubit[n] x_reg;',
-    'qubit[n] y_reg;',
-    'bit[n] phase_bits;',
-    '',
-    'h x_reg;',
-    'x y_reg[0];',
-    '',
-    '// Build the phase-estimation oracle as controlled modular multiplications.',
-    '// For each power of two, we apply U^(2^j): y <- (a^(2^j) * y) mod N',
-    '// conditioned on the j-th control qubit in x_reg.',
-    '',
-  ];
-
-  // WARNING: SHOR REQUIRES MODULAR EXPONENTIATION, BUT THIS IS NOT...
-  // The algorithm may eventually work, but this is not Shor.
-  // Review is in progress...
-  for (var controlBit = 0; controlBit < nBits; controlBit++) {
-    final multiplier = _modPow(a, 1 << controlBit, N);
-    lines.addAll(
-      _generateControlledModAddQasm(
-        modulus: N,
-        constant: multiplier,
-        controlRegister: 'x_reg',
-        targetRegister: 'y_reg',
-        controlBit: controlBit,
-        targetBits: nBits,
-      ),
-    );
-    lines.add('');
+bool _isMeasurement(Statement stmt) {
+  if (stmt is MeasurementStatement) return true;
+  if (stmt is AssignmentStatement && stmt.value is MeasureExpression) {
+    return true;
   }
-
-  lines.addAll(_generateInverseQftQasm('x_reg', nBits));
-  lines.add('');
-  lines.add('phase_bits = measure x_reg;');
-  return lines.join('\n');
-}
-
-Iterable<String> _generateControlledModAddQasm({
-  required int modulus,
-  required int constant,
-  required String controlRegister,
-  required String targetRegister,
-  required int controlBit,
-  required int targetBits,
-}) sync* {
-  // note: `constant` is already computed modulo `modulus`...
-  final reduced = constant % modulus;
-  yield (reduced == constant)
-      ? '/* controlled modular add: y <- (y + $constant) mod $modulus when $controlRegister[$controlBit] = 1 */'
-      : '/* controlled modular add: y <- (y + $constant) mod $modulus when $controlRegister[$controlBit] = 1 ($constant mod $modulus = $reduced) */';
-
-  for (var targetBit = 0; targetBit < targetBits; targetBit++) {
-    final bitMask = 1 << targetBit;
-    if ((reduced & bitMask) == 0) {
-      continue;
-    }
-
-    final angleDenominator = 1 << (targetBit + 1);
-    yield 'cp((tau * $angleDenominator) / $modulus) '
-        '$targetRegister[$targetBit], $controlRegister[$controlBit];';
+  if (stmt is ClassicalDeclaration && stmt.initializer is MeasureExpression) {
+    return true;
   }
-}
-
-Iterable<String> _generateInverseQftQasm(String registerName, int nBits) sync* {
-  yield 'h $registerName;';
-  yield '';
-
-  for (var bitIndex = 0; bitIndex < nBits - 1; bitIndex++) {
-    final source = nBits - 2 - bitIndex;
-    final target = nBits - 1 - bitIndex;
-    final denominator = 1 << (bitIndex + 1);
-    yield 'cp(-pi / $denominator) $registerName[$source], $registerName[$target];';
-  }
-}
-
-int _modularOrder(int base, int modulus) {
-  final reduced = base % modulus;
-  for (var order = 1; order <= modulus; order++) {
-    if (_modPow(reduced, order, modulus) == 1) {
-      return order;
-    }
-  }
-  throw StateError('No multiplicative order found for $base mod $modulus');
+  return false;
 }
 
 int _readMeasuredPhase(InterpreterResult result) {
@@ -205,7 +223,7 @@ int _readMeasuredPhase(InterpreterResult result) {
   );
 }
 
-int phaseToOrder(int phaseEstimate, int registerBits, int a, int n) {
+int _phaseToOrder(int phaseEstimate, int registerBits, int a, int n) {
   final candidates = <int>{1};
 
   final denominator = 1 << registerBits;
@@ -263,7 +281,7 @@ int? _continuedFractionReduce(double phase, int n) {
   return denominators.first;
 }
 
-List<int> factorFromOrder(int n, int a, int order) {
+List<int> _factorFromOrder(int n, int a, int order) {
   if (order <= 1 || order % 2 != 0) return const [];
 
   if (!_isValidOrderCandidate(a, n, order)) return const [];

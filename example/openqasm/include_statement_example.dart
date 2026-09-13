@@ -37,7 +37,8 @@ measure q -> result;
   // Create interpreter with default StandardGatesProvider
   final interpreter = OpenQASMInterpreter();
 
-  final result = await interpreter.execute(program);
+  final results = await interpreter.execute(program);
+  final result = results[0];
   print('Execution successful!');
   print('Qubits: ${result.quantumMemory?.size ?? 0}');
 }
@@ -65,7 +66,8 @@ gate custom_gate q {
   final program = OpenQASMParser.parse(source);
   final interpreter = OpenQASMInterpreter(includeProvider: provider);
 
-  final result = await interpreter.execute(program);
+  final results = await interpreter.execute(program);
+  final result = results[0];
   print('Custom gates execution successful!');
   print(result);
 }

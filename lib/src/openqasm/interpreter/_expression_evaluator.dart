@@ -1,12 +1,14 @@
 import 'dart:async';
-import 'dart:math' as math;
 
+import 'package:qartvm/src/qregister.dart';
+
+import '../parser/_eval.dart';
 import '../parser/ast_nodes.dart';
 import '_builtin_library.dart';
-import '_execution_context.dart';
 import '_flow_exceptions.dart';
 import '_qbit_resolver.dart';
 import '_range_result.dart';
+import '_state_context.dart';
 import 'exceptions.dart';
 
 /// Evaluates OpenQASM expressions to runtime values.
@@ -15,7 +17,7 @@ class ExpressionEvaluator {
     _qbitResolver = QbitResolver(context, evaluate);
   }
 
-  final ExecutionContext context;
+  final StateContext context;
   final Future<void> Function(List<Statement>) statementExecutor;
   late final QbitResolver _qbitResolver;
 
@@ -33,7 +35,7 @@ class ExpressionEvaluator {
       RangeExpression e => _evaluateRange(e),
       SetExpression e => Future.wait(e.expressions.map(evaluate)),
       CastExpression e => _evaluateCast(e),
-      HardwareQubitExpression e => e.index,
+      HardwareQubitExpression e => e.address,
       DurationOfExpression() => 0, // TODO: Implement properly
       MeasureExpression e => _evaluateMeasure(e),
       _ => throw EvaluationException(
@@ -54,11 +56,11 @@ class ExpressionEvaluator {
       throw EvaluationException('Cannot measure: no quantum memory', expr);
     }
 
-    final value = qmem.read(qubits: qubits);
+    final value = qmem.read(qbits: qubits);
 
     // Record the measurement in context
     final key = _getExpressionKey(expr.qubit);
-    context.recordMeasurement(key, value);
+    context.recordMeasurement('$key (${qubits.join(',')})', value);
 
     return value;
   }
@@ -81,7 +83,7 @@ class ExpressionEvaluator {
       }).join();
       return '$base$indices';
     }
-    if (expr is HardwareQubitExpression) return '\$${expr.index}';
+    if (expr is HardwareQubitExpression) return '\$${expr.address}';
     return expr.toString();
   }
 
@@ -95,6 +97,13 @@ class ExpressionEvaluator {
     try {
       return context.getVariable(expr.name);
     } catch (e) {
+      //throw EvaluationException('Undefined identifier: ${expr.name}', expr);
+    }
+
+    // Look up variable or constant in symbols
+    try {
+      return context.getQubitRegister(expr.name);
+    } catch (e) {
       throw EvaluationException('Undefined identifier: ${expr.name}', expr);
     }
   }
@@ -102,54 +111,26 @@ class ExpressionEvaluator {
   Future<dynamic> _evaluateBinary(BinaryExpression expr) async {
     final left = await evaluate(expr.left);
     final right = await evaluate(expr.right);
-
-    return switch (expr.operator) {
-      // Arithmetic
-      '+' => left + right,
-      '-' => left - right,
-      '*' => left * right,
-      '/' => left / right,
-      '%' => left % right,
-      '**' => math.pow(left as num, right as num),
-
-      // Bitwise
-      '&' => (left as int) & (right as int),
-      '|' => (left as int) | (right as int),
-      '^' => (left as int) ^ (right as int),
-      '<<' => (left as int) << (right as int),
-      '>>' => (left as int) >> (right as int),
-
-      // Logical
-      '&&' => toBool(left) && toBool(right),
-      '||' => toBool(left) || toBool(right),
-
-      // Comparison
-      '==' => left == right,
-      '!=' => left != right,
-      '<' => (left as num) < (right as num),
-      '>' => (left as num) > (right as num),
-      '<=' => (left as num) <= (right as num),
-      '>=' => (left as num) >= (right as num),
-
-      _ => throw EvaluationException(
+    final res = applyBinaryOp(left, expr.operator, right);
+    if (res == null) {
+      throw EvaluationException(
         'Unknown binary operator: ${expr.operator}',
         expr,
-      ),
-    };
+      );
+    }
+    return res;
   }
 
   Future<dynamic> _evaluateUnary(UnaryExpression expr) async {
     final value = await evaluate(expr.expression);
-
-    return switch (expr.operator) {
-      '-' => -(value as num),
-      '!' => !toBool(value),
-      '~' => ~(value as int),
-      _ => throw EvaluationException(
+    final res = applyUnaryOp(expr.operator, value);
+    if (res == null) {
+      throw EvaluationException(
         'Unknown unary operator: ${expr.operator}',
         expr,
-      ),
-    };
+      );
+    }
+    return res;
   }
 
   Future<dynamic> _evaluateCall(CallExpression expr) async {
@@ -183,8 +164,12 @@ class ExpressionEvaluator {
         // Bind arguments
         if (subroutine.arguments != null) {
           for (var i = 0; i < args.length; i++) {
-            final argDef = subroutine.arguments![i];
-            context.declareClassicalVariable(argDef.name, argDef.type, args[i]);
+            final argDef = subroutine.arguments![i], val = args[i];
+            if (val is QRegister) {
+              context.pushQubitRegister(argDef.name, val);
+            } else {
+              context.declareClassicalVariable(argDef.name, argDef.type, val);
+            }
           }
         }
 
@@ -272,23 +257,15 @@ class ExpressionEvaluator {
 
     if (type is ScalarTypeNode) {
       return switch (type.name) {
-        'int' ||
-        'uint' => (value is num) ? value.toInt() : int.parse(value.toString()),
-        'float' =>
-          (value is num) ? value.toDouble() : double.parse(value.toString()),
+        'int' || 'uint' => toInt(value),
+        'float' => toFloat(value),
         'bool' => toBool(value),
-        'bit' => (value as num).toInt() & 1,
+        'bit' => toInt(value) & 1,
+        'complex' => toComplex(value),
         _ => value,
       };
     }
 
     return value;
-  }
-
-  static bool toBool(dynamic value) {
-    if (value is bool) return value;
-    if (value is num) return value != 0;
-    if (value is String) return value.isNotEmpty;
-    return false;
   }
 }

@@ -32,7 +32,7 @@ void main() {
 
   print('');
 
-  final a = qmem.read(qubits: [0]);
+  final a = qmem.read(qbits: [0]);
 
   print('measured qubit 0 = $a');
   print(
@@ -42,7 +42,7 @@ void main() {
     ' * probabilities after measurement of qubit 0: ${probInfo(qmem, fractionDigits: 6)}',
   );
 
-  final b = qmem.read(qubits: [1]);
+  final b = qmem.read(qbits: [1]);
 
   if (a != b) {
     throw Exception('Measurement of qubit 1 yielded unexpected result $b');

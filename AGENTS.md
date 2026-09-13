@@ -22,6 +22,7 @@ The `QCircuit` class is the central point for defining quantum algorithms.
 - `QMemorySpace` handles the underlying state vector (amplitudes).
 - `QRegister` is a higher-level abstraction for a set of qubits.
 - Initial states are usually `zero` (all |0>).
+- **Measurement Modes**: Supports `independent` (qubit-by-qubit) and `joint` (single-pass distribution) measurement. Joint measurement is preferred for multi-qubit registers for performance and stability.
 
 ### OpenQASM 3.0
 - `OpenQASMParser`: Converts QASM source to an AST.

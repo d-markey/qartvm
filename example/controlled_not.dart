@@ -18,8 +18,8 @@ void main() {
     for (var q1 in qbits) {
       qmem.initialize({0: q0, 1: q1});
       qmem2.initialize({0: q0, 1: q1});
-      final a0 = qmem.read(qubits: 0);
-      final b0 = qmem.read(qubits: 1);
+      final a0 = qmem.read(qbits: 0);
+      final b0 = qmem.read(qbits: 1);
       print('Initial states');
       print(' * amplitudes:    ${amplInfo(qmem, fractionDigits: 6)}');
       print(' * probabilities: ${probInfo(qmem, fractionDigits: 2)}');
@@ -30,8 +30,8 @@ void main() {
       print(' * amplitudes:    ${amplInfo(qmem, fractionDigits: 6)}');
       print(' * probabilities: ${probInfo(qmem, fractionDigits: 2)}');
 
-      final a1 = qmem.read(qubits: 0);
-      final b1 = qmem.read(qubits: 1);
+      final a1 = qmem.read(qbits: 0);
+      final b1 = qmem.read(qbits: 1);
 
       if (a0 != a1) {
         throw Exception(

@@ -5,8 +5,8 @@ import 'package:test/test.dart';
 
 void main() {
   group('Quantum Circuit -', () {
-    final gateBuilder2 = QGateBuilder.get(2, withCache: true);
-    final gateBuilder3 = QGateBuilder.get(3, withCache: true);
+    final gateBuilder2 = QGateBuilder.get(2, withCache: false);
+    final gateBuilder3 = QGateBuilder.get(3, withCache: false);
 
     group('Unitary gates -', () {
       test('Hadamard', () {
@@ -17,7 +17,7 @@ void main() {
         final qmem = QMemorySpace.zero(2);
         h0.execute(qmem);
         var probs = qmem.probabilities;
-        var sum = probs.values.fold<double>(0, (s, p) => s + p);
+        var sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(0.5, 1e-9));
         expect(probs['01'], closeTo(0, 1e-9));
@@ -30,7 +30,7 @@ void main() {
         // test
         h1.execute(qmem);
         probs = qmem.probabilities;
-        sum = probs.values.fold<double>(0, (s, p) => s + p);
+        sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(0.25, 1e-9));
         expect(probs['01'], closeTo(0.25, 1e-9));
@@ -43,7 +43,7 @@ void main() {
         // test
         h01.execute(qmem);
         probs = qmem.probabilities;
-        sum = probs.values.fold<double>(0, (s, p) => s + p);
+        sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(1, 1e-9));
         expect(probs['01'], closeTo(0, 1e-9));
@@ -56,29 +56,29 @@ void main() {
         final qmem = QMemorySpace([Qbit.zero, qubit]);
         // initial state
         var probs = qmem.probabilities;
-        var sum = probs.values.fold<double>(0, (s, p) => s + p);
+        var sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
-        expect(probs['00'], closeTo(qubit.ket0.det, 1e-9));
-        expect(probs['01'], closeTo(qubit.ket1.det, 1e-9));
+        expect(probs['00'], closeTo(qubit.ket0.modulus2, 1e-9));
+        expect(probs['01'], closeTo(qubit.ket1.modulus2, 1e-9));
         expect(probs['10'], closeTo(0, 1e-9));
         expect(probs['11'], closeTo(0, 1e-9));
         // hadamard
         final h = QCircuit(gateBuilder2).hadamard(0);
         h.execute(qmem);
         probs = qmem.probabilities;
-        sum = probs.values.fold<double>(0, (s, p) => s + p);
+        sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
-        expect(probs['00'], closeTo(qubit.ket0.det / 2, 1e-9));
-        expect(probs['01'], closeTo(qubit.ket1.det / 2, 1e-9));
-        expect(probs['10'], closeTo(qubit.ket0.det / 2, 1e-9));
-        expect(probs['11'], closeTo(qubit.ket1.det / 2, 1e-9));
+        expect(probs['00'], closeTo(qubit.ket0.modulus2 / 2, 1e-9));
+        expect(probs['01'], closeTo(qubit.ket1.modulus2 / 2, 1e-9));
+        expect(probs['10'], closeTo(qubit.ket0.modulus2 / 2, 1e-9));
+        expect(probs['11'], closeTo(qubit.ket1.modulus2 / 2, 1e-9));
       });
 
       test('Bell state', () {
         final qmem = QMemorySpace([Qbit.zero, Qbit.zero]);
         // initial state
         var probs = qmem.probabilities;
-        var sum = probs.values.fold<double>(0, (s, p) => s + p);
+        var sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(1, 1e-9));
         expect(probs['01'], closeTo(0, 1e-9));
@@ -88,7 +88,7 @@ void main() {
         final bs = QCircuit(gateBuilder2).hadamard(0).not(1, controls: 0);
         bs.execute(qmem);
         probs = qmem.probabilities;
-        sum = probs.values.fold<double>(0, (s, p) => s + p);
+        sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(0.5, 1e-9));
         expect(probs['01'], closeTo(0, 1e-9));
@@ -101,7 +101,7 @@ void main() {
           final qmem = QMemorySpace([Qbit.zero, Qbit.one]);
           // initial state
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -111,7 +111,7 @@ void main() {
           final not0 = QCircuit(gateBuilder2).not(0);
           not0.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -121,7 +121,7 @@ void main() {
           final not1 = QCircuit(gateBuilder2).not(1);
           not1.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -131,7 +131,7 @@ void main() {
           final not01 = QCircuit(gateBuilder2).not({0, 1});
           not01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -143,7 +143,7 @@ void main() {
           final qmem = QMemorySpace([Qbit.zero, Qbit.one]);
           // initial state
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -153,7 +153,7 @@ void main() {
           final y0 = QCircuit(gateBuilder2).pauliY(0);
           y0.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -163,7 +163,7 @@ void main() {
           final y1 = QCircuit(gateBuilder2).pauliY(1);
           y1.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -173,7 +173,7 @@ void main() {
           final y01 = QCircuit(gateBuilder2).not({0, 1});
           y01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -185,7 +185,7 @@ void main() {
           final qmem = QMemorySpace([Qbit.zero, Qbit.one]);
           // initial state
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -195,7 +195,7 @@ void main() {
           final z0 = QCircuit(gateBuilder2).pauliZ(0);
           z0.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -205,7 +205,7 @@ void main() {
           final z1 = QCircuit(gateBuilder2).pauliZ(1);
           z1.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -215,7 +215,7 @@ void main() {
           final z01 = QCircuit(gateBuilder2).pauliZ({0, 1});
           z01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -227,7 +227,7 @@ void main() {
           final qmem = QMemorySpace([Qbit.zero, Qbit.one]);
           // initial state
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -237,7 +237,7 @@ void main() {
           final sqrtX0 = QCircuit(gateBuilder2).squareRootOfX(0);
           sqrtX0.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0.5, 1e-9));
@@ -247,7 +247,7 @@ void main() {
           final sqrtX1 = QCircuit(gateBuilder2).squareRootOfX(1);
           sqrtX1.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0.25, 1e-9));
           expect(probs['01'], closeTo(0.25, 1e-9));
@@ -257,7 +257,7 @@ void main() {
           final sqrtX01 = QCircuit(gateBuilder2).squareRootOfX({0, 1});
           sqrtX01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -271,7 +271,7 @@ void main() {
           var qmem = QMemorySpace([Qbit.zero, Qbit.zero]);
           ctrlX01.execute(qmem);
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(1, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -281,7 +281,7 @@ void main() {
           qmem = QMemorySpace([Qbit.zero, Qbit.one]);
           ctrlX01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(1, 1e-9));
@@ -291,7 +291,7 @@ void main() {
           qmem = QMemorySpace([Qbit.one, Qbit.zero]);
           ctrlX01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -301,7 +301,7 @@ void main() {
           qmem = QMemorySpace([Qbit.one, Qbit.one]);
           ctrlX01.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo(0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -316,18 +316,18 @@ void main() {
           final ctrlX01 = QCircuit(gateBuilder2).not(1, controls: 0);
           ctrlX01.execute(qmem);
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
-          expect(probs['00'], closeTo(control.ket0.det, 1e-9));
+          expect(probs['00'], closeTo(control.ket0.modulus2, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
           expect(probs['10'], closeTo(0, 1e-9));
-          expect(probs['11'], closeTo(control.ket1.det, 1e-9));
+          expect(probs['11'], closeTo(control.ket1.modulus2, 1e-9));
           // measure control qubit (via register)
           final qubit = qmem[0];
-          qmem.measure(qubits: {qubit.id});
+          qmem.measure(qbits: {qubit.id});
           final qstate = qubit.state;
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
           expect(probs['00'], closeTo((qstate == '0') ? 1 : 0, 1e-9));
           expect(probs['01'], closeTo(0, 1e-9));
@@ -341,42 +341,42 @@ void main() {
           var qmem = QMemorySpace([Qbit.zero, Qbit.random(), Qbit.zero]);
           crtlX02.execute(qmem);
           var probs = qmem.probabilities;
-          var sum = probs.values.fold<double>(0, (s, p) => s + p);
+          var sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
-          expect(qmem.getPropability('0.0'), closeTo(1, 1e-9));
-          expect(qmem.getPropability('0.1'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('1.0'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('1.1'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('0.0'), closeTo(1, 1e-9));
+          expect(qmem.getProbability('0.1'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('1.0'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('1.1'), closeTo(0, 1e-9));
           // |0?1> => |0?1>
           qmem = QMemorySpace([Qbit.zero, Qbit.random(), Qbit.one]);
           crtlX02.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
-          expect(qmem.getPropability('0.0'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('0.1'), closeTo(1, 1e-9));
-          expect(qmem.getPropability('1.0'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('1.1'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('0.0'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('0.1'), closeTo(1, 1e-9));
+          expect(qmem.getProbability('1.0'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('1.1'), closeTo(0, 1e-9));
           // |1?0> => |1?1>
           qmem = QMemorySpace([Qbit.one, Qbit.random(), Qbit.zero]);
           crtlX02.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
-          expect(qmem.getPropability('0.0'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('0.1'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('1.0'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('1.1'), closeTo(1, 1e-9));
+          expect(qmem.getProbability('0.0'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('0.1'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('1.0'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('1.1'), closeTo(1, 1e-9));
           // |1?1> => |1?0>
           qmem = QMemorySpace([Qbit.one, Qbit.random(), Qbit.one]);
           crtlX02.execute(qmem);
           probs = qmem.probabilities;
-          sum = probs.values.fold<double>(0, (s, p) => s + p);
+          sum = probs.values.reduce((s, p) => s + p);
           expect(sum, closeTo(1, 1e-9));
-          expect(qmem.getPropability('0.0'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('0.1'), closeTo(0, 1e-9));
-          expect(qmem.getPropability('1.0'), closeTo(1, 1e-9));
-          expect(qmem.getPropability('1.1'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('0.0'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('0.1'), closeTo(0, 1e-9));
+          expect(qmem.getProbability('1.0'), closeTo(1, 1e-9));
+          expect(qmem.getProbability('1.1'), closeTo(0, 1e-9));
         });
       });
     });
@@ -384,7 +384,7 @@ void main() {
     group('Circuit composition -', () {
       test('2 NOTs', () {
         final qmem = QMemorySpace.zero(2);
-        final qa = qmem.createRegister('a', at: 0);
+        final qa = qmem.createRegister('a', at: QbitAddress(0));
         final notCircuit = QCircuit(gateBuilder2);
         notCircuit.not(qa);
         final circuit = QCircuit(gateBuilder2);
@@ -393,7 +393,7 @@ void main() {
         expect(circuit.gates.length, equals(2));
         qmem.initialize({qa: 1});
         var probs = qmem.probabilities;
-        var sum = probs.values.fold<double>(0, (s, p) => s + p);
+        var sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(0, 1e-9));
         expect(probs['01'], closeTo(0, 1e-9));
@@ -401,7 +401,7 @@ void main() {
         expect(probs['11'], closeTo(0, 1e-9));
         circuit.execute(qmem);
         probs = qmem.probabilities;
-        sum = probs.values.fold<double>(0, (s, p) => s + p);
+        sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['00'], closeTo(0, 1e-9));
         expect(probs['01'], closeTo(0, 1e-9));
@@ -427,7 +427,7 @@ void main() {
         circuit.execute(qmem);
 
         var probs = qmem.probabilities;
-        var sum = probs.values.fold<double>(0, (s, p) => s + p);
+        var sum = probs.values.reduce((s, p) => s + p);
         expect(sum, closeTo(1, 1e-9));
         expect(probs['000'], closeTo(1, 1e-9));
       });
@@ -466,7 +466,7 @@ void main() {
       expect(seen, equals(circuit.gates.length + 1));
 
       var probs = qmem.probabilities;
-      var sum = probs.values.fold<double>(0, (s, p) => s + p);
+      var sum = probs.values.reduce((s, p) => s + p);
       expect(sum, closeTo(1, 1e-9));
       expect(probs['000'], closeTo(1, 1e-9));
     });

@@ -1,7 +1,8 @@
-import '../exceptions.dart';
+import '../utils/exceptions.dart';
 import 'complex.dart';
 import 'complex_dense_matrix.dart';
 import 'complex_matrix.dart';
+import 'complex_sparse_matrix.dart';
 
 /// Class representing a vector holding [length] [Complex] values
 class ComplexVector extends ComplexDenseMatrix {
@@ -26,11 +27,8 @@ class ComplexVector extends ComplexDenseMatrix {
   /// Builds a new vector which is the result of the tensor product of [a] by [b]
   /// The length of the resulting vector  is [length] = [a].[length] * [b].[length]
   static ComplexVector tensor(ComplexVector a, ComplexVector b) {
-    final bt = b.transpose;
-    final m = a * bt;
-    final c = ComplexVector.zero(a.length * b.length);
-    c.copy(m);
-    return c;
+    final bt = b.transpose, m = a * bt;
+    return ComplexVector.zero(a.length * b.length)..copy(m);
   }
 
   /// Multiplies the matrix [m] by this instance and stores results in this instance
@@ -40,6 +38,14 @@ class ComplexVector extends ComplexDenseMatrix {
       throw InvalidOperationException(
         'Cannot transform a vector($length) with a matrix(${m.rows}x${m.columns})',
       );
+    }
+    if (m is! ComplexSparseMatrix) {
+      final sm = ComplexSparseMatrix.fromMatrix(m);
+      if (sm.memoryFootprint < m.memoryFootprint) {
+        print(
+          '!!! m is a ${m.runtimeType} ${m.rows} x ${m.columns} - dense: ${m.memoryFootprint} / ${m.rows * m.columns} vs. sparse: ${sm.memoryFootprint} / ${sm.nonZeroCount}',
+        );
+      }
     }
     copy(m * this);
     return this;

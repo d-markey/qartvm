@@ -12,7 +12,7 @@ void main() {
       ({
         String description,
         String Function(List<String>) setup,
-        void Function(QMemorySpace, List<int>) apply,
+        void Function(QMemorySpace, List<QbitAddress>) apply,
       })
     >
     initialStates = [
@@ -38,19 +38,19 @@ void main() {
       ({
         String description,
         String Function(List<String>) setup,
-        void Function(QMemorySpace, List<int>) apply,
+        void Function(QMemorySpace, List<QbitAddress>) apply,
       })
     >
     initialTwoQubitStates = [
       (description: '|00>', setup: (qubits) => '', apply: (qm, q) {}),
       (
         description: '|10>',
-        setup: (qubits) => 'x ${qubits[0]};',
+        setup: (qbits) => 'x ${qbits[0]};',
         apply: (qm, q) => _circuit(qm).pauliX(q[0]).execute(qm),
       ),
       (
         description: '|01>',
-        setup: (qubits) => 'x ${qubits[1]};',
+        setup: (qbits) => 'x ${qbits[1]};',
         apply: (qm, q) => _circuit(qm).pauliX(q[1]).execute(qm),
       ),
       (
@@ -78,14 +78,14 @@ void main() {
     Future<void> verifyGate(
       String description, {
       required String body,
-      required void Function(QMemorySpace, List<int>) expectedAction,
+      required void Function(QMemorySpace, List<QbitAddress>) expectedAction,
       required List<String> qubitNames,
       required int qubitCount,
       List<
         ({
           String description,
           String Function(List<String>) setup,
-          void Function(QMemorySpace, List<int>) apply,
+          void Function(QMemorySpace, List<QbitAddress>) apply,
         })
       >?
       customStates,
@@ -94,7 +94,7 @@ void main() {
       for (final state in states) {
         // 1. Prepare Expected State
         final expectedQm = QMemorySpace.zero(qubitCount);
-        final qIndices = List.generate(qubitCount, (i) => i);
+        final qIndices = List.generate(qubitCount, QbitAddress.new);
         state.apply(expectedQm, qIndices);
         expectedAction(expectedQm, qIndices);
 
@@ -117,7 +117,7 @@ void main() {
         // 3. Compare with tolerance
         final verificationMessage =
             '$description with initial state ${state.description}';
-        final qmem = result.quantumMemory;
+        final qmem = result[0].quantumMemory;
         expect(qmem, isNotNull, reason: verificationMessage);
 
         final expectedProbs = expectedQm.probabilities;
@@ -236,7 +236,7 @@ void main() {
         ({
           String description,
           String Function(List<String>) setup,
-          void Function(QMemorySpace, List<int>) apply,
+          void Function(QMemorySpace, List<QbitAddress>) apply,
         })
       >
       localStates = [
@@ -686,15 +686,15 @@ void main() {
           OpenQASMParser.parse(source2),
         );
 
-        expect(result1.quantumMemory, isNotNull);
-        expect(result2.quantumMemory, isNotNull);
-        final qmem1 = result1.quantumMemory!;
-        final qmem2 = result2.quantumMemory!;
+        expect(result1[0].quantumMemory, isNotNull);
+        expect(result2[0].quantumMemory, isNotNull);
+        final qmem1 = result1[0].quantumMemory!;
+        final qmem2 = result2[0].quantumMemory!;
 
-        final prob0_1 = qmem1.getPropability('0');
-        final prob1_1 = qmem1.getPropability('1');
-        final prob0_2 = qmem2.getPropability('0');
-        final prob1_2 = qmem2.getPropability('1');
+        final prob0_1 = qmem1.getProbability('0');
+        final prob1_1 = qmem1.getProbability('1');
+        final prob0_2 = qmem2.getProbability('0');
+        final prob1_2 = qmem2.getProbability('1');
 
         expect(
           prob0_1,

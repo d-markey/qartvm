@@ -2,6 +2,22 @@ import 'dart:math' as math;
 
 import 'qmemory_space.dart';
 
+extension type QbitAddress(int index) implements Object {}
+
+extension QbitAddressExtension on QbitAddress {
+  int bigEndianMask(int size) => 1 << (size - 1 - index);
+}
+
+extension QbitAddressIterableExtension on Iterable<QbitAddress> {
+  int bigEndianMask(int size) {
+    var mask = 0;
+    for (final qbit in this) {
+      mask |= qbit.bigEndianMask(size);
+    }
+    return mask;
+  }
+}
+
 /// Class representing the Quantum state of a qubit
 class QState {
   static final _rnd = math.Random.secure();
@@ -13,35 +29,36 @@ class QState {
         (i) => (i == id) ? '0' : '.',
       ).join();
 
-  /// The qubit's [id]
-  final int id;
+  /// The qubit's address [id]
+  final QbitAddress id;
 
   final String _mask;
   final QMemorySpace _qmem;
 
   /// Returns the probability for the qubit to be |0> according to the current state of the [_qmem]
-  double get zero => _qmem.getPropability(_mask);
+  double get zero => _qmem.getProbability(_mask);
 
   /// Returns the qubit state: `'0'` or `'1'` if the qubit has already been measured,
   /// `null` otherwise.
   String? get state => _state;
   String? _state;
 
-  // Measures the qubit (unless a measurement was already made) and returns the result
+  // Measures the qubit (unless a measurement was already made)
   void _read() {
-    if (_state == null) {
-      final pz = zero, m = _rnd.nextDouble();
-      _state = (pz >= 0.5) ? ((m <= pz) ? '0' : '1') : ((m >= pz) ? '1' : '0');
-    }
+    _state ??= (_rnd.nextDouble() <= zero) ? '0' : '1';
   }
 
   // Resets the qubit state after a Quantum gate has been applied to the register.
   void _reset() => _state = null;
+
+  // Snapshot and restore the current measurement state for branch/fork operations.
+  String? snapshotState() => _state;
+  void restoreState(String? value) => _state = value;
 }
 
 // for internal use
 extension QStateImpl on QState {
-  static QState ctor(QMemorySpace qmem, int id) => QState._(qmem, id);
+  static QState ctor(QMemorySpace qmem, QbitAddress id) => QState._(qmem, id);
 
   void reset() => _reset();
   void read() => _read();

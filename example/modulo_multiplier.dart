@@ -17,7 +17,7 @@ Future<QCircuit> _buildAddGate(
   QRegister qreg,
   QGateBuilder builder,
 ) async {
-  final gate = await shorBuilders.addGate(qreg.qubits, constant);
+  final gate = await shorBuilders.addGate(qreg.qbits, constant);
   final component = QCircuit(builder);
   component.custom(qreg, gate, type: adder, params: {'x': constant});
   return component;
@@ -29,9 +29,9 @@ Future<QCircuit> _buildFlagSetterGate(
   QRegister qflag,
   QGateBuilder builder,
 ) async {
-  final gate = await shorBuilders.setFlagOnOverflowGate(qreg.qubits, qflag[0]);
+  final gate = await shorBuilders.setFlagOnOverflowGate(qreg.qbits, qflag[0]);
   final component = QCircuit(builder);
-  component.custom([...qreg.qubits, ...qflag.qubits], gate, type: flagSetter);
+  component.custom([...qreg.qbits, ...qflag.qbits], gate, type: flagSetter);
   return component;
 }
 
@@ -41,9 +41,9 @@ Future<QCircuit> _buildFlagResetterGate(
   QRegister qflag,
   QGateBuilder builder,
 ) async {
-  final gate = await shorBuilders.resetFlagGate(qreg.qubits, qflag[0]);
+  final gate = await shorBuilders.resetFlagGate(qreg.qbits, qflag[0]);
   final component = QCircuit(builder);
-  component.custom([...qreg.qubits, ...qflag.qubits], gate, type: flagResetter);
+  component.custom([...qreg.qbits, ...qflag.qbits], gate, type: flagResetter);
   return component;
 }
 
@@ -52,7 +52,7 @@ Future<QCircuit> _buildQftGate(
   QRegister qreg,
   QGateBuilder builder,
 ) async {
-  final gate = await shorBuilders.qftGate(qreg.qubits);
+  final gate = await shorBuilders.qftGate(qreg.qbits);
   final component = QCircuit(builder);
   component.custom(qreg, gate, type: QGateType.qft);
   return component;
@@ -63,7 +63,7 @@ Future<QCircuit> _buildInvQftGate(
   QRegister qreg,
   QGateBuilder builder,
 ) async {
-  final gate = await shorBuilders.invQftGate(qreg.qubits);
+  final gate = await shorBuilders.invQftGate(qreg.qbits);
   final component = QCircuit(builder);
   component.custom(qreg, gate, type: QGateType.invqft);
   return component;
@@ -168,11 +168,7 @@ Future<QCircuit> _buildMultiplyAndAddModuloGate(
           '================ ADD $n MODULO $modulo = ADD ${n % modulo} % MODULO $modulo CONTROLLED BY #${qvalue[size - 1 - i]} ================',
       merge: false,
     );
-    component.append(
-      gates[i],
-      controls: [qvalue[size - 1 - i], qctrl[0]],
-      merge: false,
-    );
+    component.append(gates[i], controls: [qvalue[i], qctrl[0]], merge: false);
   }
   component.separation(
     label:
@@ -192,10 +188,10 @@ Future<QCircuit> _buildSwapperGate(
   QRegister qctrl,
   QGateBuilder builder,
 ) async {
-  final gate = await shorBuilders.swapperGate(qa.qubits, qb.qubits);
+  final gate = await shorBuilders.swapperGate(qa.qbits, qb.qbits);
   final component = QCircuit(builder);
   component.custom(
-    [...qa.qubits, ...qb.qubits],
+    [...qa.qbits, ...qb.qbits],
     gate,
     controls: qctrl,
     type: swapper,
@@ -309,15 +305,25 @@ Future main() async {
   // | qctrl |  qvalue  |      qzeroext    | qflag |
   //     1    <- bits -> <--- bits + 1 --->    1
 
-  final qctrl = qmem.createRegister('CTRL', at: 0);
-  final qvalue = qmem.createRegister('VALUE', from: bits, to: 1); // LSB first
+  final $0 = QbitAddress(0), $1 = QbitAddress(1);
+
+  final qctrl = qmem.createRegister('CTRL', at: $0);
+  final qvalue = qmem.createRegister(
+    'VALUE',
+    from: $1,
+    to: QbitAddress(bits),
+  ); // LSB first
   final qzeroext = qmem.createRegister(
     'ZERO-EXT',
-    from: 2 * bits + 1,
-    to: bits + 1,
+    from: QbitAddress(bits + 1),
+    to: QbitAddress(2 * bits + 1),
   ); // LSB first
-  final qzero = qmem.createRegister('ZERO', from: 2 * bits, to: bits + 1);
-  final qflag = qmem.createRegister('FLAG', at: 2 * bits + 2);
+  final qzero = qmem.createRegister(
+    'ZERO',
+    from: QbitAddress(bits + 1),
+    to: QbitAddress(2 * bits),
+  );
+  final qflag = qmem.createRegister('FLAG', at: QbitAddress(2 * bits + 2));
 
   print(
     '=== PARAMETERS ===\n'
@@ -390,7 +396,7 @@ Future main() async {
     }
   }
 
-  await draw(program, qmem: qmem, filePrefix: 'modmul');
+  await draw(program, qmem: qmem);
 
   program.addObserver((step, gate, qmem) {
     if (gate != null && gate.type == QGateType.separator) {

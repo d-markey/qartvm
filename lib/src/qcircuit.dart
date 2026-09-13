@@ -1,4 +1,3 @@
-import 'exceptions.dart';
 import 'math/complex_matrix.dart';
 import 'math/complex_sparse_matrix.dart';
 import 'qcircuit_gate.dart';
@@ -6,19 +5,27 @@ import 'qgate_builder.dart';
 import 'qgate_type.dart';
 import 'qmemory_space.dart';
 import 'qregister.dart';
+import 'qstate.dart';
+import 'utils/exceptions.dart';
 
 typedef Observer =
     void Function(int step, QCircuitGate? gate, QMemorySpace qmem);
 
-List<int> _getList(dynamic qubits) {
-  if (qubits is int) {
-    return [qubits];
-  } else if (qubits is QRegister) {
-    return qubits.qubits;
-  } else if (qubits is Iterable &&
-      qubits.isNotEmpty &&
-      qubits.every((q) => q is int)) {
-    return List<int>.from(qubits);
+List<QbitAddress> _getList(dynamic qbits) {
+  if (qbits is int) {
+    return [QbitAddress(qbits)];
+  } else if (qbits is QbitAddress) {
+    return [qbits];
+  } else if (qbits is QRegister) {
+    return qbits.qbits;
+  } else if (qbits is List &&
+      qbits.isNotEmpty &&
+      qbits.every((q) => q is int || q is QbitAddress)) {
+    return qbits.cast<QbitAddress>();
+  } else if (qbits is Iterable &&
+      qbits.isNotEmpty &&
+      qbits.every((q) => q is int || q is QbitAddress)) {
+    return qbits.cast<QbitAddress>().toList();
   } else {
     throw InvalidOperationException(
       'Expected a register, a single qubit or a non-empty collection of qubits',
@@ -26,15 +33,17 @@ List<int> _getList(dynamic qubits) {
   }
 }
 
-Set<int> _getSet(dynamic qubits) {
-  if (qubits is int) {
-    return {qubits};
-  } else if (qubits is QRegister) {
-    return qubits.qubits.toSet();
-  } else if (qubits is Iterable &&
-      qubits.isNotEmpty &&
-      qubits.every((q) => q is int)) {
-    return Set<int>.from(qubits);
+Set<QbitAddress> _getSet(dynamic qbits) {
+  if (qbits is int) {
+    return {QbitAddress(qbits)};
+  } else if (qbits is QbitAddress) {
+    return {qbits};
+  } else if (qbits is QRegister) {
+    return qbits.qbits.toSet();
+  } else if (qbits is Iterable &&
+      qbits.isNotEmpty &&
+      qbits.every((q) => q is int)) {
+    return qbits.cast<QbitAddress>().toSet();
   } else {
     throw InvalidOperationException(
       'Expected a register, a single qubit or a non-empty collection of qubits',
@@ -78,10 +87,10 @@ class QCircuit {
   }
 
   /// Adds a measurement gate to the circuit
-  /// Qubits [qubits] will be measured
-  /// If [qubits] is null or empty, all qubits will be measured
-  QCircuit measure([Set<int>? qubits, String? label]) {
-    _gates.add(QCircuitGate.measure(qubits, circuit: this, label: label));
+  /// Qubits [qbits] will be measured
+  /// If [qbits] is null or empty, all qubits will be measured
+  QCircuit measure([Set<QbitAddress>? qbits, String? label]) {
+    _gates.add(QCircuitGate.measure(qbits, circuit: this, label: label));
     return this;
   }
 
@@ -127,21 +136,32 @@ class QCircuit {
   QCircuit _addGate(
     QGateType type,
     ComplexMatrix matrix,
-    Set<int> qubits,
-    Set<int>? controls,
+    Set<QbitAddress> qbits,
+    Set<QbitAddress>? controls,
     Map<String, dynamic>? params,
     String? label,
   ) {
-    if (!matrix.isSquare || matrix.rows != (1 << size)) {
+    if (!matrix.isSquare) {
+      throw InvalidOperationException('Gate matrix must be square');
+    }
+
+    final dim = matrix.rows;
+    final fullDim = 1 << size;
+    final k = qbits.length + (controls?.length ?? 0);
+    final localDim = 1 << k;
+
+    if (dim != fullDim && dim != localDim && dim != 2) {
       throw InvalidOperationException(
-        'Invalid gate ${matrix.rows}x${matrix.columns} for $qubits-qubit circuit',
+        'Invalid gate ${matrix.rows}x${matrix.columns} for $k-qubit operation '
+        'in $size-qubit circuit',
       );
     }
+
     _gates.add(
       QCircuitGate(
         type,
         matrix,
-        qubits,
+        qbits,
         controls: controls,
         circuit: this,
         params: params,
@@ -153,15 +173,18 @@ class QCircuit {
 
   QCircuit _buildAndAddGate(
     QGateType type,
-    dynamic qubits,
+    dynamic qbits,
     dynamic controls,
-    ComplexMatrix Function(Set<int> qubits) gateBuilder,
-    ComplexMatrix Function(Set<int> qubits, {required Set<int> controls})
+    ComplexMatrix Function(Set<QbitAddress>) gateBuilder,
+    ComplexMatrix Function(
+      Set<QbitAddress>, {
+      required Set<QbitAddress> controls,
+    })
     cgateBuilder,
     Map<String, dynamic>? params,
     String? label,
   ) {
-    final qb = _getSet(qubits);
+    final qb = _getSet(qbits);
     final cqb = (controls == null || (controls is Iterable && controls.isEmpty))
         ? null
         : _getSet(controls);
@@ -171,12 +194,12 @@ class QCircuit {
     return _addGate(type, matrix, qb, cqb, params, label);
   }
 
-  /// Adds a custom [gate] to the circuit operating on [qubits] and optionally controlled by [controls] qubits.
-  /// [qubits] and [controls] may be single [int]s or [Iterable]s of [int]s.
-  /// The gate may be represented by a 2x2 [ComplexMatrix] in which case [qubits] must contain a single qubit and [controls] must be `null` or empty.
+  /// Adds a custom [gate] to the circuit operating on [qbits] and optionally controlled by [controls] qubits.
+  /// [qbits] and [controls] may be single [int]s or [Iterable]s of [int]s.
+  /// The gate may be represented by a 2x2 [ComplexMatrix] in which case [qbits] must contain a single qubit and [controls] must be `null` or empty.
   /// Alternatively, the gate may be represented by a square [ComplexMatrix] of size 2^[size] operating on the circuit's full state.
   QCircuit custom(
-    dynamic qubits,
+    dynamic qbits,
     ComplexMatrix gate, {
     dynamic controls,
     QGateType type = QGateType.custom,
@@ -186,21 +209,21 @@ class QCircuit {
     assert(type.isCustom);
     return _buildAndAddGate(
       type,
-      qubits,
+      qbits,
       controls,
       (qb) => gateBuilder.parallel.build(qb, gate),
-      (qb, {required Set<int> controls}) =>
+      (qb, {required Set<QbitAddress> controls}) =>
           gateBuilder.controlled.build(qb, gate, controls: controls),
       params,
       label,
     );
   }
 
-  /// Adds a Hadamard gate operating on [qubits] and controlled by [controls] if provided
-  QCircuit hadamard(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a Hadamard gate operating on [qbits] and controlled by [controls] if provided
+  QCircuit hadamard(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.hadamard,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.hadamard,
         gateBuilder.controlled.hadamard,
@@ -208,11 +231,11 @@ class QCircuit {
         label,
       );
 
-  /// Adds a Pauli X (NOT) gate operating on [qubits] and controlled by [controls] if provided
-  QCircuit pauliX(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a Pauli X (NOT) gate operating on [qbits] and controlled by [controls] if provided
+  QCircuit pauliX(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.pauliX,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.pauliX,
         gateBuilder.controlled.pauliX,
@@ -220,15 +243,15 @@ class QCircuit {
         label,
       );
 
-  /// Adds a Pauli X (NOT) gate operating on [qubits]
-  QCircuit not(dynamic qubits, {dynamic controls, String? label}) =>
-      pauliX(qubits, controls: controls, label: label);
+  /// Adds a Pauli X (NOT) gate operating on [qbits]
+  QCircuit not(dynamic qbits, {dynamic controls, String? label}) =>
+      pauliX(qbits, controls: controls, label: label);
 
-  /// Adds a Pauli Y gate operating on [qubits]
-  QCircuit pauliY(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a Pauli Y gate operating on [qbits]
+  QCircuit pauliY(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.pauliY,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.pauliY,
         gateBuilder.controlled.pauliY,
@@ -236,11 +259,11 @@ class QCircuit {
         label,
       );
 
-  /// Adds a Pauli Z gate operating on [qubits]
-  QCircuit pauliZ(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a Pauli Z gate operating on [qbits]
+  QCircuit pauliZ(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.pauliZ,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.pauliZ,
         gateBuilder.controlled.pauliZ,
@@ -248,11 +271,11 @@ class QCircuit {
         label,
       );
 
-  /// Adds a 'square root of not' (SQRT-NOT) gate operating on [qubits]
-  QCircuit squareRootOfX(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a 'square root of not' (SQRT-NOT) gate operating on [qbits]
+  QCircuit squareRootOfX(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.squareRootOfX,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.squareRootOfX,
         gateBuilder.controlled.squareRootOfX,
@@ -260,32 +283,32 @@ class QCircuit {
         label,
       );
 
-  /// Adds a 'square root of not' (SQRT-NOT) gate operating on [qubits]
-  QCircuit sqrtOfNot(dynamic qubits, {dynamic controls, String? label}) =>
-      squareRootOfX(qubits, controls: controls, label: label);
+  /// Adds a 'square root of not' (SQRT-NOT) gate operating on [qbits]
+  QCircuit sqrtOfNot(dynamic qbits, {dynamic controls, String? label}) =>
+      squareRootOfX(qbits, controls: controls, label: label);
 
-  /// Adds a phase gate operating on [qubits] with angle [radians]
+  /// Adds a phase gate operating on [qbits] with angle [radians]
   QCircuit phase(
     double radians,
-    dynamic qubits, {
+    dynamic qbits, {
     dynamic controls,
     String? label,
   }) => _buildAndAddGate(
     QGateType.phase,
-    qubits,
+    qbits,
     controls,
     (qb) => gateBuilder.parallel.phase(radians, qb),
-    (qb, {required Set<int> controls}) =>
+    (qb, {required Set<QbitAddress> controls}) =>
         gateBuilder.controlled.phase(radians, qb, controls: controls),
     {'angle': radians},
     label,
   );
 
-  /// Adds a phase S gate operating on [qubits]
-  QCircuit phaseS(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a phase S gate operating on [qbits]
+  QCircuit phaseS(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.phaseS,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.phaseS,
         gateBuilder.controlled.phaseS,
@@ -293,11 +316,11 @@ class QCircuit {
         label,
       );
 
-  /// Adds a phase T gate operating on [qubits]
-  QCircuit phaseT(dynamic qubits, {dynamic controls, String? label}) =>
+  /// Adds a phase T gate operating on [qbits]
+  QCircuit phaseT(dynamic qbits, {dynamic controls, String? label}) =>
       _buildAndAddGate(
         QGateType.phaseT,
-        qubits,
+        qbits,
         controls,
         gateBuilder.parallel.phaseT,
         gateBuilder.controlled.phaseT,
@@ -305,112 +328,118 @@ class QCircuit {
         label,
       );
 
-  /// Adds a rotation X gate operating on [qubits]
+  /// Adds a rotation X gate operating on [qbits]
   QCircuit rotationX(
     double radians,
-    dynamic qubits, {
+    dynamic qbits, {
     dynamic controls,
     String? label,
   }) => _buildAndAddGate(
     QGateType.rotateX,
-    qubits,
+    qbits,
     controls,
     (qb) => gateBuilder.parallel.rotationX(radians, qb),
-    (qb, {required Set<int> controls}) =>
+    (qb, {required Set<QbitAddress> controls}) =>
         gateBuilder.controlled.rotationX(radians, qb, controls: controls),
     {'angle': radians},
     label,
   );
 
-  /// Adds a rotation Y gate operating on [qubits]
+  /// Adds a rotation Y gate operating on [qbits]
   QCircuit rotationY(
     double radians,
-    dynamic qubits, {
+    dynamic qbits, {
     dynamic controls,
     String? label,
   }) => _buildAndAddGate(
     QGateType.rotateY,
-    qubits,
+    qbits,
     controls,
     (qb) => gateBuilder.parallel.rotationY(radians, qb),
-    (qb, {required Set<int> controls}) =>
+    (qb, {required Set<QbitAddress> controls}) =>
         gateBuilder.controlled.rotationY(radians, qb, controls: controls),
     {'angle': radians},
     label,
   );
 
-  /// Adds a rotation Z gate operating on [qubits]
+  /// Adds a rotation Z gate operating on [qbits]
   QCircuit rotationZ(
     double radians,
-    dynamic qubits, {
+    dynamic qbits, {
     dynamic controls,
     String? label,
   }) => _buildAndAddGate(
     QGateType.rotateZ,
-    qubits,
+    qbits,
     controls,
     (qb) => gateBuilder.parallel.rotationZ(radians, qb),
-    (qb, {required Set<int> controls}) =>
+    (qb, {required Set<QbitAddress> controls}) =>
         gateBuilder.controlled.rotationZ(radians, qb, controls: controls),
     {'angle': radians},
     label,
   );
 
-  /// Adds a swap gate exchanging the supplied [qubits]
-  /// [qubits] must be a [Set] containing 2 [int]s
-  QCircuit swap(Set<int> qubits, {String? label}) => _addGate(
+  /// Adds a swap gate exchanging the supplied [qbits]
+  /// [qbits] must be a [Set] containing 2 [int]s
+  QCircuit swap(Set<QbitAddress> qbits, {String? label}) => _addGate(
     QGateType.swap,
-    gateBuilder.highLevel.swap(qubits),
-    qubits,
+    gateBuilder.highLevel.swap(qbits),
+    qbits,
     null,
     null,
     label,
   );
 
-  /// Adds a Fredkin (C-SWAP) gate exchanging the supplied [qubits] and controlled by the [control] qubit
-  /// [qubits] must be a [Set] containing 2 [int]s
-  QCircuit fredkin(Set<int> qubits, {required int control, String? label}) =>
-      _addGate(
-        QGateType.fredkin,
-        gateBuilder.highLevel.fredkin(qubits, control: control),
-        qubits,
-        {control},
-        null,
-        label,
-      );
+  /// Adds a Fredkin (C-SWAP) gate exchanging the supplied [qbits] and controlled by the [control] qubit
+  /// [qbits] must be a [Set] containing 2 [int]s
+  QCircuit fredkin(
+    Set<QbitAddress> qbits, {
+    required QbitAddress control,
+    String? label,
+  }) => _addGate(
+    QGateType.fredkin,
+    gateBuilder.highLevel.fredkin(qbits, control: control),
+    qbits,
+    {control},
+    null,
+    label,
+  );
 
-  /// Adds a Toffoli (CC-NOT) gate operating on [qubit] and controlled by qubits supplied in [controls]
+  /// Adds a Toffoli (CC-NOT) gate operating on [qbit] and controlled by qubits supplied in [controls]
   /// [controls] must be a [Set] containing 2 [int]s
-  QCircuit toffoli(int qubit, {required Set<int> controls, String? label}) =>
-      _addGate(
-        QGateType.toffoli,
-        gateBuilder.highLevel.toffoli(qubit, controls: controls),
-        {qubit},
-        controls,
-        null,
-        label,
-      );
+  QCircuit toffoli(
+    QbitAddress qbit, {
+    required Set<QbitAddress> controls,
+    String? label,
+  }) => _addGate(
+    QGateType.toffoli,
+    gateBuilder.highLevel.toffoli(qbit, controls: controls),
+    {qbit},
+    controls,
+    null,
+    label,
+  );
 
-  /// Adds a Quantum Fourrier Transform (QFT) gate operating on supplied [qubits]
-  QCircuit qft(dynamic qubits, {bool swap = false, String? label}) {
-    qubits = _getList(qubits);
+  /// Adds a Quantum Fourrier Transform (QFT) gate operating on supplied [qbits]
+  QCircuit qft(dynamic qbits, {bool swap = false, String? label}) {
+    qbits = _getList(qbits);
     return _addGate(
       QGateType.qft,
-      gateBuilder.highLevel.qft(qubits, reverse: swap),
-      qubits.toSet(),
+      gateBuilder.highLevel.qft(qbits, reverse: swap),
+      qbits.toSet(),
       null,
       null,
       label,
     );
   }
 
-  /// Adds an inverse Quantum Fourrier Transform (QFT) gate operating on supplied [qubits]
-  QCircuit invQft(dynamic qubits, {bool swap = false, String? label}) {
-    qubits = _getList(qubits);
+  /// Adds an inverse Quantum Fourrier Transform (QFT) gate operating on supplied [qbits]
+  QCircuit invQft(dynamic qbits, {bool swap = false, String? label}) {
+    qbits = _getList(qbits);
     return _addGate(
       QGateType.invqft,
-      gateBuilder.highLevel.invqft(qubits, reverse: swap),
-      qubits.toSet(),
+      gateBuilder.highLevel.invqft(qbits, reverse: swap),
+      qbits.toSet(),
       null,
       null,
       label,
@@ -456,8 +485,8 @@ class QCircuit {
     final identity = ComplexSparseMatrix.identity(1 << size);
     var matrix = ComplexSparseMatrix.zero(identity.rows, identity.columns);
     final labels = <String>[];
-    final qubits = <int>{};
-    final controls = <int>{};
+    final qbits = <QbitAddress>{};
+    final controls = <QbitAddress>{};
 
     void $addCompiledGate() {
       if (nbGates > 0) {
@@ -466,11 +495,11 @@ class QCircuit {
           compiledGates.insert(0, lastGate!);
         } else {
           // remove qubits from control list if they are part of the transformation
-          controls.removeWhere((i) => qubits.contains(i));
+          controls.removeWhere((i) => qbits.contains(i));
           final compiledGate = QCircuitGate(
             QGateType.compiled,
             matrix,
-            qubits.toSet(),
+            qbits.toSet(),
             controls: controls.isEmpty ? null : controls.toSet(),
             circuit: this,
             label: labels.join(' followed by '),
@@ -478,13 +507,13 @@ class QCircuit {
           compiledGates.insert(0, compiledGate);
           matrix = ComplexSparseMatrix.identity(1 << size);
           labels.clear();
-          qubits.clear();
+          qbits.clear();
           controls.clear();
         }
         matrix.copy(identity);
       }
       labels.clear();
-      qubits.clear();
+      qbits.clear();
       controls.clear();
       lastGate = null;
       nbGates = 0;
@@ -511,7 +540,7 @@ class QCircuit {
         }
         nbGates++;
         labels.insert(0, gate.label);
-        qubits.addAll(gate.qubits);
+        qbits.addAll(gate.qbits);
         controls.addAll(gate.controls);
         if (i == 0) {
           // last gate
@@ -526,25 +555,25 @@ class QCircuit {
       final gate = compiledGates[i];
       if (gate.type == QGateType.measure) {
         QCircuitGate nextGate;
-        qubits.clear();
-        qubits.addAll(gate.qubits);
+        qbits.clear();
+        qbits.addAll(gate.qbits);
         while (i < compiledGates.length - 1 &&
             (nextGate = compiledGates[i + 1]).type == QGateType.measure) {
-          if (nextGate.qubits.isEmpty) {
+          if (nextGate.qbits.isEmpty) {
             // measure all qubits
-            qubits.clear();
-          } else if (qubits.isNotEmpty) {
-            final tmp = qubits.followedBy(nextGate.qubits).toSet();
-            qubits.clear();
+            qbits.clear();
+          } else if (qbits.isNotEmpty) {
+            final tmp = qbits.followedBy(nextGate.qbits).toSet();
+            qbits.clear();
             if (tmp.length < size) {
               // only a subset is measured
-              qubits.addAll(tmp);
+              qbits.addAll(tmp);
             }
           }
           compiledGates.removeAt(i + 1);
         }
         // replace sequence of measurement gates with a single measurement gate
-        compiledGates[i] = QCircuitGate.measure(qubits, circuit: this);
+        compiledGates[i] = QCircuitGate.measure(qbits, circuit: this);
       }
     }
 

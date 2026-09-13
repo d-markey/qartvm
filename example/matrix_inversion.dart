@@ -11,11 +11,11 @@ void main() {
   print('m.det = ${m.det}');
   print('');
 
-  if (d == Complex.zero) {
+  if (d.isZero) {
     print('non invertible');
   } else {
     final p = m * m.inverse();
-    print(p.toStringIndent(fractionDigits: 0));
+    print(p.toStringIndent(fractionDigits: 0, hideZeroes: true));
     if (!p.equals(ComplexSparseMatrix.identity(64), precision: 1e-9)) {
       throw Exception('Expected the identity matrix');
     }

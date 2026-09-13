@@ -1,12 +1,12 @@
 import '../parser/ast_nodes.dart';
-import '_execution_context.dart';
 import '_expression_evaluator.dart';
+import '_state_context.dart';
 
 /// Pre-scans OpenQASM programs for qubit declarations and constants.
 class ProgramScanner {
   ProgramScanner(this.context, this.evaluator);
 
-  final ExecutionContext context;
+  final StateContext context;
   final ExpressionEvaluator evaluator;
 
   /// Scans the given [program] and registers constants in the context.

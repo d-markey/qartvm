@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
-import 'exceptions.dart';
 import 'math/complex_matrix.dart';
 import 'qcircuit.dart';
 import 'qgate_type.dart';
 import 'qmemory_space.dart';
+import 'qstate.dart';
+import 'utils/exceptions.dart';
 
 /// Class representing a Quantum gate in a Quantum [QCircuit]
 class QCircuitGate {
@@ -13,15 +14,15 @@ class QCircuitGate {
     this._labelFormat,
     this._params,
     this.type,
-    Set<int>? controls,
-    this._qubits,
+    Set<QbitAddress>? controls,
+    this._qbits,
     this._matrix,
   ) : assert(
         _matrix != null ||
             (type == QGateType.measure || type == QGateType.separator),
       ),
       assert(
-        _qubits.isNotEmpty ||
+        _qbits.isNotEmpty ||
             (type == QGateType.measure || type == QGateType.separator),
       ),
       assert(
@@ -31,26 +32,26 @@ class QCircuitGate {
       ),
       _controls = (controls?.isEmpty ?? true) ? null : controls;
 
-  /// Builds a Quantum gate described by its [type], [matrix], [qubits] it operates on and eventual [controls] qubits
+  /// Builds a Quantum gate described by its [type], [matrix], [qbits] it operates on and eventual [controls] qubits
   /// [circuit] refers to the circuit the gate is part of
   /// [label] is a description of the gate with optional paramaters [params]
   /// [type] can be any [QGateType] value except [QGateType.measure]
   QCircuitGate(
     QGateType type,
     ComplexMatrix matrix,
-    Set<int> qubits, {
+    Set<QbitAddress> qbits, {
     required QCircuit circuit,
-    Set<int>? controls,
+    Set<QbitAddress>? controls,
     String? label,
     Map<String, dynamic>? params,
-  }) : this._(circuit, label, params, type, controls, qubits, matrix);
+  }) : this._(circuit, label, params, type, controls, qbits, matrix);
 
-  /// Builds a measurement gate acting on qubits [qubits]
-  /// if [qubits] is null or empty, all qubits will be measured (and its quantum state destroyed)
+  /// Builds a measurement gate acting on qubits [qbits]
+  /// if [qbits] is null or empty, all qubits will be measured (and its quantum state destroyed)
   /// [circuit] refers to the circuit the gate is part of
   /// [label] is a description of the gate
   QCircuitGate.measure(
-    Set<int>? qubits, {
+    Set<QbitAddress>? qbits, {
     required QCircuit circuit,
     String? label,
   }) : this._(
@@ -59,7 +60,7 @@ class QCircuitGate {
          null,
          QGateType.measure,
          null,
-         qubits ?? Iterable<int>.generate(circuit.size).toSet(),
+         qbits ?? Iterable<QbitAddress>.generate(circuit.size).toSet(),
          null,
        );
 
@@ -71,7 +72,7 @@ class QCircuitGate {
 
   QCircuitGate copy(
     QCircuit circuit, {
-    Set<int>? controls,
+    Set<QbitAddress>? controls,
     bool dagger = false,
     String? label,
     QGateType? type,
@@ -90,7 +91,7 @@ class QCircuitGate {
           );
         }
         return QCircuitGate.measure(
-          _qubits,
+          _qbits,
           circuit: circuit,
           label: _labelFormat,
         );
@@ -122,13 +123,13 @@ class QCircuitGate {
         }
         if (controls != null) {
           m = circuit.gateBuilder.controlled.build(
-            _qubits,
+            _qbits,
             m,
             controls: controls,
           );
         }
 
-        Set<int>? ctrl = {...?_controls, ...?controls};
+        Set<QbitAddress>? ctrl = {...?_controls, ...?controls};
         if (ctrl.isEmpty) ctrl = null;
 
         Map<String, dynamic>? prms = {...?_params, ...?params};
@@ -137,7 +138,7 @@ class QCircuitGate {
         return QCircuitGate(
           type ?? this.type,
           m,
-          _qubits,
+          _qbits,
           circuit: circuit,
           controls: ctrl,
           label: (type != null || l == null || l.isEmpty) ? null : l,
@@ -162,12 +163,12 @@ class QCircuitGate {
           l = '';
           break;
         case QGateType.measure:
-          l = _qubits.isEmpty ? 'measure all qubits' : 'measure $_qubits';
+          l = _qbits.isEmpty ? 'measure all qubits' : 'measure $_qbits';
           break;
         default:
           l = (_controls == null)
-              ? '${type.getLabel(params)} on $_qubits'
-              : '${type.getLabel(params)} on $_qubits controlled by $_controls';
+              ? '${type.getLabel(params)} on $_qbits'
+              : '${type.getLabel(params)} on $_qbits controlled by $_controls';
           break;
       }
     }
@@ -193,15 +194,15 @@ class QCircuitGate {
   /// Returns the [QCircuit] containing this gate
   final QCircuit circuit;
 
-  final Set<int> _qubits;
+  final Set<QbitAddress> _qbits;
 
   /// Return the list of qubits on which the gate operates -- the state of these qubits may be modified by the gate
-  Iterable<int> get qubits => _qubits;
+  Iterable<QbitAddress> get qbits => _qbits;
 
-  final Set<int>? _controls;
+  final Set<QbitAddress>? _controls;
 
   /// Returns the list of control qubits controlling the gate -- the state of these qubits are not modified by the gate
-  Iterable<int> get controls => _controls ?? const [];
+  Iterable<QbitAddress> get controls => _controls ?? const [];
 
   final ComplexMatrix? _matrix;
 
@@ -210,9 +211,9 @@ class QCircuitGate {
   ComplexMatrix? get matrix => _matrix?.clone();
 
   /// Flag indicating whether the gate operates on a single-qubit without entanglement
-  /// Returns `true` iif [qubits] contains only 1 qubit and there is no [controls] qubits
+  /// Returns `true` iif [qbits] contains only 1 qubit and there is no [controls] qubits
   bool get isUnitary =>
-      (_qubits.length == 1 && (_controls?.isEmpty ?? true)) || type.isUnitary;
+      (_qbits.length == 1 && (_controls?.isEmpty ?? true)) || type.isUnitary;
 
   /// Applies this gate on Quantum memory [qmem]
   void apply(QMemorySpace qmem) {
@@ -221,10 +222,22 @@ class QCircuitGate {
         // nothing to do
         break;
       case QGateType.measure:
-        qmem.measure(qubits: _qubits.toSet());
+        qmem.measure(qbits: _qbits.toSet());
         break;
       default:
-        qmem.applyGate(_matrix!, _qubits.toSet());
+        final m = _matrix!;
+        // Handle local 2x2 matrices applied to multiple qubits (Parallel broadcast)
+        if (m.rows == 2 && _qbits.length > 1 && (_controls?.isEmpty ?? true)) {
+          for (final q in _qbits) {
+            qmem.applyGate(m, {q});
+          }
+        } else {
+          // Combine controls and targets for local matrix application
+          final controls = _controls?.toList() ?? [];
+          final targets = _qbits.toList();
+          final allQubits = [...controls, ...targets];
+          qmem.applyGate(m, allQubits);
+        }
         break;
     }
   }

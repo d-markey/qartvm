@@ -16,7 +16,7 @@ int x = 5;
 x = 10;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['x'], equals(10));
     });
@@ -28,7 +28,7 @@ int[3] arr;
 int x = 1;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       // Check that arr is actually a list
       final arr = result.classicalVariables['arr'];
@@ -43,7 +43,7 @@ int x = 5;
 x += 3;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['x'], equals(8));
     });
@@ -55,7 +55,7 @@ int x = 10;
 x -= 3;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['x'], equals(7));
     });
@@ -67,7 +67,7 @@ int x = 5;
 x *= 2;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       expect(result.classicalVariables['x'], equals(10));
     });
@@ -81,7 +81,7 @@ arr[1] = 20;
 arr[2] = 30;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[0], equals(10));
@@ -99,7 +99,7 @@ arr[2] = 15;
 arr[1] += 5;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[0], equals(5));
@@ -117,7 +117,7 @@ arr[2] = 30;
 arr[1] -= 5;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[1], equals(15));
@@ -133,7 +133,7 @@ arr[2] = 4;
 arr[1] *= 5;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[1], equals(15));
@@ -150,7 +150,7 @@ arr[2] = 30;
 arr[idx] = 99;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[0], equals(10));
@@ -167,7 +167,7 @@ for int i in [0:4] {
 }
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[0], equals(0));
@@ -189,7 +189,7 @@ arr[2] -= 5;
 arr[3] *= 2;
 ''';
       final program = OpenQASMParser.parse(source);
-      final result = await interpreter.execute(program);
+      final result = (await interpreter.execute(program))[0];
 
       final arr = result.classicalVariables['arr'] as List<dynamic>;
       expect(arr[0], equals(100));

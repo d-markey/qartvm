@@ -18,8 +18,8 @@ class InvalidOperationException extends _BaseException {
 }
 
 /// Error thrown when a qubit is invalid
-class InvalidQubitError extends Error implements _BaseException {
-  InvalidQubitError([String? message]) : message = message ?? '';
+class InvalidQbitError extends Error implements _BaseException {
+  InvalidQbitError([String? message]) : message = message ?? '';
 
   @override
   final String message;

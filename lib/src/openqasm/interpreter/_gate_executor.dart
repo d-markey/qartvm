@@ -5,15 +5,16 @@ import '../../qcircuit.dart';
 import '../../qgate_builder.dart';
 import '../../qmemory_space.dart';
 import '../../qregister.dart';
+import '../../qstate.dart';
 import '../parser/ast_nodes.dart';
-import '_execution_context.dart';
 import '_expression_evaluator.dart';
+import '_state_context.dart';
 import 'exceptions.dart';
 
 /// Base class for calling a quantum gate.
 abstract class GateExecutor {
-  Future<void> execute(List<int> qubits, List<num>? params);
-  Future<void> inverse(List<int> qubits, List<num>? params);
+  Future<void> execute(List<QbitAddress> qbits, List<num>? params);
+  Future<void> inverse(List<QbitAddress> qbits, List<num>? params);
 
   String get name;
 }
@@ -29,16 +30,16 @@ abstract class BuiltInGateExecutor implements GateExecutor {
   @override
   final String name;
 
-  final FutureOr<void> Function(List<int>, List<num>?) executor;
-  final FutureOr<void> Function(List<int>, List<num>?) inversor;
+  final FutureOr<void> Function(List<QbitAddress>, List<num>?) executor;
+  final FutureOr<void> Function(List<QbitAddress>, List<num>?) inversor;
 
   @override
-  Future<void> execute(List<int> qubits, List<num>? params) async =>
-      executor(qubits, params);
+  Future<void> execute(List<QbitAddress> qbits, List<num>? params) async =>
+      executor(qbits, params);
 
   @override
-  Future<void> inverse(List<int> qubits, List<num>? params) async =>
-      inversor(qubits, params);
+  Future<void> inverse(List<QbitAddress> qbits, List<num>? params) async =>
+      inversor(qbits, params);
 }
 
 /// Class for calling a custom quantum gate.
@@ -51,21 +52,20 @@ class CustomGateExecutor implements GateExecutor {
   );
 
   final GateStatement gateDef;
-  final ExecutionContext context;
+  final StateContext context;
   final ExpressionEvaluator evaluator;
-  final Future<void> Function(List<Statement>, ExecutionContext)
-  statementExecutor;
+  final Future<void> Function(List<Statement>, StateContext) statementExecutor;
 
   @override
   String get name => gateDef.name;
 
   @override
-  Future<void> execute(List<int> qubits, List<num>? params) async {
+  Future<void> execute(List<QbitAddress> qbits, List<num>? params) async {
     // Validate qubit count matches gate definition
-    if (gateDef.qubits.length != qubits.length) {
+    if (gateDef.qubits.length != qbits.length) {
       throw GateExecutionException(
         'Gate "${gateDef.name}" expects ${gateDef.qubits.length} qubit(s), '
-        'but ${qubits.length} were provided',
+        'but ${qbits.length} were provided',
       );
     }
 
@@ -95,7 +95,7 @@ class CustomGateExecutor implements GateExecutor {
       // Bind gate qubits to the provided qubit addresses
       for (int i = 0; i < gateDef.qubits.length; i++) {
         final qubitName = gateDef.qubits[i];
-        final qubitAddress = qubits[i];
+        final qubitAddress = qbits[i];
         // Create a single-qubit register for the parameter
         final register = QRegisterImpl.ctor(qubitName, context.quantumMemory!, [
           qubitAddress,
@@ -112,7 +112,7 @@ class CustomGateExecutor implements GateExecutor {
   }
 
   @override
-  Future<void> inverse(List<int> qubits, List<num>? params) async {
+  Future<void> inverse(List<QbitAddress> qbits, List<num>? params) async {
     // TODO: check that the body only uses gates and play them in reverse order
     // TODO: throw if the definition includes measures, resets, or control-flow statements
   }
@@ -124,7 +124,7 @@ class CustomGateExecutor implements GateExecutor {
 /// It handles both regular ctrl and negated ctrl modifiers.
 class ControlledGateExecutor implements GateExecutor {
   final GateExecutor innerExecutor;
-  final List<int> controlQubits;
+  final List<QbitAddress> controlQubits;
   final bool isNegated;
   final QMemorySpace qmem;
   final int controlCount;
@@ -141,14 +141,15 @@ class ControlledGateExecutor implements GateExecutor {
   String get name => 'ctrl_${innerExecutor.name}';
 
   @override
-  Future<void> execute(List<int> qubits, List<num>? params) async {
-    if (qubits.isEmpty) {
+  Future<void> execute(List<QbitAddress> qbits, List<num>? params) async {
+    if (qbits.isEmpty) {
       throw GateExecutionException(
         'Controlled gate requires at least 1 target qubit',
       );
     }
 
-    final gateBuilder = QGateBuilder.get(qmem.size, withCache: false);
+    final useCache = qmem.size <= 20;
+    final gateBuilder = QGateBuilder.get(qmem.size, withCache: useCache);
     final circuit = QCircuit(gateBuilder);
 
     // For negated controls, flip the control qubits before and after
@@ -161,7 +162,7 @@ class ControlledGateExecutor implements GateExecutor {
     // Check if inner executor is a built-in gate
     // For built-in gates, we can apply directly with controls
     if (innerExecutor is BuiltInGateExecutor) {
-      _executeControlledBuiltinGate(circuit, qubits, params, controlQubits);
+      _executeControlledBuiltinGate(circuit, qbits, params, controlQubits);
     } else {
       throw GateExecutionException(
         'Gate "${innerExecutor.name}" does not support ctrl/negctrl modifiers',
@@ -179,7 +180,7 @@ class ControlledGateExecutor implements GateExecutor {
   }
 
   @override
-  Future<void> inverse(List<int> qubits, List<num>? params) async {
+  Future<void> inverse(List<QbitAddress> qbits, List<num>? params) async {
     // TODO
   }
 
@@ -187,9 +188,9 @@ class ControlledGateExecutor implements GateExecutor {
   /// This uses the QCircuit API to apply gates with control qubits.
   void _executeControlledBuiltinGate(
     QCircuit circuit,
-    List<int> targetQubits,
+    List<QbitAddress> targetQubits,
     List<num>? params,
-    List<int> controlQubits,
+    List<QbitAddress> controlQubits,
   ) {
     final gateName = innerExecutor.name.toLowerCase();
 
